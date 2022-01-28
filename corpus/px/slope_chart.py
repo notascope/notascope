@@ -8,6 +8,6 @@ df = pd.DataFrame({
 
 import plotly.express as px
 
-fig = px.bar(df, x="Fruit", y="Number Eaten", color="Contestant", barmode="stack")
+fig = px.line(df, x="Contestant", y="Number Eaten", color="Fruit")
 
 fig.show()

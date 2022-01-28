@@ -1,10 +1,10 @@
-import fileinput
+import sys
 
 op = None
 dest = False
 cost = 0
 total_cost = 0
-for line in fileinput.input():
+for line in sys.stdin:
     line=line.strip()
     if line in ("","==="):
         if cost:
@@ -22,9 +22,11 @@ for line in fileinput.input():
         dest = True
     elif op != "match" and not dest:
         print("    "+line)
-        cost += 1
-        total_cost += 1
+        increment = 0.5 if op.startswith("del") else 1
+        cost += increment
+        total_cost += increment
 
+if cost:
+    print(" ",cost)
 print("---")
-print("total cost:", total_cost)
-print("---")
+print(",".join([sys.argv[1], sys.argv[2], str(total_cost)]))
