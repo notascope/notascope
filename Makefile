@@ -26,7 +26,10 @@ $(RESULTS_DIR)/$(1)/costs.csv: $(RESULTS_DIR)/$(1)/cost/$(basename $(2))__$(base
 $(RESULTS_DIR)/$(1)/html/$(basename $(2))__$(basename $(3)).html: $(CORPUS_DIR)/$(1)/$(2) $(CORPUS_DIR)/$(1)/$(3)
 	@echo "[html]     $(1): $(2) $(3)"
 	@mkdir -p $$(dir $$@)
-	@diff -u $$+ | diff2html --su hidden --input stdin --output stdout | grep -v rtfpessoa > $$@
+	@diff -u $$+ | \
+	diff2html --su hidden --input stdin --output stdout | \
+	sed 's/<style>/<style> .d2h-file-diff{overflow-x:hidden;}/g' | \
+	grep -v rtfpessoa > $$@
 ALL += $(RESULTS_DIR)/$(1)/html/$(basename $(2))__$(basename $(3)).html
 
 endif
