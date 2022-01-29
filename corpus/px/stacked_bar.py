@@ -1,4 +1,5 @@
 import pandas as pd
+import plotly.express as px
 
 df = pd.DataFrame(
     {
@@ -8,8 +9,4 @@ df = pd.DataFrame(
     }
 )
 
-import plotly.express as px
-
 fig = px.bar(df, x="Fruit", y="Number Eaten", color="Contestant", barmode="stack")
-
-fig.show()
