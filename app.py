@@ -2,14 +2,38 @@ from dash import Dash, html, dcc, Input, Output
 import random
 import plotly.express as px
 import pandas as pd
+from sklearn.manifold import MDS
+
 
 df = pd.read_csv("results/px/costs.csv", names=["from", "to", "cost"])
-order = list(df["from"].unique())
+square = df.pivot_table(index="from", columns="to", values="cost").fillna(0)
+order = square.index
+mds = MDS(n_components=2, dissimilarity="precomputed")
+embedding = mds.fit_transform((square.values + square.values.T) / 2)
+emb_min = embedding.min() * 2
+emb_max = embedding.max() * 2
+
 app = Dash(__name__)
 
 
 app.layout = html.Div(
     [
+        dcc.Graph(
+            id="embedding",
+            figure=px.scatter(
+                embedding,
+                x=0,
+                y=1,
+                text=order,
+                range_x=[emb_min, emb_max],
+                range_y=[emb_min, emb_max],
+            )
+            .update_layout(plot_bgcolor="white")
+            .update_traces(mode="text", cliponaxis=False)
+            .update_xaxes(scaleanchor="y", scaleratio=1, constrain="domain", title="")
+            .update_yaxes(title=""),
+            style=dict(width="49%", float="right"),
+        ),
         dcc.Graph(
             id="heatmap",
             figure=px.density_heatmap(
@@ -17,11 +41,13 @@ app.layout = html.Div(
                 x="from",
                 y="to",
                 z="cost",
+                text_auto=True,
                 color_continuous_scale="reds",
                 category_orders={"from": order, "to": order},
             )
             .update_xaxes(side="top", scaleanchor="y", scaleratio=1, constrain="domain")
             .update_coloraxes(colorbar_title="cost"),
+            style=dict(width="49%"),
         ),
         html.Iframe(
             id="diff",
