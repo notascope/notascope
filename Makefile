@@ -2,28 +2,30 @@ PATH:=$(PATH):/Users/nicolas/ets/pythonparser
 PATH:=$(PATH):/Users/nicolas/ets/gumtree-3.0.0/bin
 PATH:=$(PATH):/Users/nicolas/ets/jsparser
 
-
 ALL :=
 
 define DIFF_rule # system, example, example2
 ifneq ($(2), $(3))
-results/$(1)/textdiff/$(basename $(2))__$(basename $(3)).txt: corpus/$(1)/$(2) corpus/$(1)/$(3)
+results/$(1)/gumtree/$(basename $(2))__$(basename $(3)).txt: corpus/$(1)/$(2) corpus/$(1)/$(3)
 	@echo "[gumtree]  $(1): $(2) $(3)"
 	@mkdir -p $$(dir $$@)
 	@gumtree textdiff $$+ > $$@
-ALL += results/$(1)/textdiff/$(basename $(2))__$(basename $(3)).txt
 
-results/$(1)/cost/$(basename $(2))__$(basename $(3)).txt: results/$(1)/textdiff/$(basename $(2))__$(basename $(3)).txt filter.py
+results/$(1)/cost/$(basename $(2))__$(basename $(3)).txt: results/$(1)/gumtree/$(basename $(2))__$(basename $(3)).txt filter.py
 	@echo "[cost]     $(1): $(2) $(3)"
 	@mkdir -p $$(dir $$@)
 	@cat $$< | python filter.py $(basename $(2)) $(basename $(3)) > $$@
 results/$(1)/costs.csv: results/$(1)/cost/$(basename $(2))__$(basename $(3)).txt
 
+results/$(1)/unified/$(basename $(2))__$(basename $(3)).diff: corpus/$(1)/$(2) corpus/$(1)/$(3)
+	@echo "[unified]   $(1): $(2) $(3)"
+	@mkdir -p $$(dir $$@)
+	@diff -u $$+ > $$@ || true
 
-results/$(1)/html/$(basename $(2))__$(basename $(3)).html: corpus/$(1)/$(2) corpus/$(1)/$(3)
+results/$(1)/html/$(basename $(2))__$(basename $(3)).html: results/$(1)/unified/$(basename $(2))__$(basename $(3)).diff
 	@echo "[html]     $(1): $(2) $(3)"
 	@mkdir -p $$(dir $$@)
-	@diff -u $$+ | \
+	@cat $$< | \
 	diff2html --su hidden --input stdin --output stdout | \
 	sed 's/<style>/<style> .d2h-file-diff{overflow-x:hidden;}/g' | \
 	grep -v rtfpessoa > $$@
@@ -60,4 +62,3 @@ clean:
 	rm -rf results
 
 all: $(ALL)
-
