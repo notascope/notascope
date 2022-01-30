@@ -33,6 +33,7 @@ app.layout = html.Div(
             value=s,
             options=[{"label": s, "value": s} for s in results],
             style=dict(width="200px", margin="0 auto"),
+            clearable=False,
         ),
         dcc.Graph(id="embedding", style=dict(width="49%", float="right")),
         dcc.Graph(id="heatmap", style=dict(width="49%")),
