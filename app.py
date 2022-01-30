@@ -32,7 +32,7 @@ app.layout = html.Div(
             id="system",
             value=s,
             options=[{"label": s, "value": s} for s in results],
-            style=dict(width="200px"),
+            style=dict(width="200px", margin="0 auto"),
         ),
         dcc.Graph(id="embedding", style=dict(width="49%", float="right")),
         dcc.Graph(id="heatmap", style=dict(width="49%")),
@@ -49,12 +49,8 @@ app.layout = html.Div(
     Input("heatmap", "clickData"),
 )
 def display_click_data(system, click_data):
-    if click_data:
-        from_slug = click_data["points"][0]["x"]
-        to_slug = click_data["points"][0]["y"]
-        cost = click_data["points"][0]["z"]
-    else:
-        from_slug = to_slug = ""
+
+    # default outputs
     embedding_fig = (
         px.scatter(
             results[system]["emb_df"],
@@ -82,6 +78,15 @@ def display_click_data(system, click_data):
         .update_coloraxes(colorbar_title="cost")
     )
     comparison_tree = None
+
+    if click_data:
+        from_slug = click_data["points"][0]["x"]
+        to_slug = click_data["points"][0]["y"]
+        cost = click_data["points"][0]["z"]
+    else:
+        from_slug = to_slug = ""
+
+    # add to default outputs
     if from_slug != to_slug:
         try:
             comparison_tree = [
@@ -94,8 +99,16 @@ def display_click_data(system, click_data):
                     src=f"/assets/results/{system}/png/" + to_slug + ".png", height=200
                 ),
                 html.Iframe(
-                    id="diff",
                     src=f"/assets/results/{system}/html/%s__%s.html?%f"
+                    % (
+                        from_slug,
+                        to_slug,
+                        random.random(),
+                    ),
+                    style=dict(width="100%", height="300px"),
+                ),
+                html.Iframe(
+                    src=f"/assets/results/{system}/cost/%s__%s.txt?%f"
                     % (
                         from_slug,
                         to_slug,
@@ -133,8 +146,9 @@ def display_click_data(system, click_data):
                 axref="x",
                 ayref="y",
             )
-        except:
-            pass
+        except Exception as e:
+            print(repr(e))
+            comparison_tree = None
     return comparison_tree, heatmap_fig, embedding_fig
 
 
