@@ -4,8 +4,9 @@ import plotly.express as px
 import pandas as pd
 from sklearn.manifold import MDS
 
+system = "px2"
 
-df = pd.read_csv("results/px/costs.csv", names=["from", "to", "cost"])
+df = pd.read_csv(f"results/{system}/costs.csv", names=["from", "to", "cost"])
 square = df.pivot_table(index="from", columns="to", values="cost").fillna(0)
 order = list(square.index)
 mds = MDS(n_components=2, dissimilarity="precomputed")
@@ -72,11 +73,15 @@ def display_click_data(click_data):
     if from_slug != to_slug:
         comparison_tree = [
             html.H3("%s -> %s, cost=%.1f" % (from_slug, to_slug, cost)),
-            html.Img(src="/assets/results/px/png/" + from_slug + ".png", height=200),
-            html.Img(src="/assets/results/px/png/" + to_slug + ".png", height=200),
+            html.Img(
+                src=f"/assets/results/{system}/png/" + from_slug + ".png", height=200
+            ),
+            html.Img(
+                src=f"/assets/results/{system}/png/" + to_slug + ".png", height=200
+            ),
             html.Iframe(
                 id="diff",
-                src="/assets/results/px/html/%s__%s.html?%f"
+                src=f"/assets/results/{system}/html/%s__%s.html?%f"
                 % (
                     from_slug,
                     to_slug,
