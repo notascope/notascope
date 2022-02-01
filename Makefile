@@ -41,7 +41,7 @@ $(foreach example2, $(shell ls corpus/$(1)), $(eval $(call DIFF_rule,$(1),$(2),$
 results/$(1)/png/$(basename $(2)).png: corpus/$(1)/$(2)
 	@echo "[png]      $(1): $(2)"
 	@mkdir -p $$(dir $$@)
-	@scripts/$(1)/save.sh $$< $$@
+	@scripts/$(1).sh $$< $$@
 ALL += results/$(1)/png/$(basename $(2)).png
 
 endef

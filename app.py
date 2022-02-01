@@ -2,8 +2,11 @@ from dash import Dash, html, dcc, Input, Output
 import random
 import plotly.express as px
 import pandas as pd
+import numpy as np
 from sklearn.manifold import MDS
 import os
+
+np.random.seed(1)
 
 results = dict()
 for s in [d for d in os.listdir("./results")]:
@@ -60,7 +63,7 @@ def display_click_data(system, click_data):
             text=results[system]["emb_df"].index,
         )
         .update_traces(mode="text", cliponaxis=False)
-        .update_xaxes(scaleanchor="y", scaleratio=1, constrain="domain")
+        .update_xaxes(scaleanchor="y", scaleratio=1, constrain="range")
     )
     heatmap_fig = (
         px.density_heatmap(
