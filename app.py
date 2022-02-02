@@ -68,8 +68,8 @@ def display_click_data(system, click_data):
     heatmap_fig = (
         px.density_heatmap(
             results[system]["df"],
-            x="from",
-            y="to",
+            y="from",
+            x="to",
             z="cost",
             text_auto=True,
             color_continuous_scale="reds",
@@ -84,8 +84,8 @@ def display_click_data(system, click_data):
     comparison_tree = None
 
     if click_data:
-        from_slug = click_data["points"][0]["x"]
-        to_slug = click_data["points"][0]["y"]
+        from_slug = click_data["points"][0]["y"]
+        to_slug = click_data["points"][0]["x"]
         cost = click_data["points"][0]["z"]
     else:
         from_slug = to_slug = ""
@@ -124,17 +124,17 @@ def display_click_data(system, click_data):
             from_row = results[system]["emb_df"].loc[from_slug]
             to_row = results[system]["emb_df"].loc[to_slug]
 
-            from_index = results[system]["order"].index(from_slug)
-            to_index = (
+            to_index = results[system]["order"].index(to_slug)
+            from_index = (
                 len(results[system]["order"])
-                - results[system]["order"].index(to_slug)
+                - results[system]["order"].index(from_slug)
                 - 1
             )
             heatmap_fig.add_shape(
-                x0=from_index - 0.5,
-                x1=from_index + 0.5,
-                y0=to_index - 0.5,
-                y1=to_index + 0.5,
+                y0=from_index - 0.5,
+                y1=from_index + 0.5,
+                x0=to_index - 0.5,
+                x1=to_index + 0.5,
                 line_color="cyan",
                 line_width=5,
             )

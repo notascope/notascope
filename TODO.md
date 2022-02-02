@@ -4,4 +4,4 @@
 - Reordering of matrix based on communities
 - TSP walk through examples
 - Nearest neighbour walk around for nodes
-
+- minimum spanning tree

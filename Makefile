@@ -1,4 +1,3 @@
-PATH:=$(PATH):/Users/nicolas/ets/pythonparser
 PATH:=$(PATH):/Users/nicolas/ets/gumtree-3.0.0/bin
 PATH:=$(PATH):/Users/nicolas/ets/jsparser
 
@@ -9,7 +8,7 @@ ifneq ($(2), $(3))
 results/$(1)/gumtree/$(basename $(2))__$(basename $(3)).txt: corpus/$(1)/$(2) corpus/$(1)/$(3)
 	@echo "[gumtree]  $(1): $(2) $(3)"
 	@mkdir -p $$(dir $$@)
-	@gumtree textdiff $$+ > $$@
+	@gumtree -C gt.pp.path `pwd`/pythonparser textdiff $$+ > $$@
 
 results/$(1)/cost/$(basename $(2))__$(basename $(3)).txt: results/$(1)/gumtree/$(basename $(2))__$(basename $(3)).txt filter.py
 	@echo "[cost]     $(1): $(2) $(3)"
