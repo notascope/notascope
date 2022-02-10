@@ -26,7 +26,7 @@ for s in [d for d in os.listdir("./results")]:
     )
 
 
-app = Dash(__name__)
+app = Dash(__name__, title="EditDist")
 
 
 app.layout = html.Div(
@@ -38,8 +38,14 @@ app.layout = html.Div(
             style=dict(width="200px", margin="0 auto"),
             clearable=False,
         ),
-        dcc.Graph(id="embedding", style=dict(width="49%", float="right")),
-        dcc.Graph(id="heatmap", style=dict(width="49%")),
+        dcc.Graph(
+            id="embedding",
+            style=dict(width="49%", float="right"),
+            config={"displayModeBar": False},
+        ),
+        dcc.Graph(
+            id="heatmap", style=dict(width="49%"), config={"displayModeBar": False}
+        ),
         html.Div(id="comparison", style=dict(textAlign="center")),
     ],
 )
@@ -62,7 +68,9 @@ def display_click_data(system, click_data):
             y="y",
             text=results[system]["emb_df"].index,
         )
-        .update_traces(mode="text", cliponaxis=False)
+        .update_traces(
+            mode="text", cliponaxis=False, hoverinfo="skip", hovertemplate=None
+        )
         .update_xaxes(scaleanchor="y", scaleratio=1, constrain="range")
     )
     heatmap_fig = (
@@ -78,29 +86,34 @@ def display_click_data(system, click_data):
                 "to": results[system]["order"],
             },
         )
+        .update_traces(hovertemplate="%{x} ➞ %{y} = %{z}")
         .update_xaxes(side="top", scaleanchor="y", scaleratio=1, constrain="domain")
-        .update_coloraxes(colorbar_title="cost")
+        .update_coloraxes(showscale=False)
     )
     comparison_tree = None
 
     if click_data:
         from_slug = click_data["points"][0]["y"]
         to_slug = click_data["points"][0]["x"]
-        cost = click_data["points"][0]["z"]
     else:
         from_slug = to_slug = ""
 
     # add to default outputs
     if from_slug != to_slug:
         try:
+            df = results[system]["df"]
+            row = df[(df["from"] == from_slug) & (df["to"] == to_slug)]
+            cost = row["cost"].values[0]
             comparison_tree = [
-                html.H3("%s -> %s, cost=%.1f" % (from_slug, to_slug, cost)),
+                html.H3("%s ➞ %s = %.1f" % (from_slug, to_slug, cost)),
                 html.Img(
                     src=f"/assets/results/{system}/png/" + from_slug + ".png",
-                    height=200,
+                    style=dict(verticalAlign="middle", height="250px"),
                 ),
+                html.Span("➞", style=dict(margin="20px")),
                 html.Img(
-                    src=f"/assets/results/{system}/png/" + to_slug + ".png", height=200
+                    src=f"/assets/results/{system}/png/" + to_slug + ".png",
+                    style=dict(verticalAlign="middle", height="250px"),
                 ),
                 html.Iframe(
                     src=f"/assets/results/{system}/html/%s__%s.html?%f"

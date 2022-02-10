@@ -1,7 +1,7 @@
 - `/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --headless --screenshot="/Users/nicolas/Downloads/test.png" "https://google.com/"` for the JS-based ones?
 - Histogram of distances
 - Clustering of examples
-- Reordering of matrix based on communities
+- Reordering of matrix based on communities -> seriate, switch to xarray, do this and MDS in the makefile
 - TSP walk through examples
 - Nearest neighbour walk around for nodes
 - minimum spanning tree

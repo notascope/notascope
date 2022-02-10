@@ -11,6 +11,7 @@ for line in sys.stdin:
             print(" ", cost)
         op = None
         dest = False
+        total_cost += cost
         cost = 0
     elif line == "---":
         pass
@@ -22,11 +23,19 @@ for line in sys.stdin:
         dest = True
     elif op != "match" and not dest:
         print("    " + line)
-        increment = 0.5 if op.startswith("del") else 1
-        cost += increment
-        total_cost += increment
+        if op.startswith("del"):
+            cost = 1
+        elif op.startswith("move"):
+            cost = 1
+        elif op == "insert-node":
+            cost = 1
+        elif op == "update-node":
+            cost = 1
+        else:
+            cost += 1
 
 if cost:
     print(" ", cost)
+    total_cost += cost
 print("---")
 print(",".join([sys.argv[1], sys.argv[2], str(total_cost)]))

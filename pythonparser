@@ -20,13 +20,15 @@ def nth_line_pos(n):
 
 def ast_visit(node, doc):
     doc_node = doc.createElement("tree")
-    doc_node.setAttribute("type", type(node).__name__)
+    type_name = type(node).__name__
+    for x in ["op", "ctx"]:
+        if hasattr(node, x) and isinstance(getattr(node, x), ast.AST):
+            type_name += "_" + type(getattr(node, x)).__name__
+    doc_node.setAttribute("type", type_name)
 
     for x in ["id", "attr", "arg", "value"]:
         if hasattr(node, x) and isinstance(getattr(node, x), (str, int, float)):
             doc_node.setAttribute("label", str(getattr(node, x)))
-    if hasattr(node, "op") and isinstance(node.op, ast.AST):
-        doc_node.setAttribute("label", type(node.op).__name__)
 
     if hasattr(node, "lineno"):
         start = nth_line_pos(node.lineno) + node.col_offset
