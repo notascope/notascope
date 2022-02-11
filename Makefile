@@ -36,6 +36,11 @@ endef
 define EXAMPLE_rule # system, example
 $(foreach example2, $(shell ls corpus/$(1)), $(eval $(call DIFF_rule,$(1),$(2),$(example2))))
 
+results/$(1)/source/$(basename $(2)).txt: corpus/$(1)/$(2)
+	@echo "[source]   $(1): $(2)"
+	@mkdir -p $$(dir $$@)
+	@cp $$< $$@
+ALL += results/$(1)/source/$(basename $(2)).txt
 
 results/$(1)/png/$(basename $(2)).png: corpus/$(1)/$(2)
 	@echo "[png]      $(1): $(2)"

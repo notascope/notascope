@@ -3,3 +3,4 @@ results
 .ipynb_checkpoints
 Untitled*ipynb
 Rplots.pdf
+.pytest_cache

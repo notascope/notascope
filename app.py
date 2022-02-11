@@ -85,6 +85,8 @@ def display_click_data(system, click_data):
                 "from": results[system]["order"],
                 "to": results[system]["order"],
             },
+            range_x=[-0.5, len(results[system]["order"]) - 0.5],
+            range_y=[-0.5, len(results[system]["order"]) - 0.5],
         )
         .update_traces(hovertemplate="%{x} ➞ %{y} = %{z}")
         .update_xaxes(side="top", scaleanchor="y", scaleratio=1, constrain="domain")
@@ -95,6 +97,22 @@ def display_click_data(system, click_data):
     if click_data:
         from_slug = click_data["points"][0]["y"]
         to_slug = click_data["points"][0]["x"]
+        from_row = results[system]["emb_df"].loc[from_slug]
+        to_row = results[system]["emb_df"].loc[to_slug]
+        to_index = results[system]["order"].index(to_slug)
+        from_index = (
+            len(results[system]["order"])
+            - results[system]["order"].index(from_slug)
+            - 1
+        )
+        heatmap_fig.add_shape(
+            y0=from_index - 0.5,
+            y1=from_index + 0.5,
+            x0=to_index - 0.5,
+            x1=to_index + 0.5,
+            line_color="cyan",
+            line_width=5,
+        )
     else:
         from_slug = to_slug = ""
 
@@ -134,23 +152,7 @@ def display_click_data(system, click_data):
                     style=dict(width="100%", height="500px"),
                 ),
             ]
-            from_row = results[system]["emb_df"].loc[from_slug]
-            to_row = results[system]["emb_df"].loc[to_slug]
 
-            to_index = results[system]["order"].index(to_slug)
-            from_index = (
-                len(results[system]["order"])
-                - results[system]["order"].index(from_slug)
-                - 1
-            )
-            heatmap_fig.add_shape(
-                y0=from_index - 0.5,
-                y1=from_index + 0.5,
-                x0=to_index - 0.5,
-                x1=to_index + 0.5,
-                line_color="cyan",
-                line_width=5,
-            )
             embedding_fig.add_annotation(
                 x=to_row.x,
                 y=to_row.y,
@@ -166,6 +168,20 @@ def display_click_data(system, click_data):
         except Exception as e:
             print(repr(e))
             comparison_tree = None
+    elif from_slug != "":
+        comparison_tree = [
+            html.H3(from_slug),
+            html.Img(
+                src=f"/assets/results/{system}/png/" + from_slug + ".png",
+                style=dict(verticalAlign="middle", height="250px"),
+            ),
+            html.Iframe(
+                src=f"/assets/results/{system}/source/%s.txt?%f"
+                % (from_slug, random.random()),
+                style=dict(width="100%", height="300px"),
+            ),
+        ]
+
     return comparison_tree, heatmap_fig, embedding_fig
 
 
