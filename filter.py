@@ -38,4 +38,7 @@ if cost:
     print(" ", cost)
     total_cost += cost
 print("---")
-print(",".join([sys.argv[1], sys.argv[2], str(total_cost)]))
+_, from_slug, to_slug, system = sys.argv
+print(
+    ",".join([from_slug, to_slug, system, from_slug + "__" + to_slug, str(total_cost)])
+)

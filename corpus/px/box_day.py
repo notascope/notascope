@@ -2,5 +2,5 @@ import plotly.express as px
 
 df = px.data.tips()
 
-fig = px.violin(df, x="total_bill")
+fig = px.box(df, x="total_bill", color="day")
 fig

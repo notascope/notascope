@@ -13,7 +13,7 @@ results/$(1)/gumtree/$(basename $(2))__$(basename $(3)).txt: corpus/$(1)/$(2) co
 results/$(1)/cost/$(basename $(2))__$(basename $(3)).txt: results/$(1)/gumtree/$(basename $(2))__$(basename $(3)).txt filter.py
 	@echo "[cost]     $(1): $(2) $(3)"
 	@mkdir -p $$(dir $$@)
-	@cat $$< | python filter.py $(basename $(2)) $(basename $(3)) > $$@
+	@cat $$< | python filter.py $(basename $(2)) $(basename $(3)) $(1) > $$@
 results/$(1)/costs.csv: results/$(1)/cost/$(basename $(2))__$(basename $(3)).txt
 
 results/$(1)/unified/$(basename $(2))__$(basename $(3)).diff: corpus/$(1)/$(2) corpus/$(1)/$(3)
