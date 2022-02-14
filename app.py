@@ -28,7 +28,7 @@ for s in [d for d in os.listdir("./results")]:
     )
 
 
-app = Dash(__name__, title="EditDist")
+app = Dash(__name__, title="NotaScope")
 
 
 app.layout = html.Div(
