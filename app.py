@@ -147,12 +147,16 @@ def display_click_data(system, selection_data):
                 html.H3("%s ➞ %s = %.1f" % (from_slug, to_slug, cost)),
                 html.Img(
                     src=f"/assets/results/{system}/png/" + from_slug + ".png",
-                    style=dict(verticalAlign="middle", maxHeight="250px"),
+                    style=dict(
+                        verticalAlign="middle", maxHeight="250px", maxWidth="20vw"
+                    ),
                 ),
                 html.Span("➞", style=dict(margin="20px")),
                 html.Img(
                     src=f"/assets/results/{system}/png/" + to_slug + ".png",
-                    style=dict(verticalAlign="middle", maxHeight="250px"),
+                    style=dict(
+                        verticalAlign="middle", maxHeight="250px", maxWidth="20vw"
+                    ),
                 ),
                 html.Iframe(
                     src=f"/assets/results/{system}/html/%s__%s.html?%f"
@@ -183,7 +187,9 @@ def display_click_data(system, selection_data):
                 html.H3(from_slug),
                 html.Img(
                     src=f"/assets/results/{system}/png/" + from_slug + ".png",
-                    style=dict(verticalAlign="middle", maxHeight="250px"),
+                    style=dict(
+                        verticalAlign="middle", maxHeight="250px", maxWidth="20vw"
+                    ),
                 ),
                 html.Iframe(
                     src=f"/assets/results/{system}/source/%s.txt?%f"
