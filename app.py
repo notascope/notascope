@@ -1,10 +1,12 @@
-from dash import Dash, html, dcc, Input, Output
+from dash import Dash, html, dcc, Input, Output, callback_context
 import random
 import plotly.express as px
 import pandas as pd
 import numpy as np
 from sklearn.manifold import MDS
 import os
+import dash_cytoscape as cyto
+
 
 np.random.seed(1)
 
@@ -21,8 +23,33 @@ for s in [d for d in os.listdir("./results") if os.path.isdir("./results/" + d)]
     emb_max += emb_span / 2
     emb_min -= emb_span / 2
     emb_df = pd.DataFrame(embedding, index=order, columns=["x", "y"])
+
+    square = np.maximum(square.values, square.values.T)
+    edges = []
+    for i in range(len(square)):
+        for j in range(len(square)):
+            if i >= j:
+                continue
+            has_k = False
+            direct = square[i, j]
+            for k in range(len(square)):
+                if k == i or k == j:
+                    continue
+                via_k = square[i, k] + square[k, j]
+                if (via_k - direct) / direct < 0.05:
+                    has_k = True
+                    break
+            if not has_k:
+                edges.append((i, j, direct))
+
     results[s] = dict(
-        df=df, emb_df=emb_df, emb_min=emb_min, emb_max=emb_max, order=order
+        df=df,
+        emb_df=emb_df,
+        emb_min=emb_min,
+        emb_max=emb_max,
+        order=order,
+        edges=edges,
+        emb_span=emb_span,
     )
 
 
@@ -38,67 +65,77 @@ app.layout = html.Div(
             style=dict(width="200px", margin="0 auto"),
             clearable=False,
         ),
-        dcc.Graph(
-            id="embedding",
-            style=dict(width="49%", float="right"),
-            config={"displayModeBar": False},
+        cyto.Cytoscape(
+            id="network",
+            layout={"name": "preset"},
+            minZoom=0.3,
+            maxZoom=2,
+            style=dict(height="700px", width="700px", float="left"),
         ),
-        dcc.Graph(
-            id="heatmap", style=dict(width="49%"), config={"displayModeBar": False}
+        html.Div(
+            id="comparison",
+            style=dict(textAlign="center", width="calc(100% - 750px)", float="right"),
         ),
-        html.Div(id="comparison", style=dict(textAlign="center")),
+        dcc.Store(id="selection", data=["", ""]),
     ],
 )
 
 
 @app.callback(
-    Output("comparison", "children"),
-    Output("heatmap", "figure"),
-    Output("embedding", "figure"),
-    Input("system", "value"),
-    Input("heatmap", "clickData"),
+    Output("selection", "data"),
+    Output("network", "tapNodeData"),
+    Output("network", "tapEdgeData"),
+    Input("network", "tapNodeData"),
+    Input("network", "tapEdgeData"),
 )
-def display_click_data(system, click_data):
+def display_click_data(node_data, edge_data):
+    ctx = callback_context
 
+    from_slug = to_slug = ""
+    if ctx.triggered:
+        click_type = ctx.triggered[0]["prop_id"].split(".")[1]
+
+        if click_type == "tapNodeData":
+            from_slug = to_slug = node_data["id"]
+            edge_data = None
+        if click_type == "tapEdgeData":
+            from_slug = edge_data["source"]
+            to_slug = edge_data["target"]
+            node_data = None
+
+    return [from_slug, to_slug], node_data, edge_data
+
+
+@app.callback(
+    Output("comparison", "children"),
+    Output("network", "elements"),
+    Input("system", "value"),
+    Input("selection", "data"),
+)
+def display_click_data(system, selection_data):
+    from_slug, to_slug = selection_data
+    order = results[system]["order"]
     # default outputs
-    embedding_fig = (
-        px.scatter(
-            results[system]["emb_df"],
-            x="x",
-            y="y",
-            text=results[system]["emb_df"].index,
-        )
-        .update_traces(
-            mode="text", cliponaxis=False, hoverinfo="skip", hovertemplate=None
-        )
-        .update_xaxes(scaleanchor="y", scaleratio=1, constrain="range")
-    )
-    heatmap_fig = (
-        px.density_heatmap(
-            results[system]["df"],
-            y="from",
-            x="to",
-            z="cost",
-            text_auto=True,
-            color_continuous_scale="reds",
-            category_orders={
-                "from": results[system]["order"],
-                "to": results[system]["order"],
-            },
-            range_x=[-0.5, len(results[system]["order"]) - 0.5],
-            range_y=[-0.5, len(results[system]["order"]) - 0.5],
-        )
-        .update_traces(hovertemplate="%{x} ➞ %{y} = %{z}")
-        .update_xaxes(side="top", scaleanchor="y", scaleratio=1, constrain="domain")
-        .update_coloraxes(showscale=False)
-    )
     comparison_tree = None
-
-    if click_data:
-        from_slug = click_data["points"][0]["y"]
-        to_slug = click_data["points"][0]["x"]
-    else:
-        from_slug = to_slug = ""
+    network_elements = []
+    emb_span = results[system]["emb_span"]
+    for i, row in results[system]["emb_df"].iterrows():
+        network_elements.append(
+            {
+                "data": {"id": i, "label": i},
+                "position": {x: row[x] * 1000 / emb_span for x in ["x", "y"]},
+            }
+        )
+    for i, j, _ in results[system]["edges"]:
+        network_elements.append(
+            {
+                "data": {
+                    "source": order[i],
+                    "target": order[j],
+                    "id": order[i] + "__" + order[j],
+                }
+            }
+        )
 
     # add to default outputs
     if from_slug != to_slug:
@@ -133,38 +170,10 @@ def display_click_data(system, click_data):
                         to_slug,
                         random.random(),
                     ),
-                    style=dict(width="100%", height="500px"),
+                    style=dict(width="100%", height="300px"),
                 ),
             ]
 
-            from_row = results[system]["emb_df"].loc[from_slug]
-            to_row = results[system]["emb_df"].loc[to_slug]
-            to_index = results[system]["order"].index(to_slug)
-            from_index = (
-                len(results[system]["order"])
-                - results[system]["order"].index(from_slug)
-                - 1
-            )
-            heatmap_fig.add_shape(
-                y0=from_index - 0.5,
-                y1=from_index + 0.5,
-                x0=to_index - 0.5,
-                x1=to_index + 0.5,
-                line_color="cyan",
-                line_width=5,
-            )
-            embedding_fig.add_annotation(
-                x=to_row.x,
-                y=to_row.y,
-                ax=from_row.x,
-                ay=from_row.y,
-                arrowhead=2,
-                arrowsize=2,
-                standoff=10,
-                startstandoff=10,
-                axref="x",
-                ayref="y",
-            )
         except Exception as e:
             print(repr(e))
             comparison_tree = None
@@ -182,27 +191,11 @@ def display_click_data(system, click_data):
                     style=dict(width="100%", height="300px"),
                 ),
             ]
-            from_row = results[system]["emb_df"].loc[from_slug]
-            to_row = results[system]["emb_df"].loc[to_slug]
-            to_index = results[system]["order"].index(to_slug)
-            from_index = (
-                len(results[system]["order"])
-                - results[system]["order"].index(from_slug)
-                - 1
-            )
-            heatmap_fig.add_shape(
-                y0=from_index - 0.5,
-                y1=from_index + 0.5,
-                x0=to_index - 0.5,
-                x1=to_index + 0.5,
-                line_color="cyan",
-                line_width=5,
-            )
         except Exception as e:
             print(repr(e))
             comparison_tree = None
 
-    return comparison_tree, heatmap_fig, embedding_fig
+    return comparison_tree, network_elements
 
 
 if __name__ == "__main__":
