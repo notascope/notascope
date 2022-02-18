@@ -9,10 +9,8 @@ import os
 np.random.seed(1)
 
 results = dict()
-for s in [d for d in os.listdir("./results")]:
-    df = pd.read_csv(
-        f"results/{s}/costs.csv", names=["from", "to", "system", "edge", "cost"]
-    )
+for s in [d for d in os.listdir("./results") if os.path.isdir("./results/" + d)]:
+    df = pd.read_csv(f"results/{s}/costs.csv", names=["system", "from", "to", "cost"])
     square = df.pivot_table(index="from", columns="to", values="cost").fillna(0)
     order = list(square.index)
     mds = MDS(n_components=2, dissimilarity="precomputed")

@@ -2,6 +2,7 @@ PATH:=$(PATH):/Users/nicolas/ets/gumtree-3.0.0/bin
 PATH:=$(PATH):/Users/nicolas/ets/jsparser
 
 ALL :=
+COSTS :=
 
 define DIFF_rule # system, example, example2
 ifneq ($(2), $(3))
@@ -13,7 +14,7 @@ results/$(1)/gumtree/$(basename $(2))__$(basename $(3)).txt: corpus/$(1)/$(2) co
 results/$(1)/cost/$(basename $(2))__$(basename $(3)).txt: results/$(1)/gumtree/$(basename $(2))__$(basename $(3)).txt filter.py
 	@echo "[cost]     $(1): $(2) $(3)"
 	@mkdir -p $$(dir $$@)
-	@cat $$< | python filter.py $(basename $(2)) $(basename $(3)) $(1) > $$@
+	@cat $$< | python filter.py $(1) $(basename $(2)) $(basename $(3)) > $$@
 results/$(1)/costs.csv: results/$(1)/cost/$(basename $(2))__$(basename $(3)).txt
 
 results/$(1)/unified/$(basename $(2))__$(basename $(3)).diff: corpus/$(1)/$(2) corpus/$(1)/$(3)
@@ -57,10 +58,16 @@ results/$(1)/costs.csv:
 	@echo "[cost]     $(1)"
 	@mkdir -p $$(dir $$@)
 	@tail -q -n1 $$+ > $$@
-ALL += results/$(1)/costs.csv
+results/costs.csv: results/$(1)/costs.csv
 endef
 
 $(foreach system,$(shell ls corpus),$(eval $(call SYSTEM_rule,$(system))))
+
+results/costs.csv:
+	@echo "[cost]     all"
+	@mkdir -p $(dir $@)
+	@cat $+ > $@
+ALL += results/costs.csv
 
 clean:
 	rm -rf results
