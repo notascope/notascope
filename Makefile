@@ -1,5 +1,7 @@
 PATH:=$(PATH):/Users/nicolas/ets/gumtree-3.0.0/bin
-PATH:=$(PATH):/Users/nicolas/ets/jsparser
+#PATH:=$(PATH):/Users/nicolas/ets/gumtree/dist/build/install/gumtree/bin
+#PATH:=$(PATH):/Users/nicolas/ets/jsparser
+#PATH:=$(PATH):/Users/nicolas/ets/tree-sitter-parser
 
 ALL :=
 COSTS :=
@@ -73,3 +75,6 @@ clean:
 	rm -rf results
 
 all: $(ALL)
+
+reload: all
+	touch app.py

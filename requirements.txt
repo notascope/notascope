@@ -1,1 +1,12 @@
+pandas
+numpy
+scikit-learn
+plotly
+dash
+dash-cytoscape
+tree_sitter
 parso
+seaborn
+altair
+altair_saver
+kaleido

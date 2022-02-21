@@ -7,7 +7,7 @@ from sklearn.manifold import MDS
 import os
 import dash_cytoscape as cyto
 
-
+print("start", np.random.randint(100))
 np.random.seed(1)
 
 results = dict()
@@ -70,11 +70,11 @@ app.layout = html.Div(
             layout={"name": "preset"},
             minZoom=0.3,
             maxZoom=2,
-            style=dict(height="700px", width="700px", float="left"),
+            style=dict(height="45vw", width="45vw", float="left"),
         ),
         html.Div(
             id="comparison",
-            style=dict(textAlign="center", width="calc(100% - 750px)", float="right"),
+            style=dict(textAlign="center", width="45vw", float="right"),
         ),
         dcc.Store(id="selection", data=["", ""]),
     ],
