@@ -32,7 +32,11 @@ def precompute():
         for i, row in emb_df.iterrows():
             network_elements.append(
                 {
-                    "data": {"id": i, "label": i},
+                    "data": {
+                        "id": i,
+                        "label": i,
+                        "url": f"/assets/results/{s}/png/{i}.png",
+                    },
                     "position": {c: row[c] * 1000 / emb_span for c in ["x", "y"]},
                 }
             )
@@ -82,18 +86,87 @@ app.layout = html.Div(
             style=dict(width="200px", margin="0 auto"),
             clearable=False,
         ),
-        cyto.Cytoscape(
-            id="network",
-            layout={"name": "preset"},
-            minZoom=0.3,
-            maxZoom=2,
-            style=dict(height="45vw", width="45vw", float="left"),
-        ),
-        html.Div(
-            id="comparison",
-            style=dict(textAlign="center", width="45vw", float="right"),
+        dcc.Dropdown(
+            id="system2",
+            options=[{"label": s, "value": s} for s in results],
+            style=dict(width="200px", margin="0 auto"),
+            clearable=True,
         ),
         dcc.Store(id="selection", data=["", ""]),
+        html.Div(
+            [
+                cyto.Cytoscape(
+                    id="network",
+                    layout={"name": "preset"},
+                    minZoom=0.3,
+                    maxZoom=2,
+                    style=dict(
+                        height="35vw",
+                        width="45vw",
+                        float="left",
+                        border="1px solid black",
+                    ),
+                    stylesheet=[
+                        {
+                            "selector": "node",
+                            "style": {
+                                "width": 50,
+                                "height": 50,
+                                "shape": "rectangle",
+                                "background-fit": "cover",
+                                "background-image": "data(url)",
+                                "label": "data(label)",
+                                "border-color": "grey",
+                                "border-width": 1,
+                            },
+                        },
+                        {"selector": "edge", "style": {"line-color": "grey"}},
+                    ],
+                ),
+                html.Div(
+                    id="comparison",
+                    style=dict(textAlign="center", width="45vw", float="right"),
+                ),
+            ],
+            id="output1",
+        ),
+        html.Div(
+            [
+                cyto.Cytoscape(
+                    id="network2",
+                    layout={"name": "preset"},
+                    minZoom=0.3,
+                    maxZoom=2,
+                    style=dict(
+                        height="35vw",
+                        width="45vw",
+                        float="left",
+                        border="1px solid black",
+                    ),
+                    stylesheet=[
+                        {
+                            "selector": "node",
+                            "style": {
+                                "width": 50,
+                                "height": 50,
+                                "shape": "rectangle",
+                                "background-fit": "cover",
+                                "background-image": "data(url)",
+                                "label": "data(label)",
+                                "border-color": "grey",
+                                "border-width": 1,
+                            },
+                        },
+                        {"selector": "edge", "style": {"line-color": "grey"}},
+                    ],
+                ),
+                html.Div(
+                    id="comparison2",
+                    style=dict(textAlign="center", width="45vw", float="right"),
+                ),
+            ],
+            id="output2",
+        ),
     ],
 )
 
@@ -102,25 +175,39 @@ app.layout = html.Div(
     Output("selection", "data"),
     Output("network", "tapNodeData"),
     Output("network", "tapEdgeData"),
+    Output("network2", "tapNodeData"),
+    Output("network2", "tapEdgeData"),
     Input("network", "tapNodeData"),
     Input("network", "tapEdgeData"),
+    Input("network2", "tapNodeData"),
+    Input("network2", "tapEdgeData"),
 )
-def display_click_data(node_data, edge_data):
+def display_click_data(node_data, edge_data, node_data2, edge_data2):
     ctx = callback_context
 
     from_slug = to_slug = ""
     if ctx.triggered:
+        click_system = ctx.triggered[0]["prop_id"].split(".")[0]
         click_type = ctx.triggered[0]["prop_id"].split(".")[1]
 
         if click_type == "tapNodeData":
-            from_slug = to_slug = node_data["id"]
+            if click_system == "network":
+                from_slug = to_slug = node_data["id"]
+            if click_system == "network2":
+                from_slug = to_slug = node_data2["id"]
             edge_data = None
+            edge_data2 = None
         if click_type == "tapEdgeData":
-            from_slug = edge_data["source"]
-            to_slug = edge_data["target"]
+            if click_system == "network":
+                from_slug = edge_data["source"]
+                to_slug = edge_data["target"]
+            if click_system == "network2":
+                from_slug = edge_data2["source"]
+                to_slug = edge_data2["target"]
             node_data = None
+            node_data2 = None
 
-    return [from_slug, to_slug], node_data, edge_data
+    return [from_slug, to_slug], node_data, edge_data, node_data2, edge_data2
 
 
 def iframe(system, url):
@@ -137,44 +224,71 @@ def img(system, slug):
     )
 
 
-@app.callback(
-    Output("comparison", "children"),
-    Output("network", "elements"),
-    Input("system", "value"),
-    Input("selection", "data"),
-)
-def display_click_data(system, selection_data):
-    from_slug, to_slug = selection_data
-    # default outputs
-    comparison_tree = None
-    network_elements = results[system]["network_elements"]
-
+def make_comparison_tree(system, from_slug, to_slug):
     try:
         # add to default outputs
         if from_slug != to_slug:
             df = results[system]["df"]
             row = df[(df["from"] == from_slug) & (df["to"] == to_slug)]
             cost = row["cost"].values[0]
-            comparison_tree = [
+            return [
                 html.H3(f"{from_slug} ➞ {to_slug} = {cost}"),
-                img(system, from_slug),
-                html.Span("➞", style=dict(margin="20px")),
-                img(system, to_slug),
+                html.Div(
+                    [
+                        img(system, from_slug),
+                        html.Span("➞", style=dict(margin="20px")),
+                        img(system, to_slug),
+                    ],
+                    style=dict(height="250px"),
+                ),
                 iframe(system, f"html/{from_slug}__{to_slug}.html"),
-                iframe(system, f"gumtree/{from_slug}__{to_slug}.txt"),
+                iframe(system, f"cost/{from_slug}__{to_slug}.txt"),
             ]
         elif from_slug != "":
-            comparison_tree = [
+            return [
                 html.H3(from_slug),
-                img(system, from_slug),
+                html.Div([img(system, from_slug)], style=dict(height="250px")),
                 iframe(system, f"source/{from_slug}.txt"),
             ]
 
     except Exception as e:
         print(repr(e))
-        comparison_tree = None
 
-    return comparison_tree, network_elements
+
+@app.callback(
+    Output("output1", "style"),
+    Output("comparison", "children"),
+    Output("network", "elements"),
+    Output("output2", "style"),
+    Output("comparison2", "children"),
+    Output("network2", "elements"),
+    Input("system", "value"),
+    Input("system2", "value"),
+    Input("selection", "data"),
+)
+def display_click_data(system, system2, selection_data):
+    from_slug, to_slug = selection_data
+    # default outputs
+    style = dict(width="100%", display="inline-block")
+    style2 = dict(visibility="hidden")
+    comparison_tree = make_comparison_tree(system, from_slug, to_slug)
+    network_elements = results[system]["network_elements"]
+    comparison_tree2 = None
+    network_elements2 = []
+    if system2:
+        style = dict(width="49%", height="100%", display="inline-block")
+        style2 = dict(width="49%", display="inline-block")
+        comparison_tree2 = make_comparison_tree(system2, from_slug, to_slug)
+        network_elements2 = results[system2]["network_elements"]
+
+    return (
+        style,
+        comparison_tree,
+        network_elements,
+        style2,
+        comparison_tree2,
+        network_elements2,
+    )
 
 
 if __name__ == "__main__":
