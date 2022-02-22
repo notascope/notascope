@@ -1,3 +1,4 @@
+from pydoc import classname
 from dash import Dash, html, dcc, Input, Output, callback_context
 import random
 import json
@@ -80,15 +81,10 @@ app = Dash(__name__, title="NotaScope")
 def cytoscape(id):
     return cyto.Cytoscape(
         id=id,
+        className="network",
         layout={"name": "preset"},
         minZoom=0.3,
         maxZoom=2,
-        style=dict(
-            height="35vw",
-            width="45vw",
-            float="left",
-            border="1px solid black",
-        ),
         stylesheet=[
             {
                 "selector": "node",
@@ -117,41 +113,34 @@ def cytoscape(id):
 
 
 app.layout = html.Div(
-    [
-        dcc.Dropdown(
-            id="system",
-            value=default_system,
-            options=[{"label": s, "value": s} for s in results],
-            style=dict(width="200px", margin="0 auto"),
-            clearable=False,
+    className="wrapper",
+    children=[
+        html.Div(
+            [
+                dcc.Dropdown(
+                    id="system",
+                    value=default_system,
+                    options=[{"label": s, "value": s} for s in results],
+                    clearable=False,
+                    className="dropdown",
+                ),
+            ]
         ),
-        dcc.Dropdown(
-            id="system2",
-            options=[{"label": s, "value": s} for s in results],
-            style=dict(width="200px", margin="0 auto"),
-            clearable=True,
+        html.Div(
+            [
+                dcc.Dropdown(
+                    id="system2",
+                    options=[{"label": s, "value": s} for s in results],
+                    clearable=True,
+                    className="dropdown",
+                ),
+            ]
         ),
+        html.Div([cytoscape("network")], id="network_container"),
+        html.Div([cytoscape("network2")], id="network2_container"),
+        html.Div(id="comparison", className="comparison"),
+        html.Div(id="comparison2", className="comparison"),
         dcc.Store(id="selection", data=["", ""]),
-        html.Div(
-            [
-                cytoscape("network"),
-                html.Div(
-                    id="comparison",
-                    style=dict(textAlign="center", width="45vw", float="right"),
-                ),
-            ],
-            id="output1",
-        ),
-        html.Div(
-            [
-                cytoscape("network2"),
-                html.Div(
-                    id="comparison2",
-                    style=dict(textAlign="center", width="45vw", float="right"),
-                ),
-            ],
-            id="output2",
-        ),
     ],
 )
 
@@ -255,12 +244,14 @@ def make_comparison(system, from_slug, to_slug):
 
 
 @app.callback(
-    Output("output1", "style"),
     Output("comparison", "children"),
     Output("network", "elements"),
-    Output("output2", "style"),
+    Output("comparison", "style"),
+    Output("network_container", "style"),
     Output("comparison2", "children"),
     Output("network2", "elements"),
+    Output("comparison2", "style"),
+    Output("network2_container", "style"),
     Input("system", "value"),
     Input("system2", "value"),
     Input("selection", "data"),
@@ -269,15 +260,15 @@ def display_click_data(system, system2, selection_data):
     from_slug, to_slug = selection_data
     cmp, net = make_comparison(system, from_slug, to_slug)
     if system2:
-        style = dict(width="49%", height="100%", display="inline-block")
-        style2 = dict(width="49%", display="inline-block")
+        style = dict()
+        style2 = dict(gridColumnStart=2, visibility="visible")
         cmp2, net2 = make_comparison(system2, from_slug, to_slug)
     else:
-        style = dict(width="100%", display="inline-block")
-        style2 = dict(visibility="hidden")
+        style = dict(gridRowStart=2)
+        style2 = dict(visibility="hidden", gridRowStart=3)
         cmp2, net2 = None, []
 
-    return (style, cmp, net, style2, cmp2, net2)
+    return (cmp, net, style, style, cmp2, net2, style2, style2)
 
 
 if __name__ == "__main__":

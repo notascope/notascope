@@ -1,0 +1,20 @@
+.wrapper {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin: 20px;
+}
+
+.comparison {
+  text-align: center;
+}
+
+.dropdown {
+  width: 200px;
+  margin: 0 auto;
+}
+
+.network {
+  border: 1px solid black;
+  margin: 0 auto;
+}
