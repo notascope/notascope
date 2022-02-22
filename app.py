@@ -1,6 +1,6 @@
 from dash import Dash, html, dcc, Input, Output, callback_context
 import random
-import plotly.express as px
+import json
 import pandas as pd
 import numpy as np
 from sklearn.manifold import MDS
@@ -77,6 +77,45 @@ default_system = list(results.keys())[0]
 app = Dash(__name__, title="NotaScope")
 
 
+def cytoscape(id):
+    return cyto.Cytoscape(
+        id=id,
+        layout={"name": "preset"},
+        minZoom=0.3,
+        maxZoom=2,
+        style=dict(
+            height="35vw",
+            width="45vw",
+            float="left",
+            border="1px solid black",
+        ),
+        stylesheet=[
+            {
+                "selector": "node",
+                "style": {
+                    "width": 50,
+                    "height": 50,
+                    "shape": "rectangle",
+                    "background-fit": "cover",
+                    "background-image": "data(url)",
+                    "label": "data(label)",
+                    "border-color": "grey",
+                    "border-width": 1,
+                },
+            },
+            {"selector": "edge", "style": {"line-color": "grey"}},
+            {
+                "selector": ".selected",
+                "style": {
+                    "line-color": "red",
+                    "border-color": "red",
+                    "border-width": 5,
+                },
+            },
+        ],
+    )
+
+
 app.layout = html.Div(
     [
         dcc.Dropdown(
@@ -95,34 +134,7 @@ app.layout = html.Div(
         dcc.Store(id="selection", data=["", ""]),
         html.Div(
             [
-                cyto.Cytoscape(
-                    id="network",
-                    layout={"name": "preset"},
-                    minZoom=0.3,
-                    maxZoom=2,
-                    style=dict(
-                        height="35vw",
-                        width="45vw",
-                        float="left",
-                        border="1px solid black",
-                    ),
-                    stylesheet=[
-                        {
-                            "selector": "node",
-                            "style": {
-                                "width": 50,
-                                "height": 50,
-                                "shape": "rectangle",
-                                "background-fit": "cover",
-                                "background-image": "data(url)",
-                                "label": "data(label)",
-                                "border-color": "grey",
-                                "border-width": 1,
-                            },
-                        },
-                        {"selector": "edge", "style": {"line-color": "grey"}},
-                    ],
-                ),
+                cytoscape("network"),
                 html.Div(
                     id="comparison",
                     style=dict(textAlign="center", width="45vw", float="right"),
@@ -132,34 +144,7 @@ app.layout = html.Div(
         ),
         html.Div(
             [
-                cyto.Cytoscape(
-                    id="network2",
-                    layout={"name": "preset"},
-                    minZoom=0.3,
-                    maxZoom=2,
-                    style=dict(
-                        height="35vw",
-                        width="45vw",
-                        float="left",
-                        border="1px solid black",
-                    ),
-                    stylesheet=[
-                        {
-                            "selector": "node",
-                            "style": {
-                                "width": 50,
-                                "height": 50,
-                                "shape": "rectangle",
-                                "background-fit": "cover",
-                                "background-image": "data(url)",
-                                "label": "data(label)",
-                                "border-color": "grey",
-                                "border-width": 1,
-                            },
-                        },
-                        {"selector": "edge", "style": {"line-color": "grey"}},
-                    ],
-                ),
+                cytoscape("network2"),
                 html.Div(
                     id="comparison2",
                     style=dict(textAlign="center", width="45vw", float="right"),
@@ -224,14 +209,21 @@ def img(system, slug):
     )
 
 
-def make_comparison_tree(system, from_slug, to_slug):
+def make_comparison(system, from_slug, to_slug):
+    cmp = None
+    net = json.loads(json.dumps(results[system]["network_elements"]))
     try:
         # add to default outputs
         if from_slug != to_slug:
+            for elem in net:
+                if elem["data"]["id"] == from_slug + "__" + to_slug:
+                    elem["classes"] = "selected"
+                else:
+                    elem["classes"] = "unselected"
             df = results[system]["df"]
             row = df[(df["from"] == from_slug) & (df["to"] == to_slug)]
             cost = row["cost"].values[0]
-            return [
+            cmp = [
                 html.H3(f"{from_slug} ➞ {to_slug} = {cost}"),
                 html.Div(
                     [
@@ -245,7 +237,12 @@ def make_comparison_tree(system, from_slug, to_slug):
                 iframe(system, f"cost/{from_slug}__{to_slug}.txt"),
             ]
         elif from_slug != "":
-            return [
+            for elem in net:
+                if elem["data"]["id"] == from_slug:
+                    elem["classes"] = "selected"
+                else:
+                    elem["classes"] = "unselected"
+            cmp = [
                 html.H3(from_slug),
                 html.Div([img(system, from_slug)], style=dict(height="250px")),
                 iframe(system, f"source/{from_slug}.txt"),
@@ -253,6 +250,8 @@ def make_comparison_tree(system, from_slug, to_slug):
 
     except Exception as e:
         print(repr(e))
+
+    return (cmp, net)
 
 
 @app.callback(
@@ -268,27 +267,17 @@ def make_comparison_tree(system, from_slug, to_slug):
 )
 def display_click_data(system, system2, selection_data):
     from_slug, to_slug = selection_data
-    # default outputs
-    style = dict(width="100%", display="inline-block")
-    style2 = dict(visibility="hidden")
-    comparison_tree = make_comparison_tree(system, from_slug, to_slug)
-    network_elements = results[system]["network_elements"]
-    comparison_tree2 = None
-    network_elements2 = []
+    cmp, net = make_comparison(system, from_slug, to_slug)
     if system2:
         style = dict(width="49%", height="100%", display="inline-block")
         style2 = dict(width="49%", display="inline-block")
-        comparison_tree2 = make_comparison_tree(system2, from_slug, to_slug)
-        network_elements2 = results[system2]["network_elements"]
+        cmp2, net2 = make_comparison(system2, from_slug, to_slug)
+    else:
+        style = dict(width="100%", display="inline-block")
+        style2 = dict(visibility="hidden")
+        cmp2, net2 = None, []
 
-    return (
-        style,
-        comparison_tree,
-        network_elements,
-        style2,
-        comparison_tree2,
-        network_elements2,
-    )
+    return (style, cmp, net, style2, cmp2, net2)
 
 
 if __name__ == "__main__":
