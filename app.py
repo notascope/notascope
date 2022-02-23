@@ -38,17 +38,20 @@ def precompute():
                         "url": f"/assets/results/{s}/png/{i}.png",
                     },
                     "position": {c: row[c] * 1000 / emb_span for c in ["x", "y"]},
+                    "classes": "regular",
                 }
             )
 
-        square = np.maximum(square.values, square.values.T)
-        for i in range(len(square)):
-            for j in range(len(square)):
-                if i >= j:
+        square = square.values
+        n = len(square)
+        result = np.zeros((n, n))
+        for i in range(n):
+            for j in range(n):
+                if i == j:
                     continue
                 has_k = False
                 direct = square[i, j]
-                for k in range(len(square)):
+                for k in range(n):
                     if k == i or k == j:
                         continue
                     via_k = square[i, k] + square[k, j]
@@ -56,16 +59,30 @@ def precompute():
                         has_k = True
                         break
                 if not has_k:
+                    result[i, j] = direct
+        for i in range(n):
+            for j in range(n):
+                if i == j:  # no self edges
+                    continue
+                if result[i, j] == 0:  # no zero edges
+                    continue
+                if result[j, i] == 0:  # no edge without other direction
+                    continue
+                if result[i, j] > result[j, i] or (
+                    result[i, j] == result[j, i] and i > j  # only one bidir edge
+                ):
                     network_elements.append(
                         {
                             "data": {
                                 "source": order[i],
                                 "target": order[j],
                                 "id": order[i] + "__" + order[j],
-                            }
+                                "length": result[i, j],
+                            },
+                            "classes": "regular"
+                            + (" bidir" if result[i, j] == result[j, i] else ""),
                         }
                     )
-
         results[s] = dict(df=df, network_elements=network_elements)
     return results
 
@@ -98,10 +115,28 @@ def cytoscape(id):
                     "border-width": 1,
                 },
             },
-            {"selector": "edge", "style": {"line-color": "grey"}},
+            {
+                "selector": "edge",
+                "style": {
+                    "line-color": "grey",
+                    "target-arrow-color": "grey",
+                    "target-arrow-shape": "triangle",
+                    "curve-style": "straight",
+                    "label": "data(length)",
+                },
+            },
+            {
+                "selector": ".bidir",
+                "style": {
+                    "source-arrow-color": "grey",
+                    "source-arrow-shape": "triangle",
+                },
+            },
             {
                 "selector": ".selected",
                 "style": {
+                    "source-arrow-color": "red",
+                    "target-arrow-color": "red",
                     "line-color": "red",
                     "border-color": "red",
                     "border-width": 5,
@@ -204,10 +239,13 @@ def make_comparison(system, from_slug, to_slug):
         # add to default outputs
         if from_slug != to_slug:
             for elem in net:
-                if elem["data"]["id"] == from_slug + "__" + to_slug:
-                    elem["classes"] = "selected"
+                if (
+                    elem["data"]["id"] == from_slug + "__" + to_slug
+                    or elem["data"]["id"] == to_slug + "__" + from_slug
+                ):
+                    elem["classes"] = elem["classes"].replace("regular", "selected")
                 else:
-                    elem["classes"] = "unselected"
+                    elem["classes"] = elem["classes"].replace("selected", "regular")
             df = results[system]["df"]
             row = df[(df["from"] == from_slug) & (df["to"] == to_slug)]
             cost = row["cost"].values[0]
@@ -227,9 +265,9 @@ def make_comparison(system, from_slug, to_slug):
         elif from_slug != "":
             for elem in net:
                 if elem["data"]["id"] == from_slug:
-                    elem["classes"] = "selected"
+                    elem["classes"] = elem["classes"].replace("regular", "selected")
                 else:
-                    elem["classes"] = "unselected"
+                    elem["classes"] = elem["classes"].replace("selected", "regular")
             cmp = [
                 html.H3(from_slug),
                 html.Div([img(system, from_slug)], style=dict(height="250px")),
