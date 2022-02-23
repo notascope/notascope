@@ -249,8 +249,13 @@ def make_comparison(system, from_slug, to_slug):
             df = results[system]["df"]
             row = df[(df["from"] == from_slug) & (df["to"] == to_slug)]
             cost = row["cost"].values[0]
+            row = df[(df["from"] == to_slug) & (df["to"] == from_slug)]
+            rev_cost = row["cost"].values[0]
             cmp = [
-                html.H3(f"{from_slug} ➞ {to_slug} = {cost}"),
+                html.H3(
+                    (f"{from_slug} ➞ {to_slug} = {cost}")
+                    + (f" ({rev_cost})" if rev_cost != cost else "")
+                ),
                 html.Div(
                     [
                         img(system, from_slug),
