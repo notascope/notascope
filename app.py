@@ -95,13 +95,14 @@ default_system = list(results.keys())[0]
 app = Dash(__name__, title="NotaScope", suppress_callback_exceptions=True)
 
 
-def cytoscape(id):
+def cytoscape(id, elements):
     return cyto.Cytoscape(
         id=id,
         className="network",
         layout={"name": "preset"},
         minZoom=0.3,
         maxZoom=2,
+        elements=elements,
         stylesheet=[
             {
                 "selector": "node",
@@ -163,6 +164,16 @@ app.layout = html.Div([html.Div(id="content"), dcc.Location(id="location")])
 )
 def make_content(hashpath):
     system, system2, from_slug, to_slug = parse_hashpath(hashpath)
+    cmp, net = make_comparison(system, from_slug, to_slug)
+    if system2:
+        style = dict()
+        style2 = dict(gridColumnStart=2, visibility="visible")
+        cmp2, net2 = make_comparison(system2, from_slug, to_slug)
+    else:
+        style = dict(gridRowStart=2)
+        style2 = dict(visibility="hidden", gridRowStart=3)
+        cmp2, net2 = None, []
+
     return html.Div(
         className="wrapper",
         children=[
@@ -188,10 +199,10 @@ def make_content(hashpath):
                     ),
                 ]
             ),
-            html.Div([cytoscape("network")], id="network_container"),
-            html.Div([cytoscape("network2")], id="network2_container"),
-            html.Div(id="comparison", className="comparison"),
-            html.Div(id="comparison2", className="comparison"),
+            html.Div([cytoscape("network", net)], style=style),
+            html.Div([cytoscape("network2", net2)], style=style2),
+            html.Div(cmp, className="comparison"),
+            html.Div(cmp2, className="comparison"),
             dcc.Store(id="selection", data=[from_slug, to_slug]),
         ],
     )
@@ -305,32 +316,6 @@ def make_comparison(system, from_slug, to_slug):
         print(repr(e))
 
     return (cmp, net)
-
-
-@app.callback(
-    Output("comparison", "children"),
-    Output("network", "elements"),
-    Output("comparison", "style"),
-    Output("network_container", "style"),
-    Output("comparison2", "children"),
-    Output("network2", "elements"),
-    Output("comparison2", "style"),
-    Output("network2_container", "style"),
-    Input("location", "hash"),
-)
-def display_click_data(hashpath):
-    system, system2, from_slug, to_slug = parse_hashpath(hashpath)
-    cmp, net = make_comparison(system, from_slug, to_slug)
-    if system2:
-        style = dict()
-        style2 = dict(gridColumnStart=2, visibility="visible")
-        cmp2, net2 = make_comparison(system2, from_slug, to_slug)
-    else:
-        style = dict(gridRowStart=2)
-        style2 = dict(visibility="hidden", gridRowStart=3)
-        cmp2, net2 = None, []
-
-    return (cmp, net, style, style, cmp2, net2, style2, style2)
 
 
 if __name__ == "__main__":
