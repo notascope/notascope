@@ -1,3 +1,4 @@
+import re
 from dash import Dash, html, dcc, Input, Output, callback_context
 import random
 import json
@@ -91,7 +92,7 @@ results = precompute()
 default_system = list(results.keys())[0]
 
 
-app = Dash(__name__, title="NotaScope")
+app = Dash(__name__, title="NotaScope", suppress_callback_exceptions=True)
 
 
 def cytoscape(id):
@@ -146,54 +147,75 @@ def cytoscape(id):
     )
 
 
-app.layout = html.Div(
-    className="wrapper",
-    children=[
-        html.Div(
-            [
-                dcc.Dropdown(
-                    id="system",
-                    value=default_system,
-                    options=[{"label": s, "value": s} for s in results],
-                    clearable=False,
-                    className="dropdown",
-                ),
-            ]
-        ),
-        html.Div(
-            [
-                dcc.Dropdown(
-                    id="system2",
-                    options=[{"label": s, "value": s} for s in results],
-                    clearable=True,
-                    className="dropdown",
-                ),
-            ]
-        ),
-        html.Div([cytoscape("network")], id="network_container"),
-        html.Div([cytoscape("network2")], id="network2_container"),
-        html.Div(id="comparison", className="comparison"),
-        html.Div(id="comparison2", className="comparison"),
-        dcc.Store(id="selection", data=["", ""]),
-    ],
-)
+def parse_hashpath(hashpath):
+    m = re.match(r"#/(.*)/(.*)/(.*)/(.*)", hashpath)
+    if m:
+        return m.group(1), m.group(2) or None, m.group(3), m.group(4)
+    return default_system, None, "", ""
+
+
+app.layout = html.Div([html.Div(id="content"), dcc.Location(id="location")])
 
 
 @app.callback(
-    Output("selection", "data"),
+    Output("content", "children"),
+    Input("location", "hash"),
+)
+def make_content(hashpath):
+    system, system2, from_slug, to_slug = parse_hashpath(hashpath)
+    return html.Div(
+        className="wrapper",
+        children=[
+            html.Div(
+                [
+                    dcc.Dropdown(
+                        id="system",
+                        value=system,
+                        options=[{"label": s, "value": s} for s in results],
+                        clearable=False,
+                        className="dropdown",
+                    ),
+                ]
+            ),
+            html.Div(
+                [
+                    dcc.Dropdown(
+                        id="system2",
+                        value=system2,
+                        options=[{"label": s, "value": s} for s in results],
+                        clearable=True,
+                        className="dropdown",
+                    ),
+                ]
+            ),
+            html.Div([cytoscape("network")], id="network_container"),
+            html.Div([cytoscape("network2")], id="network2_container"),
+            html.Div(id="comparison", className="comparison"),
+            html.Div(id="comparison2", className="comparison"),
+            dcc.Store(id="selection", data=[from_slug, to_slug]),
+        ],
+    )
+
+
+@app.callback(
+    Output("location", "hash"),
     Output("network", "tapNodeData"),
     Output("network", "tapEdgeData"),
     Output("network2", "tapNodeData"),
     Output("network2", "tapEdgeData"),
+    Input("selection", "data"),
+    Input("system", "value"),
+    Input("system2", "value"),
     Input("network", "tapNodeData"),
     Input("network", "tapEdgeData"),
     Input("network2", "tapNodeData"),
     Input("network2", "tapEdgeData"),
 )
-def display_click_data(node_data, edge_data, node_data2, edge_data2):
+def update_hashpath(
+    selection, system, system2, node_data, edge_data, node_data2, edge_data2
+):
     ctx = callback_context
-
-    from_slug = to_slug = ""
+    from_slug, to_slug = selection
     if ctx.triggered:
         click_system = ctx.triggered[0]["prop_id"].split(".")[0]
         click_type = ctx.triggered[0]["prop_id"].split(".")[1]
@@ -214,8 +236,8 @@ def display_click_data(node_data, edge_data, node_data2, edge_data2):
                 to_slug = edge_data2["target"]
             node_data = None
             node_data2 = None
-
-    return [from_slug, to_slug], node_data, edge_data, node_data2, edge_data2
+    hashpath = f"#/{system}/{system2 or ''}/{from_slug}/{to_slug}"
+    return hashpath, node_data, edge_data, node_data2, edge_data2
 
 
 def iframe(system, url):
@@ -294,12 +316,10 @@ def make_comparison(system, from_slug, to_slug):
     Output("network2", "elements"),
     Output("comparison2", "style"),
     Output("network2_container", "style"),
-    Input("system", "value"),
-    Input("system2", "value"),
-    Input("selection", "data"),
+    Input("location", "hash"),
 )
-def display_click_data(system, system2, selection_data):
-    from_slug, to_slug = selection_data
+def display_click_data(hashpath):
+    system, system2, from_slug, to_slug = parse_hashpath(hashpath)
     cmp, net = make_comparison(system, from_slug, to_slug)
     if system2:
         style = dict()
