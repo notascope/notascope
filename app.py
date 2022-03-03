@@ -14,83 +14,93 @@ np.random.seed(1)
 
 def precompute():
     results = dict()
-    for s in [d for d in os.listdir("./results") if os.path.isdir("./results/" + d)]:
-        df = pd.read_csv(
-            f"results/{s}/costs.csv", names=["system", "from", "to", "cost"]
-        )
-        square = df.pivot_table(index="from", columns="to", values="cost").fillna(0)
-        order = list(square.index)
-        mds = MDS(n_components=2, dissimilarity="precomputed")
-        embedding = mds.fit_transform((square.values + square.values.T) / 2)
-        emb_min = embedding.min()
-        emb_max = embedding.max()
-        emb_span = emb_max - emb_min
-        emb_max += emb_span / 2
-        emb_min -= emb_span / 2
-        emb_df = pd.DataFrame(embedding, index=order, columns=["x", "y"])
-
-        network_elements = []
-        for i, row in emb_df.iterrows():
-            network_elements.append(
-                {
-                    "data": {
-                        "id": i,
-                        "label": i,
-                        "url": f"/assets/results/{s}/png/{i}.png",
-                    },
-                    "position": {c: row[c] * 1000 / emb_span for c in ["x", "y"]},
-                    "classes": "regular",
-                }
+    for study in [
+        d for d in os.listdir(f"./results") if os.path.isdir(f"./results/{d}")
+    ]:
+        if study not in results:
+            results[study] = dict()
+        for system in [
+            d
+            for d in os.listdir(f"./results/{study}")
+            if os.path.isdir(f"./results/{study}/{d}")
+        ]:
+            df = pd.read_csv(
+                f"results/{study}/{system}/costs.csv",
+                names=["study", "system", "from", "to", "cost"],
             )
+            square = df.pivot_table(index="from", columns="to", values="cost").fillna(0)
+            order = list(square.index)
+            mds = MDS(n_components=2, dissimilarity="precomputed")
+            embedding = mds.fit_transform((square.values + square.values.T) / 2)
+            emb_min = embedding.min()
+            emb_max = embedding.max()
+            emb_span = emb_max - emb_min
+            emb_max += emb_span / 2
+            emb_min -= emb_span / 2
+            emb_df = pd.DataFrame(embedding, index=order, columns=["x", "y"])
 
-        square = square.values
-        n = len(square)
-        result = np.zeros((n, n))
-        for i in range(n):
-            for j in range(n):
-                if i == j:
-                    continue
-                has_k = False
-                direct = square[i, j]
-                for k in range(n):
-                    if k == i or k == j:
+            network_elements = []
+            for i, row in emb_df.iterrows():
+                network_elements.append(
+                    {
+                        "data": {
+                            "id": i,
+                            "label": i,
+                            "url": f"/assets/results/{study}/{system}/png/{i}.png",
+                        },
+                        "position": {c: row[c] * 1000 / emb_span for c in ["x", "y"]},
+                        "classes": "regular",
+                    }
+                )
+
+            square = square.values
+            n = len(square)
+            result = np.zeros((n, n))
+            for i in range(n):
+                for j in range(n):
+                    if i == j:
                         continue
-                    via_k = square[i, k] + square[k, j]
-                    if (via_k - direct) / direct < 0.05:
-                        has_k = True
-                        break
-                if not has_k:
-                    result[i, j] = direct
-        for i in range(n):
-            for j in range(n):
-                if i == j:  # no self edges
-                    continue
-                if result[i, j] == 0:  # no zero edges
-                    continue
-                if result[j, i] == 0:  # no edge without other direction
-                    continue
-                if result[i, j] > result[j, i] or (
-                    result[i, j] == result[j, i] and i > j  # only one bidir edge
-                ):
-                    network_elements.append(
-                        {
-                            "data": {
-                                "source": order[i],
-                                "target": order[j],
-                                "id": order[i] + "__" + order[j],
-                                "length": result[i, j],
-                            },
-                            "classes": "regular"
-                            + (" bidir" if result[i, j] == result[j, i] else ""),
-                        }
-                    )
-        results[s] = dict(df=df, network_elements=network_elements)
+                    has_k = False
+                    direct = square[i, j]
+                    for k in range(n):
+                        if k == i or k == j:
+                            continue
+                        via_k = square[i, k] + square[k, j]
+                        if (via_k - direct) / direct < 0.05:
+                            has_k = True
+                            break
+                    if not has_k:
+                        result[i, j] = direct
+            for i in range(n):
+                for j in range(n):
+                    if i == j:  # no self edges
+                        continue
+                    if result[i, j] == 0:  # no zero edges
+                        continue
+                    if result[j, i] == 0:  # no edge without other direction
+                        continue
+                    if result[i, j] > result[j, i] or (
+                        result[i, j] == result[j, i] and i > j  # only one bidir edge
+                    ):
+                        network_elements.append(
+                            {
+                                "data": {
+                                    "source": order[i],
+                                    "target": order[j],
+                                    "id": order[i] + "__" + order[j],
+                                    "length": result[i, j],
+                                },
+                                "classes": "regular"
+                                + (" bidir" if result[i, j] == result[j, i] else ""),
+                            }
+                        )
+            results[study][system] = dict(df=df, network_elements=network_elements)
     return results
 
 
 results = precompute()
-default_system = list(results.keys())[0]
-default_study = "yooo"
+default_study = list(results.keys())[0]
+default_system = list(results[default_study].keys())[0]
 
 
 app = Dash(__name__, title="NotaScope", suppress_callback_exceptions=True)
@@ -165,11 +175,11 @@ app.layout = html.Div([html.Div(id="content"), dcc.Location(id="location")])
 )
 def make_content(hashpath):
     study, system, system2, from_slug, to_slug = parse_hashpath(hashpath)
-    cmp, net = make_comparison(system, from_slug, to_slug)
+    cmp, net = make_comparison(study, system, from_slug, to_slug)
     if system2:
         style = dict()
         style2 = dict(gridColumnStart=2, visibility="visible")
-        cmp2, net2 = make_comparison(system2, from_slug, to_slug)
+        cmp2, net2 = make_comparison(study, system2, from_slug, to_slug)
     else:
         style = dict(gridRowStart=2)
         style2 = dict(visibility="hidden", gridRowStart=3)
@@ -183,7 +193,7 @@ def make_content(hashpath):
                     dcc.Dropdown(
                         id="study",
                         value=study,
-                        options=["yooo", "yaaa"],
+                        options=[s for s in results],
                         clearable=False,
                         className="dropdown",
                     ),
@@ -195,7 +205,7 @@ def make_content(hashpath):
                     dcc.Dropdown(
                         id="system",
                         value=system,
-                        options=[s for s in results],
+                        options=[s for s in results[study]],
                         clearable=False,
                         className="dropdown",
                     ),
@@ -206,7 +216,7 @@ def make_content(hashpath):
                     dcc.Dropdown(
                         id="system2",
                         value=system2,
-                        options=[s for s in results],
+                        options=[s for s in results[study]],
                         clearable=True,
                         className="dropdown",
                     ),
@@ -265,23 +275,24 @@ def update_hashpath(
     return hashpath, node_data, edge_data, node_data2, edge_data2
 
 
-def iframe(system, url):
+def iframe(study, system, url):
     return html.Iframe(
-        src=f"/assets/results/{system}/{url}?{random.random()}",
+        src=f"/assets/results/{study}/{system}/{url}?{random.random()}",
         style=dict(width="100%", height="300px"),
     )
 
 
-def img(system, slug):
+def img(study, system, slug):
     return html.Img(
-        src=f"/assets/results/{system}/png/{slug}.png",
+        src=f"/assets/results/{study}/{system}/png/{slug}.png",
         style=dict(verticalAlign="middle", maxHeight="250px", maxWidth="20vw"),
     )
 
 
-def make_comparison(system, from_slug, to_slug):
+def make_comparison(study, system, from_slug, to_slug):
     cmp = None
-    net = json.loads(json.dumps(results[system]["network_elements"]))
+    system_results = results[study][system]
+    net = json.loads(json.dumps(system_results["network_elements"]))
     try:
         # add to default outputs
         if from_slug != to_slug:
@@ -293,7 +304,7 @@ def make_comparison(system, from_slug, to_slug):
                     elem["classes"] = elem["classes"].replace("regular", "selected")
                 else:
                     elem["classes"] = elem["classes"].replace("selected", "regular")
-            df = results[system]["df"]
+            df = system_results["df"]
             row = df[(df["from"] == from_slug) & (df["to"] == to_slug)]
             cost = row["cost"].values[0]
             row = df[(df["from"] == to_slug) & (df["to"] == from_slug)]
@@ -305,14 +316,14 @@ def make_comparison(system, from_slug, to_slug):
                 ),
                 html.Div(
                     [
-                        img(system, from_slug),
+                        img(study, system, from_slug),
                         html.Span("➞", style=dict(margin="20px")),
-                        img(system, to_slug),
+                        img(study, system, to_slug),
                     ],
                     style=dict(height="250px"),
                 ),
-                iframe(system, f"html/{from_slug}__{to_slug}.html"),
-                iframe(system, f"cost/{from_slug}__{to_slug}.txt"),
+                iframe(study, system, f"html/{from_slug}__{to_slug}.html"),
+                iframe(study, system, f"cost/{from_slug}__{to_slug}.txt"),
             ]
         elif from_slug != "":
             for elem in net:
@@ -322,8 +333,8 @@ def make_comparison(system, from_slug, to_slug):
                     elem["classes"] = elem["classes"].replace("selected", "regular")
             cmp = [
                 html.H3(from_slug),
-                html.Div([img(system, from_slug)], style=dict(height="250px")),
-                iframe(system, f"source/{from_slug}.txt"),
+                html.Div([img(study, system, from_slug)], style=dict(height="250px")),
+                iframe(study, system, f"source/{from_slug}.txt"),
             ]
 
     except Exception as e:
