@@ -78,7 +78,5 @@ $(foreach study,$(shell ls studies),$(eval $(call STUDY_rule,$(study))))
 clean:
 	rm -rf results
 
-all: $(ALL)
-
-reload: all
+all: $(ALL) app.py
 	touch app.py
