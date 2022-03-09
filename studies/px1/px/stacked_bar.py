@@ -9,4 +9,4 @@ df = pd.DataFrame(
     }
 )
 
-fig = px.bar(df, x="Fruit", y="Number Eaten", color="Contestant", barmode="stack")
+fig = px.bar(df, x="Fruit", y="Number Eaten", color="Contestant")

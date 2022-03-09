@@ -100,7 +100,10 @@ def precompute():
 
 results = precompute()
 default_study = list(results.keys())[0]
-default_system = list(results[default_study].keys())[0]
+
+
+def default_system(study):
+    return list(results[study].keys())[0]
 
 
 app = Dash(__name__, title="NotaScope", suppress_callback_exceptions=True)
@@ -161,9 +164,39 @@ def cytoscape(id, elements):
 
 def parse_hashpath(hashpath):
     m = re.match(r"#/(.*)/(.*)/(.*)/(.*)/(.*)", hashpath)
+    study = system = system2 = from_slug = to_slug = ""
     if m:
-        return m.group(1), m.group(2), m.group(3) or None, m.group(4), m.group(5)
-    return default_study, default_system, None, "", ""
+        study = m.group(1)
+        system = m.group(2)
+        system2 = m.group(3)
+        from_slug = m.group(4)
+        to_slug = m.group(5)
+    return sanitize_state(study, system, system2, from_slug, to_slug)
+
+
+def sanitize_state(study, system, system2, from_slug, to_slug):
+    if study not in results:
+        study = default_study
+    study_res = results[study]
+    slugs = set()
+    if system in study_res:
+        for s in study_res[system]["df"]["from"].values:
+            slugs.add(s)
+    else:
+        system = default_system(study)
+
+    if system2 in study_res:
+        for s in study_res[system2]["df"]["from"].values:
+            slugs.add(s)
+    else:
+        system2 = ""
+
+    if from_slug not in slugs:
+        from_slug = to_slug = ""
+    elif to_slug not in slugs:
+        to_slug = from_slug
+
+    return study, system, system2, from_slug, to_slug
 
 
 app.layout = html.Div([html.Div(id="content"), dcc.Location(id="location")])
@@ -271,6 +304,9 @@ def update_hashpath(
                 to_slug = edge_data2["target"]
             node_data = None
             node_data2 = None
+    study, system, system2, from_slug, to_slug = sanitize_state(
+        study, system, system2, from_slug, to_slug
+    )
     hashpath = f"#/{study}/{system}/{system2 or ''}/{from_slug}/{to_slug}"
     return hashpath, node_data, edge_data, node_data2, edge_data2
 

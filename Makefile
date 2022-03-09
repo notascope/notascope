@@ -29,7 +29,6 @@ results/$(1)/$(2)/html/$(basename $(3))__$(basename $(4)).html: results/$(1)/$(2
 	@mkdir -p $$(dir $$@)
 	@cat $$< | \
 	diff2html --su hidden --input stdin --output stdout | \
-	sed 's/<style>/<style> .d2h-file-diff{overflow-x:hidden;}/g' | \
 	grep -v rtfpessoa > $$@
 ALL += results/$(1)/$(2)/html/$(basename $(3))__$(basename $(4)).html
 
