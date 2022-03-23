@@ -121,8 +121,8 @@ def cytoscape(id, elements):
             {
                 "selector": "node",
                 "style": {
-                    "width": 50,
-                    "height": 50,
+                    "width": 100,
+                    "height": 100,
                     "shape": "rectangle",
                     "background-fit": "cover",
                     "background-image": "data(url)",
@@ -139,6 +139,9 @@ def cytoscape(id, elements):
                     "target-arrow-shape": "triangle",
                     "curve-style": "straight",
                     "label": "data(length)",
+                    "font-size": "24px",
+                    "text-outline-color": "white",
+                    "text-outline-width": "3",
                 },
             },
             {
