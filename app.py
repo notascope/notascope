@@ -46,7 +46,7 @@ def precompute():
                         "data": {
                             "id": i,
                             "label": i,
-                            "url": f"/assets/results/{study}/{system}/png/{i}.png",
+                            "url": f"/assets/results/{study}/{system}/svg/{i}.svg",
                         },
                         "position": {c: row[c] * 1000 / emb_span for c in ["x", "y"]},
                         "classes": "regular",
@@ -323,7 +323,7 @@ def iframe(study, system, url):
 
 def img(study, system, slug):
     return html.Img(
-        src=f"/assets/results/{study}/{system}/png/{slug}.png",
+        src=f"/assets/results/{study}/{system}/svg/{slug}.svg",
         style=dict(verticalAlign="middle", maxHeight="250px", maxWidth="20vw"),
     )
 

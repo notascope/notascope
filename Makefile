@@ -44,11 +44,11 @@ results/$(1)/$(2)/source/$(basename $(3)).txt: studies/$(1)/$(2)/$(3)
 	@cp $$< $$@
 ALL += results/$(1)/$(2)/source/$(basename $(3)).txt
 
-results/$(1)/$(2)/png/$(basename $(3)).png: studies/$(1)/$(2)/$(3)
-	@echo "[png]      $(1)/$(2): $(3)"
+results/$(1)/$(2)/svg/$(basename $(3)).svg: studies/$(1)/$(2)/$(3)
+	@echo "[svg]      $(1)/$(2): $(3)"
 	@mkdir -p $$(dir $$@)
 	@scripts/$(2).sh $$< $$@ || touch $$@
-ALL += results/$(1)/$(2)/png/$(basename $(3)).png
+ALL += results/$(1)/$(2)/svg/$(basename $(3)).svg
 
 endef
 
