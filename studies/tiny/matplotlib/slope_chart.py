@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import pandas as pd
 
 df = pd.DataFrame(
@@ -7,7 +8,13 @@ df = pd.DataFrame(
         "Number Eaten": [2, 1, 3, 1, 3, 2],
     }
 )
-
 df2 = df.pivot_table(index="Contestant", columns="Fruit", values="Number Eaten")
-ax = df2.plot()
+
+fig, ax = plt.subplots()
+ax.plot(df2.index, df2["Apples"], label="Apples")
+ax.plot(df2.index, df2["Bananas"], label="Bananas")
+ax.plot(df2.index, df2["Oranges"], label="Oranges")
+
 ax.set_ylabel("Number Eaten")
+ax.set_xlabel("Contestant")
+ax.legend(title="Fruit")

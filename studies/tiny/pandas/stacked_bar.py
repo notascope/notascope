@@ -9,4 +9,5 @@ df = pd.DataFrame(
 )
 
 df2 = df.pivot_table(index="Fruit", columns="Contestant", values="Number Eaten")
-fig = df2.plot.bar(stacked=True)
+ax = df2.plot.bar(stacked=True)
+ax.set_ylabel("Number Eaten")

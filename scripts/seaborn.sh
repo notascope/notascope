@@ -1,3 +1,3 @@
 #!/bin/zsh
 
-{cat $1 ; echo "fig.figure.savefig('$2')"} | python
+{cat $1 ; echo "ax.figure.savefig('$2')"} | python
