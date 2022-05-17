@@ -1,0 +1,15 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "data": {
+    "values": "Fruit,Contestant,Number Eaten\nApples,Alex,2\nOranges,Alex,1\nBananas,Alex,3\nApples,Jordan,1\nOranges,Jordan,3\nBananas,Jordan,2",
+    "format": { "type": "csv" }
+  },
+  "width": 400,
+  "height": 400,
+  "mark": "bar",
+  "encoding": {
+    "y": { "field": "Number Eaten", "type": "quantitative" },
+    "x": { "field": "Fruit" },
+    "color": { "field": "Contestant" }
+  }
+}
