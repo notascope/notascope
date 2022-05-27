@@ -36,7 +36,6 @@ for line in sys.stdin:
                 cost += 1
             last_indent = indent
         else:
-            print("op is", op)
             raise
     if line == "to":
         dest = True
