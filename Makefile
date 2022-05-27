@@ -1,7 +1,7 @@
-PATH:=$(PATH):/Users/nicolas/ets/gumtree-3.0.0/bin
-#PATH:=$(PATH):/Users/nicolas/ets/gumtree/dist/build/install/gumtree/bin
+#PATH:=$(PATH):/Users/nicolas/ets/gumtree-3.0.0/bin
+PATH:=$(PATH):/Users/nicolas/ets/gumtree/dist/build/install/gumtree/bin
 #PATH:=$(PATH):/Users/nicolas/ets/jsparser
-#PATH:=$(PATH):/Users/nicolas/ets/tree-sitter-parser
+PATH:=$(PATH):/Users/nicolas/ets/tree-sitter-parser
 
 ALL :=
 COSTS :=
@@ -11,7 +11,7 @@ ifneq ($(3), $(4))
 results/$(1)/$(2)/gumtree/$(basename $(3))__$(basename $(4)).txt: studies/$(1)/$(2)/$(3) studies/$(1)/$(2)/$(4)
 	@echo "[gumtree]  $(1)/$(2): $(3) $(4)"
 	@mkdir -p $$(dir $$@)
-	@gumtree -C gt.pp.path `pwd`/pythonparser textdiff $$+ > $$@
+	@gumtree textdiff $$+ > $$@
 
 results/$(1)/$(2)/cost/$(basename $(3))__$(basename $(4)).txt: results/$(1)/$(2)/gumtree/$(basename $(3))__$(basename $(4)).txt filter.py
 	@echo "[cost]     $(1)/$(2): $(3) $(4)"

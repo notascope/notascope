@@ -14,16 +14,10 @@ np.random.seed(1)
 
 def precompute():
     results = dict()
-    for study in [
-        d for d in os.listdir(f"./results") if os.path.isdir(f"./results/{d}")
-    ]:
+    for study in [d for d in os.listdir(f"./results") if os.path.isdir(f"./results/{d}")]:
         if study not in results:
             results[study] = dict()
-        for system in [
-            d
-            for d in os.listdir(f"./results/{study}")
-            if os.path.isdir(f"./results/{study}/{d}")
-        ]:
+        for system in [d for d in os.listdir(f"./results/{study}") if os.path.isdir(f"./results/{study}/{d}")]:
             df = pd.read_csv(
                 f"results/{study}/{system}/costs.csv",
                 names=["study", "system", "from", "to", "cost"],
@@ -79,9 +73,7 @@ def precompute():
                         continue
                     if result[j, i] == 0:  # no edge without other direction
                         continue
-                    if result[i, j] > result[j, i] or (
-                        result[i, j] == result[j, i] and i > j  # only one bidir edge
-                    ):
+                    if result[i, j] > result[j, i] or (result[i, j] == result[j, i] and i > j):  # only one bidir edge
                         network_elements.append(
                             {
                                 "data": {
@@ -90,8 +82,7 @@ def precompute():
                                     "id": order[i] + "__" + order[j],
                                     "length": result[i, j],
                                 },
-                                "classes": "regular"
-                                + (" bidir" if result[i, j] == result[j, i] else ""),
+                                "classes": "regular" + (" bidir" if result[i, j] == result[j, i] else ""),
                             }
                         )
             results[study][system] = dict(df=df, network_elements=network_elements)
@@ -99,7 +90,7 @@ def precompute():
 
 
 results = precompute()
-default_study = list(results.keys())[0]
+default_study = "tiny"
 
 
 def default_system(study):
@@ -282,9 +273,7 @@ def make_content(hashpath):
     Input("network2", "tapNodeData"),
     Input("network2", "tapEdgeData"),
 )
-def update_hashpath(
-    selection, study, system, system2, node_data, edge_data, node_data2, edge_data2
-):
+def update_hashpath(selection, study, system, system2, node_data, edge_data, node_data2, edge_data2):
     ctx = callback_context
     from_slug, to_slug = selection
     if ctx.triggered:
@@ -307,9 +296,7 @@ def update_hashpath(
                 to_slug = edge_data2["target"]
             node_data = None
             node_data2 = None
-    study, system, system2, from_slug, to_slug = sanitize_state(
-        study, system, system2, from_slug, to_slug
-    )
+    study, system, system2, from_slug, to_slug = sanitize_state(study, system, system2, from_slug, to_slug)
     hashpath = f"#/{study}/{system}/{system2 or ''}/{from_slug}/{to_slug}"
     return hashpath, node_data, edge_data, node_data2, edge_data2
 
@@ -336,10 +323,7 @@ def make_comparison(study, system, from_slug, to_slug):
         # add to default outputs
         if from_slug != to_slug:
             for elem in net:
-                if (
-                    elem["data"]["id"] == from_slug + "__" + to_slug
-                    or elem["data"]["id"] == to_slug + "__" + from_slug
-                ):
+                if elem["data"]["id"] == from_slug + "__" + to_slug or elem["data"]["id"] == to_slug + "__" + from_slug:
                     elem["classes"] = elem["classes"].replace("regular", "selected")
                 else:
                     elem["classes"] = elem["classes"].replace("selected", "regular")
@@ -349,10 +333,7 @@ def make_comparison(study, system, from_slug, to_slug):
             row = df[(df["from"] == to_slug) & (df["to"] == from_slug)]
             rev_cost = row["cost"].values[0]
             cmp = [
-                html.H3(
-                    (f"{from_slug} ➞ {to_slug} = {cost}")
-                    + (f" ({rev_cost})" if rev_cost != cost else "")
-                ),
+                html.H3((f"{from_slug} ➞ {to_slug} = {cost}") + (f" ({rev_cost})" if rev_cost != cost else "")),
                 html.Div(
                     [
                         img(study, system, from_slug),

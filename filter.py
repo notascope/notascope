@@ -5,7 +5,7 @@ dest = False
 cost = 0
 total_cost = 0
 for line in sys.stdin:
-    line = line.strip()
+    line = line.rstrip()
     if line in ("", "==="):
         if cost:
             print(" ", cost)
@@ -13,16 +13,15 @@ for line in sys.stdin:
         dest = False
         total_cost += cost
         cost = 0
+        last_indent = None
     elif line == "---":
         pass
     elif op is None:
         op = line
         if op != "match":
             print(line)
-    elif line == "to":
-        dest = True
     elif op != "match" and not dest:
-        print("    " + line)
+        print(line)
         if op.startswith("del"):
             cost = 1
         elif op.startswith("move"):
@@ -31,8 +30,16 @@ for line in sys.stdin:
             cost = 1
         elif op == "update-node":
             cost = 1
+        elif op == "insert-tree":
+            indent = len(line) - len(line.lstrip())
+            if last_indent is not None and indent <= last_indent:
+                cost += 1
+            last_indent = indent
         else:
-            cost += 1
+            print("op is", op)
+            raise
+    if line == "to":
+        dest = True
 
 if cost:
     print(" ", cost)
