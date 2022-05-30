@@ -5,7 +5,6 @@ import json
 import pandas as pd
 import numpy as np
 from sklearn.manifold import MDS
-import os
 import dash_cytoscape as cyto
 
 print("start", np.random.randint(100))
@@ -14,78 +13,77 @@ np.random.seed(1)
 
 def precompute():
     results = dict()
-    for study in [d for d in os.listdir(f"./results") if os.path.isdir(f"./results/{d}")]:
+    costs_df = pd.read_csv(
+        "results/costs.csv",
+        names=["study", "system", "from", "to", "cost"],
+    )
+    for (study, system), df in costs_df.groupby(["study", "system"]):
+        square = df.pivot_table(index="from", columns="to", values="cost").fillna(0)
+        order = list(square.index)
+        mds = MDS(n_components=2, dissimilarity="precomputed")
+        embedding = mds.fit_transform((square.values + square.values.T) / 2)
+        emb_min = embedding.min()
+        emb_max = embedding.max()
+        emb_span = emb_max - emb_min
+        emb_max += emb_span / 2
+        emb_min -= emb_span / 2
+        emb_df = pd.DataFrame(embedding, index=order, columns=["x", "y"])
+
+        network_elements = []
+        for i, row in emb_df.iterrows():
+            network_elements.append(
+                {
+                    "data": {
+                        "id": i,
+                        "label": i,
+                        "url": f"/assets/results/{study}/{system}/svg/{i}.svg",
+                    },
+                    "position": {c: row[c] * 1000 / emb_span for c in ["x", "y"]},
+                    "classes": "regular",
+                }
+            )
+
+        square = square.values
+        n = len(square)
+        result = np.zeros((n, n))
+        for i in range(n):
+            for j in range(n):
+                if i == j:
+                    continue
+                has_k = False
+                direct = square[i, j]
+                for k in range(n):
+                    if k == i or k == j:
+                        continue
+                    via_k = square[i, k] + square[k, j]
+                    if (via_k - direct) / direct < 0.05:
+                        has_k = True
+                        break
+                if not has_k:
+                    result[i, j] = direct
+        for i in range(n):
+            for j in range(n):
+                if i == j:  # no self edges
+                    continue
+                if result[i, j] == 0:  # no zero edges
+                    continue
+                if result[j, i] == 0:  # no edge without other direction
+                    continue
+                if result[i, j] > result[j, i] or (result[i, j] == result[j, i] and i > j):  # only one bidir edge
+                    network_elements.append(
+                        {
+                            "data": {
+                                "source": order[i],
+                                "target": order[j],
+                                "id": order[i] + "__" + order[j],
+                                "length": result[i, j],
+                            },
+                            "classes": "regular" + (" bidir" if result[i, j] == result[j, i] else ""),
+                        }
+                    )
         if study not in results:
             results[study] = dict()
-        for system in [d for d in os.listdir(f"./results/{study}") if os.path.isdir(f"./results/{study}/{d}")]:
-            df = pd.read_csv(
-                f"results/{study}/{system}/costs.csv",
-                names=["study", "system", "from", "to", "cost"],
-            )
-            square = df.pivot_table(index="from", columns="to", values="cost").fillna(0)
-            order = list(square.index)
-            mds = MDS(n_components=2, dissimilarity="precomputed")
-            embedding = mds.fit_transform((square.values + square.values.T) / 2)
-            emb_min = embedding.min()
-            emb_max = embedding.max()
-            emb_span = emb_max - emb_min
-            emb_max += emb_span / 2
-            emb_min -= emb_span / 2
-            emb_df = pd.DataFrame(embedding, index=order, columns=["x", "y"])
-
-            network_elements = []
-            for i, row in emb_df.iterrows():
-                network_elements.append(
-                    {
-                        "data": {
-                            "id": i,
-                            "label": i,
-                            "url": f"/assets/results/{study}/{system}/svg/{i}.svg",
-                        },
-                        "position": {c: row[c] * 1000 / emb_span for c in ["x", "y"]},
-                        "classes": "regular",
-                    }
-                )
-
-            square = square.values
-            n = len(square)
-            result = np.zeros((n, n))
-            for i in range(n):
-                for j in range(n):
-                    if i == j:
-                        continue
-                    has_k = False
-                    direct = square[i, j]
-                    for k in range(n):
-                        if k == i or k == j:
-                            continue
-                        via_k = square[i, k] + square[k, j]
-                        if (via_k - direct) / direct < 0.05:
-                            has_k = True
-                            break
-                    if not has_k:
-                        result[i, j] = direct
-            for i in range(n):
-                for j in range(n):
-                    if i == j:  # no self edges
-                        continue
-                    if result[i, j] == 0:  # no zero edges
-                        continue
-                    if result[j, i] == 0:  # no edge without other direction
-                        continue
-                    if result[i, j] > result[j, i] or (result[i, j] == result[j, i] and i > j):  # only one bidir edge
-                        network_elements.append(
-                            {
-                                "data": {
-                                    "source": order[i],
-                                    "target": order[j],
-                                    "id": order[i] + "__" + order[j],
-                                    "length": result[i, j],
-                                },
-                                "classes": "regular" + (" bidir" if result[i, j] == result[j, i] else ""),
-                            }
-                        )
-            results[study][system] = dict(df=df, network_elements=network_elements)
+        results[study][system] = dict(df=df, network_elements=network_elements)
     return results
 
 
