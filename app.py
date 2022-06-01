@@ -65,7 +65,7 @@ def precompute():
                     if k == i or k == j:
                         continue
                     via_k = square[i, k] + square[k, j]
-                    if (via_k - direct) / direct < 0.05:
+                    if (via_k - direct) / direct <= 0:
                         has_k = True
                         break
                 if not has_k:
@@ -90,10 +90,12 @@ def precompute():
                             "classes": "regular" + (" bidir" if result[i, j] == result[j, i] else ""),
                         }
                     )
+
         if study not in results:
             results[study] = dict()
         results[study][system] = dict(
             slugs=df.from_slug.unique(),
+            tokens=tokens_df.query("study==@study and system==@system")["token"].nunique(),
             network_elements=network_elements,
         )
     return results
@@ -222,6 +224,8 @@ def make_content(hashpath):
         style2 = dict(visibility="hidden", gridRowStart=3)
         cmp2, net2 = None, []
 
+    systems = [dict(label=f"{s} ({results[study][s]['tokens']})", value=s) for s in results[study]]
+
     return html.Div(
         className="wrapper",
         children=[
@@ -242,7 +246,7 @@ def make_content(hashpath):
                     dcc.Dropdown(
                         id="system",
                         value=system,
-                        options=[s for s in results[study]],
+                        options=systems,
                         clearable=False,
                         className="dropdown",
                     ),
@@ -253,7 +257,7 @@ def make_content(hashpath):
                     dcc.Dropdown(
                         id="system2",
                         value=system2,
-                        options=[s for s in results[study]],
+                        options=systems,
                         clearable=True,
                         className="dropdown",
                     ),
@@ -321,7 +325,7 @@ def iframe(study, system, url):
 def single(study, system, slug, tokens_n, tokens_nunique):
     return [
         html.H3(slug),
-        html.P(f"{tokens_n} tokens, {tokens_nunique} unique"),
+        html.P(f"{tokens_n} tokens, {tokens_nunique} uniques"),
         html.Img(
             src=f"/assets/results/{study}/{system}/svg/{slug}.svg",
             style=dict(verticalAlign="middle", maxHeight="250px", maxWidth="20vw"),
@@ -335,7 +339,7 @@ def make_comparison(study, system, from_slug, to_slug):
     system_results = results[study][system]
     net = json.loads(json.dumps(system_results["network_elements"]))
     try:
-        filter_prefix = f"study == '{study}' and system == '{system}'"
+        filter_prefix = "study==@study and system==@system"
         from_tokens_df = tokens_df.query(filter_prefix + " and spec==@from_slug")
         from_tokens_n = len(from_tokens_df)
         from_tokens_nunique = from_tokens_df["token"].nunique()
@@ -361,7 +365,13 @@ def make_comparison(study, system, from_slug, to_slug):
                                 ),
                                 html.Td(
                                     [
-                                        html.P(["tokens", html.Br(), f"{from_tokens_n - len(shared_tokens)} ⬌ {to_tokens_n - len(shared_tokens)}"]),
+                                        html.P(
+                                            [
+                                                "tokens",
+                                                html.Br(),
+                                                f"{from_tokens_n - len(shared_tokens)} ⬌ {to_tokens_n - len(shared_tokens)}",
+                                            ]
+                                        ),
                                         html.P(
                                             [
                                                 "uniques",
