@@ -6,19 +6,28 @@ import pandas as pd
 import numpy as np
 from sklearn.manifold import MDS
 import dash_cytoscape as cyto
+from collections import Counter
+
 
 print("start", np.random.randint(100))
 np.random.seed(1)
 
 
+costs_df = pd.read_csv(
+    "results/costs.csv",
+    names=["study", "system", "from_slug", "to_slug", "cost"],
+)
+tokens_df = pd.read_csv(
+    "results/tokens.tsv",
+    names=["study", "system", "spec", "token"],
+    delimiter="\t",
+)
+
+
 def precompute():
     results = dict()
-    costs_df = pd.read_csv(
-        "results/costs.csv",
-        names=["study", "system", "from", "to", "cost"],
-    )
     for (study, system), df in costs_df.groupby(["study", "system"]):
-        square = df.pivot_table(index="from", columns="to", values="cost").fillna(0)
+        square = df.pivot_table(index="from_slug", columns="to_slug", values="cost").fillna(0)
         order = list(square.index)
         mds = MDS(n_components=2, dissimilarity="precomputed")
         embedding = mds.fit_transform((square.values + square.values.T) / 2)
@@ -83,7 +92,10 @@ def precompute():
                     )
         if study not in results:
             results[study] = dict()
-        results[study][system] = dict(df=df, network_elements=network_elements)
+        results[study][system] = dict(
+            slugs=df.from_slug.unique(),
+            network_elements=network_elements,
+        )
     return results
 
 
@@ -172,13 +184,13 @@ def sanitize_state(study, system, system2, from_slug, to_slug):
     study_res = results[study]
     slugs = set()
     if system in study_res:
-        for s in study_res[system]["df"]["from"].values:
+        for s in study_res[system]["slugs"]:
             slugs.add(s)
     else:
         system = default_system(study)
 
     if system2 in study_res:
-        for s in study_res[system2]["df"]["from"].values:
+        for s in study_res[system2]["slugs"]:
             slugs.add(s)
     else:
         system2 = ""
@@ -306,54 +318,82 @@ def iframe(study, system, url):
     )
 
 
-def img(study, system, slug):
-    return html.Img(
-        src=f"/assets/results/{study}/{system}/svg/{slug}.svg",
-        style=dict(verticalAlign="middle", maxHeight="250px", maxWidth="20vw"),
-    )
+def single(study, system, slug, tokens_n, tokens_nunique):
+    return [
+        html.H3(slug),
+        html.P(f"{tokens_n} tokens, {tokens_nunique} unique"),
+        html.Img(
+            src=f"/assets/results/{study}/{system}/svg/{slug}.svg",
+            style=dict(verticalAlign="middle", maxHeight="250px", maxWidth="20vw"),
+        ),
+    ]
 
 
 def make_comparison(study, system, from_slug, to_slug):
     cmp = None
+    selected_ids = []
     system_results = results[study][system]
     net = json.loads(json.dumps(system_results["network_elements"]))
     try:
-        # add to default outputs
+        filter_prefix = f"study == '{study}' and system == '{system}'"
+        from_tokens_df = tokens_df.query(filter_prefix + " and spec==@from_slug")
+        from_tokens_n = len(from_tokens_df)
+        from_tokens_nunique = from_tokens_df["token"].nunique()
         if from_slug != to_slug:
-            for elem in net:
-                if elem["data"]["id"] == from_slug + "__" + to_slug or elem["data"]["id"] == to_slug + "__" + from_slug:
-                    elem["classes"] = elem["classes"].replace("regular", "selected")
-                else:
-                    elem["classes"] = elem["classes"].replace("selected", "regular")
-            df = system_results["df"]
-            row = df[(df["from"] == from_slug) & (df["to"] == to_slug)]
-            cost = row["cost"].values[0]
-            row = df[(df["from"] == to_slug) & (df["to"] == from_slug)]
-            rev_cost = row["cost"].values[0]
+            to_tokens_df = tokens_df.query(filter_prefix + " and spec==@to_slug")
+            to_tokens_n = len(to_tokens_df)
+            to_tokens_nunique = to_tokens_df["token"].nunique()
+            cost = costs_df.query(filter_prefix + " and from_slug==@from_slug and to_slug==@to_slug")["cost"].values[0]
+            rev_cost = costs_df.query(filter_prefix + " and from_slug==@to_slug and to_slug==@from_slug")["cost"].values[0]
+
+            shared_tokens = list((Counter(from_tokens_df["token"].values) & Counter(to_tokens_df["token"].values)).elements())
+            shared_uniques = set(from_tokens_df["token"]) & set(to_tokens_df["token"])
+
+            selected_ids += [from_slug + "__" + to_slug, to_slug + "__" + from_slug]
             cmp = [
-                html.H3((f"{from_slug} ➞ {to_slug} = {cost}") + (f" ({rev_cost})" if rev_cost != cost else "")),
-                html.Div(
+                html.Table(
                     [
-                        img(study, system, from_slug),
-                        html.Span("➞", style=dict(margin="20px")),
-                        img(study, system, to_slug),
+                        html.Tr(
+                            [
+                                html.Td(
+                                    single(study, system, from_slug, from_tokens_n, from_tokens_nunique),
+                                    style=dict(verticalAlign="top"),
+                                ),
+                                html.Td(
+                                    [
+                                        html.P(["tokens", html.Br(), f"{from_tokens_n - len(shared_tokens)} ⬌ {to_tokens_n - len(shared_tokens)}"]),
+                                        html.P(
+                                            [
+                                                "uniques",
+                                                html.Br(),
+                                                f"{from_tokens_nunique - len(shared_uniques)} ⬌ {to_tokens_nunique - len(shared_uniques)}",
+                                            ]
+                                        ),
+                                        html.P(["tree edit", html.Br(), f"{rev_cost} ⬌ {cost}"]),
+                                    ]
+                                ),
+                                html.Td(
+                                    single(study, system, to_slug, to_tokens_n, to_tokens_nunique),
+                                    style=dict(verticalAlign="top"),
+                                ),
+                            ]
+                        )
                     ],
-                    style=dict(height="250px"),
+                    style=dict(width="100%"),
                 ),
                 iframe(study, system, f"html/{from_slug}__{to_slug}.html"),
                 iframe(study, system, f"cost/{from_slug}__{to_slug}.txt"),
             ]
         elif from_slug != "":
-            for elem in net:
-                if elem["data"]["id"] == from_slug:
-                    elem["classes"] = elem["classes"].replace("regular", "selected")
-                else:
-                    elem["classes"] = elem["classes"].replace("selected", "regular")
-            cmp = [
-                html.H3(from_slug),
-                html.Div([img(study, system, from_slug)], style=dict(height="250px")),
-                iframe(study, system, f"source/{from_slug}.txt"),
-            ]
+            selected_ids.append(from_slug)
+            cmp = single(study, system, from_slug, from_tokens_n, from_tokens_nunique)
+            cmp += [iframe(study, system, f"source/{from_slug}.txt")]
+
+        for elem in net:
+            if elem["data"]["id"] in selected_ids:
+                elem["classes"] = elem["classes"].replace("regular", "selected")
+            else:
+                elem["classes"] = elem["classes"].replace("selected", "regular")
 
     except Exception as e:
         print(repr(e))
