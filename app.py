@@ -1,5 +1,5 @@
 import re
-from dash import Dash, html, dcc, Input, Output, callback_context
+from dash import Dash, html, dcc, Input, Output, State, callback_context
 import random
 import json
 import pandas as pd
@@ -7,6 +7,7 @@ import numpy as np
 from sklearn.manifold import MDS
 import dash_cytoscape as cyto
 from collections import Counter
+from dash_extensions import EventListener
 
 
 print("start", np.random.randint(100))
@@ -205,7 +206,19 @@ def sanitize_state(study, system, system2, from_slug, to_slug):
     return study, system, system2, from_slug, to_slug
 
 
-app.layout = html.Div([html.Div(id="content"), dcc.Location(id="location")])
+app.layout = html.Div(
+    [
+        html.Div(id="content"),
+        dcc.Location(id="location"),
+        EventListener(
+            id="event_listener",
+            events=[
+                {"event": "keydown", "props": ["shiftKey"]},
+                {"event": "keyup", "props": ["shiftKey"]},
+            ],
+        ),
+    ]
+)
 
 
 @app.callback(
@@ -286,8 +299,10 @@ def make_content(hashpath):
     Input("network", "tapEdgeData"),
     Input("network2", "tapNodeData"),
     Input("network2", "tapEdgeData"),
+    State("event_listener", "event"),
 )
-def update_hashpath(selection, study, system, system2, node_data, edge_data, node_data2, edge_data2):
+def update_hashpath(selection, study, system, system2, node_data, edge_data, node_data2, edge_data2, event):
+    shift_down = bool((dict(shiftKey=False) if not event else event)["shiftKey"])
     ctx = callback_context
     from_slug, to_slug = selection
     if ctx.triggered:
@@ -296,9 +311,13 @@ def update_hashpath(selection, study, system, system2, node_data, edge_data, nod
 
         if click_type == "tapNodeData":
             if click_system == "network":
-                from_slug = to_slug = node_data["id"]
+                to_slug = node_data["id"]
+                if not shift_down:
+                    from_slug = to_slug
             if click_system == "network2":
-                from_slug = to_slug = node_data2["id"]
+                to_slug = node_data2["id"]
+                if not shift_down:
+                    from_slug = to_slug
             edge_data = None
             edge_data2 = None
         if click_type == "tapEdgeData":
