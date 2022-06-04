@@ -360,6 +360,7 @@ def single(study, system, slug, tokens_n, tokens_nunique):
 
 def make_comparison(study, system, from_slug, to_slug):
     cmp = None
+    selected_ids = []
     system_results = results[study][system]
     net = json.loads(json.dumps(system_results["network_elements"]))
     try:
@@ -377,7 +378,9 @@ def make_comparison(study, system, from_slug, to_slug):
             shared_tokens = list((Counter(from_tokens_df["token"].values) & Counter(to_tokens_df["token"].values)).elements())
             shared_uniques = set(from_tokens_df["token"]) & set(to_tokens_df["token"])
 
-            selected_id = from_slug + "__" + to_slug
+            selected_ids += [from_slug + "__" + to_slug]
+            if cost == rev_cost:
+                selected_ids += [to_slug + "__" + from_slug]
             cmp = [
                 html.Table(
                     [
@@ -419,13 +422,13 @@ def make_comparison(study, system, from_slug, to_slug):
                 iframe(study, system, f"cost/{from_slug}__{to_slug}.txt"),
             ]
         elif from_slug != "":
-            selected_id = from_slug
+            selected_ids += [from_slug]
             cmp = single(study, system, from_slug, from_tokens_n, from_tokens_nunique)
             cmp += [iframe(study, system, f"source/{from_slug}.txt")]
 
         elem_found = False
         for elem in net:
-            if elem["data"]["id"] == selected_id:
+            if elem["data"]["id"] in selected_ids:
                 elem["classes"] += " selected"
                 elem_found = True
 
