@@ -360,7 +360,6 @@ def single(study, system, slug, tokens_n, tokens_nunique):
 
 def make_comparison(study, system, from_slug, to_slug):
     cmp = None
-    selected_ids = []
     system_results = results[study][system]
     net = json.loads(json.dumps(system_results["network_elements"]))
     try:
@@ -378,6 +377,7 @@ def make_comparison(study, system, from_slug, to_slug):
             shared_tokens = list((Counter(from_tokens_df["token"].values) & Counter(to_tokens_df["token"].values)).elements())
             shared_uniques = set(from_tokens_df["token"]) & set(to_tokens_df["token"])
 
+            any_elem_found = False
             for source, dest in [[from_slug, to_slug], [to_slug, from_slug]]:
                 edge_id = source + "__" + dest
                 elem_found = False
@@ -385,8 +385,9 @@ def make_comparison(study, system, from_slug, to_slug):
                     if elem["data"]["id"] == edge_id:
                         elem["classes"] += " selected"
                         elem_found = True
+                        any_elem_found = True
 
-                if not elem_found and cost != rev_cost:
+                if (not elem_found and cost != rev_cost) or (dest == from_slug and not any_elem_found and cost == rev_cost):
                     net.append(
                         {
                             "data": {
@@ -395,9 +396,10 @@ def make_comparison(study, system, from_slug, to_slug):
                                 "id": edge_id,
                                 "length": cost if source == from_slug else rev_cost,
                             },
-                            "classes": "selected inserted",
+                            "classes": "selected inserted" + (" bidir" if cost == rev_cost else ""),
                         }
                     )
+
             cmp = [
                 html.Table(
                     [
