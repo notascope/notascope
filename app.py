@@ -378,9 +378,26 @@ def make_comparison(study, system, from_slug, to_slug):
             shared_tokens = list((Counter(from_tokens_df["token"].values) & Counter(to_tokens_df["token"].values)).elements())
             shared_uniques = set(from_tokens_df["token"]) & set(to_tokens_df["token"])
 
-            selected_ids += [from_slug + "__" + to_slug]
-            if cost == rev_cost:
-                selected_ids += [to_slug + "__" + from_slug]
+            for source, dest in [[from_slug, to_slug], [to_slug, from_slug]]:
+                edge_id = source + "__" + dest
+                elem_found = False
+                for elem in net:
+                    if elem["data"]["id"] == edge_id:
+                        elem["classes"] += " selected"
+                        elem_found = True
+
+                if not elem_found and cost != rev_cost:
+                    net.append(
+                        {
+                            "data": {
+                                "source": source,
+                                "target": dest,
+                                "id": edge_id,
+                                "length": cost if source == from_slug else rev_cost,
+                            },
+                            "classes": "selected inserted",
+                        }
+                    )
             cmp = [
                 html.Table(
                     [
@@ -422,28 +439,12 @@ def make_comparison(study, system, from_slug, to_slug):
                 iframe(study, system, f"cost/{from_slug}__{to_slug}.txt"),
             ]
         elif from_slug != "":
-            selected_ids += [from_slug]
             cmp = single(study, system, from_slug, from_tokens_n, from_tokens_nunique)
             cmp += [iframe(study, system, f"source/{from_slug}.txt")]
 
-        elem_found = False
-        for elem in net:
-            if elem["data"]["id"] in selected_ids:
-                elem["classes"] += " selected"
-                elem_found = True
-
-        if not elem_found:
-            net.append(
-                {
-                    "data": {
-                        "source": from_slug,
-                        "target": to_slug,
-                        "id": from_slug + "__" + to_slug,
-                        "length": cost,
-                    },
-                    "classes": "selected inserted",
-                }
-            )
+            for elem in net:
+                if elem["data"]["id"] == from_slug:
+                    elem["classes"] += " selected"
 
     except Exception as e:
         print(repr(e))
