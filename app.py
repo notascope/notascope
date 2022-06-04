@@ -49,7 +49,7 @@ def precompute():
                         "url": f"/assets/results/{study}/{system}/svg/{i}.svg",
                     },
                     "position": {c: row[c] * 1000 / emb_span for c in ["x", "y"]},
-                    "classes": "regular",
+                    "classes": "",
                 }
             )
 
@@ -88,7 +88,7 @@ def precompute():
                                 "id": order[i] + "__" + order[j],
                                 "length": result[i, j],
                             },
-                            "classes": "regular" + (" bidir" if result[i, j] == result[j, i] else ""),
+                            "classes": (" bidir" if result[i, j] == result[j, i] else ""),
                         }
                     )
 
@@ -139,9 +139,9 @@ def cytoscape(id, elements):
                 "selector": "edge",
                 "style": {
                     "line-color": "grey",
+                    "curve-style": "bezier",
                     "target-arrow-color": "grey",
                     "target-arrow-shape": "triangle",
-                    "curve-style": "straight",
                     "label": "data(length)",
                     "font-size": "24px",
                     "text-outline-color": "white",
@@ -163,6 +163,12 @@ def cytoscape(id, elements):
                     "line-color": "red",
                     "border-color": "red",
                     "border-width": 5,
+                },
+            },
+            {
+                "selector": ".inserted",
+                "style": {
+                    "line-style": "dashed",
                 },
             },
         ],
@@ -354,7 +360,6 @@ def single(study, system, slug, tokens_n, tokens_nunique):
 
 def make_comparison(study, system, from_slug, to_slug):
     cmp = None
-    selected_ids = []
     system_results = results[study][system]
     net = json.loads(json.dumps(system_results["network_elements"]))
     try:
@@ -372,7 +377,7 @@ def make_comparison(study, system, from_slug, to_slug):
             shared_tokens = list((Counter(from_tokens_df["token"].values) & Counter(to_tokens_df["token"].values)).elements())
             shared_uniques = set(from_tokens_df["token"]) & set(to_tokens_df["token"])
 
-            selected_ids += [from_slug + "__" + to_slug, to_slug + "__" + from_slug]
+            selected_id = from_slug + "__" + to_slug
             cmp = [
                 html.Table(
                     [
@@ -414,15 +419,28 @@ def make_comparison(study, system, from_slug, to_slug):
                 iframe(study, system, f"cost/{from_slug}__{to_slug}.txt"),
             ]
         elif from_slug != "":
-            selected_ids.append(from_slug)
+            selected_id = from_slug
             cmp = single(study, system, from_slug, from_tokens_n, from_tokens_nunique)
             cmp += [iframe(study, system, f"source/{from_slug}.txt")]
 
+        elem_found = False
         for elem in net:
-            if elem["data"]["id"] in selected_ids:
-                elem["classes"] = elem["classes"].replace("regular", "selected")
-            else:
-                elem["classes"] = elem["classes"].replace("selected", "regular")
+            if elem["data"]["id"] == selected_id:
+                elem["classes"] += " selected"
+                elem_found = True
+
+        if not elem_found:
+            net.append(
+                {
+                    "data": {
+                        "source": from_slug,
+                        "target": to_slug,
+                        "id": from_slug + "__" + to_slug,
+                        "length": cost,
+                    },
+                    "classes": "selected inserted",
+                }
+            )
 
     except Exception as e:
         print(repr(e))
