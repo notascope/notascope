@@ -14,6 +14,12 @@ results/$(1)/$(2)/cost/$(basename $(3))__$(basename $(4)).txt: results/$(1)/$(2)
 	@cat $$< | python compute_costs.py $(1) $(2) $(basename $(3)) $(basename $(4)) > $$@
 results/costs.csv: results/$(1)/$(2)/cost/$(basename $(3))__$(basename $(4)).txt
 
+results/$(1)/$(2)/levenshtein/$(basename $(3))__$(basename $(4)).txt: studies/$(1)/$(2)/$(3) studies/$(1)/$(2)/$(4)
+	@echo "[levensh]  $(1)/$(2): $(3) $(4)"
+	@mkdir -p $$(dir $$@)
+	@python levenshtein_cost.py $$+ > $$@
+results/levenshtein_costs.csv: results/$(1)/$(2)/levenshtein/$(basename $(3))__$(basename $(4)).txt
+
 results/$(1)/$(2)/unified/$(basename $(3))__$(basename $(4)).diff: studies/$(1)/$(2)/$(3) studies/$(1)/$(2)/$(4)
 	@echo "[unified]  $(1)/$(2): $(3) $(4)"
 	@mkdir -p $$(dir $$@)
@@ -69,6 +75,12 @@ results/costs.csv:
 	@mkdir -p $(dir $@)
 	@tail -q -n1 $+ > $@
 all: results/costs.csv
+
+results/levenshtein_costs.csv:
+	@echo "[cost]     global"
+	@mkdir -p $(dir $@)
+	@tail -q -n1 $+ > $@
+all: results/levenshtein_costs.csv
 
 results/tokens.tsv:
 	@echo "[tokens]   global"

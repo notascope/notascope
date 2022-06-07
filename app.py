@@ -15,7 +15,7 @@ np.random.seed(1)
 
 
 costs_df = pd.read_csv(
-    "results/costs.csv",
+    "results/levenshtein_costs.csv",
     names=["study", "system", "from_slug", "to_slug", "cost"],
 )
 tokens_df = pd.read_csv(
@@ -438,7 +438,7 @@ def make_comparison(study, system, from_slug, to_slug):
                     style=dict(width="100%"),
                 ),
                 iframe(study, system, f"html/{from_slug}__{to_slug}.html"),
-                iframe(study, system, f"cost/{from_slug}__{to_slug}.txt"),
+                iframe(study, system, f"levenshtein/{from_slug}__{to_slug}.txt"),
             ]
         elif from_slug != "":
             cmp = single(study, system, from_slug, from_tokens_n, from_tokens_nunique)
