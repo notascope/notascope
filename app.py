@@ -133,6 +133,9 @@ def cytoscape(id, elements):
                     "label": "data(label)",
                     "border-color": "grey",
                     "border-width": 1,
+                    "text-outline-color": "white",
+                    "text-outline-width": "2",
+                    "text-margin-y": "20",
                 },
             },
             {
@@ -141,7 +144,9 @@ def cytoscape(id, elements):
                     "line-color": "grey",
                     "curve-style": "bezier",
                     "target-arrow-color": "grey",
-                    "target-arrow-shape": "triangle",
+                    "control-point-weight": 0.6,
+                    "target-arrow-shape": "triangle-backcurve",
+                    "arrow-scale": 2,
                     "label": "data(length)",
                     "font-size": "24px",
                     "text-outline-color": "white",
@@ -152,7 +157,7 @@ def cytoscape(id, elements):
                 "selector": ".bidir",
                 "style": {
                     "source-arrow-color": "grey",
-                    "source-arrow-shape": "triangle",
+                    "source-arrow-shape": "triangle-backcurve",
                 },
             },
             {
