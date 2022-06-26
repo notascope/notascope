@@ -21,11 +21,12 @@ endef
 define EXAMPLE_rule # study, system, example
 $(foreach example2, $(shell ls studies/$(1)/$(2)), $(eval $(call DIFF_rule,$(1),$(2),$(3),$(example2))))
 
-results/$(1)/$(2)/source/$(basename $(3)).txt: studies/$(1)/$(2)/$(3)
+results/$(1)/$(2)/source/$(basename $(3)): studies/$(1)/$(2)/$(3)
 	@echo "[source]   $(1)/$(2): $(3)"
 	@mkdir -p $$(dir $$@)
-	@cp $$< $$@
-base: results/$(1)/$(2)/source/$(basename $(3)).txt
+	@cp $$< $$(dir $$@)
+	@touch $$@
+base: results/$(1)/$(2)/source/$(basename $(3))
 
 results/$(1)/$(2)/tokens/$(basename $(3)).tsv: studies/$(1)/$(2)/$(3)
 	@echo "[tokens]   $(1)/$(2): $(3)"
@@ -33,11 +34,12 @@ results/$(1)/$(2)/tokens/$(basename $(3)).tsv: studies/$(1)/$(2)/$(3)
 	@python ts_tokenize.py $$< > $$@
 results/tokens.tsv: results/$(1)/$(2)/tokens/$(basename $(3)).tsv
 
-results/$(1)/$(2)/svg/$(basename $(3)).svg: studies/$(1)/$(2)/$(3)
-	@echo "[svg]      $(1)/$(2): $(3)"
+results/$(1)/$(2)/img/$(basename $(3)): studies/$(1)/$(2)/$(3)
+	@echo "[img]      $(1)/$(2): $(3)"
 	@mkdir -p $$(dir $$@)
-	@scripts/$(2).sh $$< $$@ || touch $$@
-base: results/$(1)/$(2)/svg/$(basename $(3)).svg
+	@scripts/$(2).sh $$< $$@
+	@touch $$@
+base: results/$(1)/$(2)/img/$(basename $(3))
 
 endef
 

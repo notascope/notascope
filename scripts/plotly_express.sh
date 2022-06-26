@@ -1,3 +1,3 @@
 #!/bin/zsh
 
-{cat $1 ; echo "fig.write_image('$2')"} | python
+{cat $1 ; echo "fig.write_image('$2.svg')"} | python

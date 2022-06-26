@@ -10,6 +10,7 @@ from collections import Counter
 from dash_extensions import EventListener
 from notascope_components import DashDiff
 import sys
+from glob import glob
 
 cost_type = sys.argv[1]
 
@@ -43,6 +44,9 @@ def precompute():
         emb_min -= emb_span / 2
         emb_df = pd.DataFrame(embedding, index=order, columns=["x", "y"])
 
+        imgext = glob(f"results/{study}/{system}/img/*.*")[0].split(".")[-1]
+        srcext = glob(f"results/{study}/{system}/source/*.*")[0].split(".")[-1]
+
         network_elements = []
         for i, row in emb_df.iterrows():
             network_elements.append(
@@ -50,7 +54,7 @@ def precompute():
                     "data": {
                         "id": i,
                         "label": i,
-                        "url": f"/assets/results/{study}/{system}/svg/{i}.svg",
+                        "url": f"/assets/results/{study}/{system}/img/{i}.{imgext}",
                     },
                     "position": {c: row[c] * 1000 / emb_span for c in ["x", "y"]},
                     "classes": "",
@@ -99,6 +103,8 @@ def precompute():
         if study not in results:
             results[study] = dict()
         results[study][system] = dict(
+            imgext=imgext,
+            srcext=srcext,
             slugs=df.from_slug.unique(),
             tokens=tokens_df.query("study==@study and system==@system")["token"].nunique(),
             network_elements=network_elements,
@@ -357,21 +363,26 @@ def iframe(study, system, url):
 
 
 def single(study, system, slug, tokens_n, tokens_nunique):
+    imgext = results[study][system]["imgext"]
     return [
         html.H3(slug),
         html.P(f"{tokens_n} tokens, {tokens_nunique} uniques"),
         html.Img(
-            src=f"/assets/results/{study}/{system}/svg/{slug}.svg",
+            src=f"/assets/results/{study}/{system}/img/{slug}.{imgext}",
             style=dict(verticalAlign="middle", maxHeight="250px", maxWidth="20vw"),
         ),
     ]
 
 
 def code(study, system, from_slug, to_slug):
-    with open(f"results/{study}/{system}/source/{from_slug}.txt", "r") as f:
+    srcext = results[study][system]["srcext"]
+    with open(f"results/{study}/{system}/source/{from_slug}.{srcext}", "r") as f:
         from_code = f.read()
-    with open(f"results/{study}/{system}/source/{to_slug}.txt", "r") as f:
-        to_code = f.read()
+    if from_slug == to_slug:
+        to_code = from_code
+    else:
+        with open(f"results/{study}/{system}/source/{to_slug}.{srcext}", "r") as f:
+            to_code = f.read()
     return html.Div(
         [html.Div([DashDiff(oldCode=from_code, newCode=to_code)], style=dict(border="none"))],
         style=dict(textAlign="left", height="300px", overflow="scroll", border="1px solid grey"),

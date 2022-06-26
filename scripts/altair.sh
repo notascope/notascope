@@ -1,3 +1,3 @@
 #!/bin/zsh
 
-{cat $1 ; echo "chart.save('$2')"} | python
+{cat $1 ; echo "chart.save('$2.svg')"} | python

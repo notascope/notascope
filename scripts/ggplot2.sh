@@ -1,3 +1,3 @@
 #!/bin/bash
 
-(cat $1 ; echo "ggsave('$2')") | r --no-save
+(cat $1 ; echo "ggsave('$2.svg')") | r --no-save
