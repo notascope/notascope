@@ -22,3 +22,9 @@ body {
   border: 1px solid black;
   margin: 0 auto;
 }
+
+pre {
+  font-size: 12px;
+  font-family: Menlo, Monaco, Consolas;
+  line-height: 1.5 !important;
+}

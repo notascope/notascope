@@ -8,6 +8,10 @@ from sklearn.manifold import MDS
 import dash_cytoscape as cyto
 from collections import Counter
 from dash_extensions import EventListener
+from notascope_components import DashDiff
+import sys
+
+cost_type = sys.argv[1]
 
 
 print("start", np.random.randint(100))
@@ -15,7 +19,7 @@ np.random.seed(1)
 
 
 costs_df = pd.read_csv(
-    "results/levenshtein_costs.csv",
+    f"results/{cost_type}_costs.csv",
     names=["study", "system", "from_slug", "to_slug", "cost"],
 )
 tokens_df = pd.read_csv(
@@ -363,6 +367,17 @@ def single(study, system, slug, tokens_n, tokens_nunique):
     ]
 
 
+def code(study, system, from_slug, to_slug):
+    with open(f"results/{study}/{system}/source/{from_slug}.txt", "r") as f:
+        from_code = f.read()
+    with open(f"results/{study}/{system}/source/{to_slug}.txt", "r") as f:
+        to_code = f.read()
+    return html.Div(
+        [html.Div([DashDiff(oldCode=from_code, newCode=to_code)], style=dict(border="none"))],
+        style=dict(textAlign="left", height="300px", overflow="scroll", border="1px solid grey"),
+    )
+
+
 def make_comparison(study, system, from_slug, to_slug):
     cmp = None
     system_results = results[study][system]
@@ -442,12 +457,11 @@ def make_comparison(study, system, from_slug, to_slug):
                     ],
                     style=dict(width="100%"),
                 ),
-                iframe(study, system, f"html/{from_slug}__{to_slug}.html"),
-                iframe(study, system, f"levenshtein/{from_slug}__{to_slug}.txt"),
+                code(study, system, from_slug, to_slug),
             ]
         elif from_slug != "":
             cmp = single(study, system, from_slug, from_tokens_n, from_tokens_nunique)
-            cmp += [iframe(study, system, f"source/{from_slug}.txt")]
+            cmp += [code(study, system, from_slug, from_slug)]
 
             for elem in net:
                 if elem["data"]["id"] == from_slug:

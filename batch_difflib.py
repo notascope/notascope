@@ -3,8 +3,10 @@ from ts_tokenize import get_tokens_for_file
 from difflib import SequenceMatcher
 from glob import glob
 import os
+import sys
 
-inpath = "studies/autogen/plotly_express"
+
+inpath = sys.argv[1]
 pieces = inpath.split("/")
 study = pieces[-2]
 system = pieces[-1]
@@ -23,5 +25,6 @@ def cost(from_slug, to_slug):
     return total_cost
 
 
-for (from_slug, to_slug) in permutations(tokens, 2):
-    print(",".join([study, system, from_slug, to_slug, str(cost(from_slug, to_slug))]))
+with open(f"results/{study}/{system}/difflib_costs.csv", "w") as f:
+    for (from_slug, to_slug) in permutations(tokens, 2):
+        print(",".join([study, system, from_slug, to_slug, str(cost(from_slug, to_slug))]), file=f)
