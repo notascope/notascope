@@ -9,8 +9,8 @@
   "mark": "bar",
   "encoding": {
     "y": { "field": "Number Eaten", "type": "quantitative" },
-    "x": { "field": "Contestant" },
-    "column": { "field": "Fruit" },
+    "x": { "field": "Fruit" },
+    "xOffset": { "field": "Contestant" },
     "color": { "field": "Contestant" }
   }
 }

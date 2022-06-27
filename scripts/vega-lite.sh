@@ -1,3 +1,3 @@
 #!/bin/zsh
 
-echo "import altair as alt; alt.Chart.from_json(open('$1', 'r').read()).save('$2.svg')" | python
+node_modules/vega-lite/bin/vl2svg $1 $2.svg

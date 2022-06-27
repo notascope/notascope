@@ -1,5 +1,7 @@
 {
   "dependencies": {
-    "cli-d3": "yinshanyang/cli-d3"
+    "cli-d3": "yinshanyang/cli-d3",
+    "vega": "^5.22.1",
+    "vega-lite": "^5.2.0"
   }
 }
