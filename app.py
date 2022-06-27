@@ -213,7 +213,7 @@ def sanitize_state(study, system, system2, from_slug, to_slug):
     else:
         system = default_system(study)
 
-    if system2 in study_res:
+    if system2 in study_res and system2 != system:
         for s in study_res[system2]["slugs"]:
             slugs.add(s)
     else:
@@ -251,11 +251,11 @@ def make_content(hashpath):
     cmp, net = make_comparison(study, system, from_slug, to_slug)
     if system2:
         style = dict()
-        style2 = dict(gridColumnStart=2, visibility="visible")
+        style2 = dict(gridColumnStart=2, display="block")
         cmp2, net2 = make_comparison(study, system2, from_slug, to_slug)
     else:
         style = dict(gridRowStart=2)
-        style2 = dict(visibility="hidden", gridRowStart=3)
+        style2 = dict(display="none", gridRowStart=3)
         cmp2, net2 = None, []
 
     systems = [dict(label=f"{s} ({results[study][s]['tokens']})", value=s) for s in results[study]]
@@ -369,7 +369,7 @@ def single(study, system, slug, tokens_n, tokens_nunique):
         html.P(f"{tokens_n} tokens, {tokens_nunique} uniques"),
         html.Img(
             src=f"/assets/results/{study}/{system}/img/{slug}.{imgext}",
-            style=dict(verticalAlign="middle", maxHeight="250px", maxWidth="20vw"),
+            style=dict(verticalAlign="middle", maxHeight="200px", maxWidth="20vw"),
         ),
     ]
 
@@ -385,7 +385,7 @@ def code(study, system, from_slug, to_slug):
             to_code = f.read()
     return html.Div(
         [html.Div([DashDiff(oldCode=from_code, newCode=to_code)], style=dict(border="none"))],
-        style=dict(textAlign="left", height="300px", overflow="scroll", border="1px solid grey"),
+        style=dict(marginTop="20px", textAlign="left", height="300px", overflow="scroll", border="1px solid grey"),
     )
 
 
@@ -408,28 +408,26 @@ def make_comparison(study, system, from_slug, to_slug):
             shared_tokens = list((Counter(from_tokens_df["token"].values) & Counter(to_tokens_df["token"].values)).elements())
             shared_uniques = set(from_tokens_df["token"]) & set(to_tokens_df["token"])
 
-            any_elem_found = False
-            for source, dest in [[from_slug, to_slug], [to_slug, from_slug]]:
-                edge_id = source + "__" + dest
-                elem_found = False
-                for elem in net:
-                    if elem["data"]["id"] == edge_id:
-                        elem["classes"] += " selected"
-                        elem_found = True
-                        any_elem_found = True
-
-                if (not elem_found and cost != rev_cost) or (dest == from_slug and not any_elem_found and cost == rev_cost):
-                    net.append(
-                        {
-                            "data": {
-                                "source": source,
-                                "target": dest,
-                                "id": edge_id,
-                                "length": cost if source == from_slug else rev_cost,
-                            },
-                            "classes": "selected inserted" + (" bidir" if cost == rev_cost else ""),
-                        }
-                    )
+            both_dirs = [[from_slug, to_slug], [to_slug, from_slug]]
+            to_drop = ["__".join(x) for x in both_dirs]
+            dropped = [elem for elem in net if elem["data"]["id"] in to_drop]
+            net = [elem for elem in net if elem["data"]["id"] not in to_drop]
+            for source, dest in both_dirs:
+                id = source + "__" + dest
+                new_elem = {
+                    "data": {
+                        "source": source,
+                        "target": dest,
+                        "id": id,
+                        "length": cost if source == from_slug else rev_cost,
+                    },
+                    "classes": "",
+                }
+                if len(dropped) == 0 or (id not in [x["data"]["id"] for x in dropped] and "bidir" not in dropped[0]["classes"]):
+                    new_elem["classes"] += " inserted"
+                if source == from_slug:
+                    new_elem["classes"] += " selected"
+                net.append(new_elem)
 
             cmp = [
                 html.Table(
