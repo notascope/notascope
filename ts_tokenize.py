@@ -2,6 +2,7 @@
 
 from tree_sitter import Language, Parser
 import sys
+from utils import slug_from_path
 
 basedir = "/Users/nicolas/ets/tree-sitter-parser"
 
@@ -39,6 +40,5 @@ def get_tokens_for_file(infilepath):
 if __name__ == "__main__":
     full_path = sys.argv[1]
     _, study, notation, spec = full_path.split("/")
-    spec = spec.split(".")[0]
     for token in get_tokens_for_file(full_path):
-        print("\t".join([study, notation, spec, token[1]]))
+        print("\t".join([study, notation, slug_from_path(spec), token[1]]))

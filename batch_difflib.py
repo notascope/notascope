@@ -4,6 +4,7 @@ from difflib import SequenceMatcher
 from glob import glob
 import os
 import sys
+from utils import slug_from_path
 
 
 inpath = sys.argv[1]
@@ -11,9 +12,8 @@ pieces = inpath.split("/")
 study = pieces[-2]
 system = pieces[-1]
 tokens = dict()
-for fpath in glob(os.path.join(inpath, "*")):
-    slug = fpath.split("/")[-1].split(".")[0]
-    tokens[slug] = get_tokens_for_file(fpath)
+for fpath in glob(os.path.join(inpath, "*.*")):
+    tokens[slug_from_path(fpath)] = get_tokens_for_file(fpath)
 
 
 def cost(from_slug, to_slug):

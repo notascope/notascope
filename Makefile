@@ -26,7 +26,7 @@ base: results/$(1)/$(2)/img/$(basename $(3))
 endef
 
 define SYSTEM_rule # study, system
-$(foreach example, $(shell ls studies/$(1)/$(2)/), $(eval $(call EXAMPLE_rule,$(1),$(2),$(example))))
+$(foreach example, $(shell ls studies/$(1)/$(2) | grep -F .), $(eval $(call EXAMPLE_rule,$(1),$(2),$(example))))
 
 results/$(1)/$(2)/difflib_costs.csv:
 	@echo "[difflib]  $(1)/$(2)"
@@ -43,7 +43,7 @@ $(foreach study,$(shell ls studies),$(eval $(call STUDY_rule,$(study))))
 
 
 results/difflib_costs.csv:
-	@echo "[difflib]     global"
+	@echo "[difflib]  global"
 	@mkdir -p $(dir $@)
 	@cat $+ > $@
 difflib: results/difflib_costs.csv
