@@ -1,25 +1,8 @@
 PATH:=$(PATH):/Users/nicolas/ets/gumtree/dist/build/install/gumtree/bin
 PATH:=$(PATH):/Users/nicolas/ets/tree-sitter-parser
 
-define DIFF_rule # study, system, example, example2
-ifneq ($(3), $(4))
-results/$(1)/$(2)/gumtree/$(basename $(3))__$(basename $(4)).txt: studies/$(1)/$(2)/$(3) studies/$(1)/$(2)/$(4)
-	@echo "[gumtree]  $(1)/$(2): $(3) $(4)"
-	@mkdir -p $$(dir $$@)
-	@gumtree textdiff $$+ > $$@
-
-results/$(1)/$(2)/gumtree_cost/$(basename $(3))__$(basename $(4)).txt: results/$(1)/$(2)/gumtree/$(basename $(3))__$(basename $(4)).txt gumtree_cost.py
-	@echo "[gmcost]      $(1)/$(2): $(3) $(4)"
-	@mkdir -p $$(dir $$@)
-	@cat $$< | python gumtree_cost.py $(1) $(2) $(basename $(3)) $(basename $(4)) > $$@
-results/gumtree_costs.csv: results/$(1)/$(2)/gumtree_cost/$(basename $(3))__$(basename $(4)).txt
-
-
-endif
-endef
 
 define EXAMPLE_rule # study, system, example
-$(foreach example2, $(shell ls studies/$(1)/$(2)), $(eval $(call DIFF_rule,$(1),$(2),$(3),$(example2))))
 
 results/$(1)/$(2)/source/$(basename $(3)): studies/$(1)/$(2)/$(3)
 	@echo "[source]   $(1)/$(2): $(3)"
