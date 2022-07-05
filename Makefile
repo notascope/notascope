@@ -1,4 +1,3 @@
-PATH:=$(PATH):/Users/nicolas/ets/gumtree/dist/build/install/gumtree/bin
 PATH:=$(PATH):/Users/nicolas/ets/tree-sitter-parser
 
 
@@ -27,7 +26,7 @@ base: results/$(1)/$(2)/img/$(basename $(3))
 endef
 
 define SYSTEM_rule # study, system
-$(foreach example, $(shell ls studies/$(1)/$(2)), $(eval $(call EXAMPLE_rule,$(1),$(2),$(example))))
+$(foreach example, $(shell ls studies/$(1)/$(2)/), $(eval $(call EXAMPLE_rule,$(1),$(2),$(example))))
 
 results/$(1)/$(2)/difflib_costs.csv:
 	@echo "[difflib]  $(1)/$(2)"
@@ -42,12 +41,6 @@ endef
 
 $(foreach study,$(shell ls studies),$(eval $(call STUDY_rule,$(study))))
 
-
-results/gumtree_costs.csv:
-	@echo "[gumtree]     global"
-	@mkdir -p $(dir $@)
-	@tail -q -n1 $+ > $@
-gumtree: results/gumtree_costs.csv
 
 results/difflib_costs.csv:
 	@echo "[difflib]     global"
