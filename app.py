@@ -1,5 +1,5 @@
 import re
-from dash import Dash, html, dcc, Input, Output, State, callback_context, no_update
+from dash import Dash, html, dcc, Input, Output, State, callback_context
 import json
 import pandas as pd
 import numpy as np
@@ -49,9 +49,11 @@ def build_figure(study, system, imgext, square, order):
     embedding = tsne.fit_transform((square + square.T) / 2)
     fig = px.scatter(x=embedding.T[0], y=embedding.T[1], hover_name=order)
     fig.update_layout(height=700, width=700, dragmode="pan", plot_bgcolor="white")
-    fig.update_layout(margin=dict(t=0, b=0, l=0, r=0))
+    fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), uirevision="yes")
     fig.update_yaxes(visible=False)
     fig.update_xaxes(visible=False)
+    fig.update_traces(hoverinfo="none", hovertemplate=None)
+
     return fig.to_json()
 
 
@@ -159,7 +161,18 @@ app.layout = html.Div(
     [
         html.Div(id="content"),
         dcc.Location(id="location"),
-        dcc.Tooltip(id="tooltip"),
+        dcc.Tooltip(
+            id="tooltip",
+            children=[
+                html.Div(
+                    [
+                        html.P(id="tt_name", style=dict(textAlign="center")),
+                        html.Img(id="tt_img", style={"max-width": "300px", "max-height": "200px"}),
+                    ],
+                    style={"width": "300px", "height": "230px", "overflow": "hidden"},
+                )
+            ],
+        ),
         EventListener(
             id="event_listener",
             events=[
@@ -312,7 +325,7 @@ def network_or_figure(net, fig, suffix):
 
     return [
         html.Div(cytoscape("network" + suffix, net), style=net_style),
-        html.Div(dcc.Graph(id="figure" + suffix, figure=fig, config=dict(scrollZoom=True)), style=fig_style),
+        html.Div(dcc.Graph(id="figure" + suffix, figure=fig, config=dict(scrollZoom=True), clear_on_unhover=True), style=fig_style),
     ]
 
 
@@ -517,43 +530,26 @@ def system_view(study, system, from_slug, to_slug):
     return (cmp, net, fig)
 
 
-if __name__ == "__main__":
-    app.run_server(debug=True)
-
-
-@app.callback(
+app.clientside_callback(
+    """
+    function(hoverData) {
+        if(!hoverData){
+            return [false, null, null, null];
+        }
+        pt = hoverData["points"][0];
+        bbox = pt["bbox"]
+        slug = pt["hovertext"]
+        return [true, bbox, "/assets/results/vega-lite/vega-lite/img/"+slug+".svg", slug]
+    }
+    """,
     Output("tooltip", "show"),
     Output("tooltip", "bbox"),
-    Output("tooltip", "children"),
+    Output("tt_img", "src"),
+    Output("tt_name", "children"),
     Input("figure", "hoverData"),
+    prevent_initial_call=True,
 )
-def display_hover(hoverData):
-    return False, no_update, no_update
-    if hoverData is None:
-        return False, no_update, no_update
-    # demo only shows the first point, but other points may also be available
-    pt = hoverData["points"][0]
-    bbox = pt["bbox"]
-    num = pt["pointNumber"]
 
-    df_row = df.iloc[num]
-    img_src = df_row["IMG_URL"]
-    name = df_row["NAME"]
-    form = df_row["FORM"]
-    desc = df_row["DESC"]
-    if len(desc) > 300:
-        desc = desc[:100] + "..."
 
-    children = [
-        html.Div(
-            [
-                html.Img(src=img_src, style={"width": "100%"}),
-                html.H2(f"{name}", style={"color": "darkblue"}),
-                html.P(f"{form}"),
-                html.P(f"{desc}"),
-            ],
-            style={"width": "200px", "white-space": "normal"},
-        )
-    ]
-
-    return True, bbox, children
+if __name__ == "__main__":
+    app.run_server(debug=True)
