@@ -1,10 +1,9 @@
 import re
-from dash import Dash, html, dcc, Input, Output, State, callback_context
-import random
+from dash import Dash, html, dcc, Input, Output, State, callback_context, no_update
 import json
 import pandas as pd
 import numpy as np
-from sklearn.manifold import MDS
+from sklearn.manifold import MDS, TSNE
 import dash_cytoscape as cyto
 from collections import Counter
 from dash_extensions import EventListener
@@ -12,15 +11,18 @@ from notascope_components import DashDiff
 import sys
 from glob import glob
 from numba import njit
+import plotly.express as px
+import plotly.graph_objects as go
 
 try:
     cost_type = sys.argv[1]
 except IndexError:
     cost_type = "difflib"
 
+default_study = "tiny"
 
-print("start", np.random.randint(1000))
-
+print("start", np.random.randint(1000))  # unseeded so every launch is different
+np.random.seed(1)  # now set seed for embedding algos
 
 costs_df = pd.read_csv(
     f"results/{cost_type}_costs.csv",
@@ -35,6 +37,22 @@ tokens_df = pd.read_csv(
 
 def ext_of_longest(study, system, obj):
     return sorted(glob(f"results/{study}/{system}/{obj}/*"), key=len)[-1].split(".")[-1]
+
+
+fig_cutoff = 30
+
+
+def build_figure(study, system, imgext, square, order):
+    if len(square) <= fig_cutoff:
+        return None
+    tsne = TSNE(n_components=2, metric="precomputed", square_distances=True, learning_rate="auto", init="random")
+    embedding = tsne.fit_transform((square + square.T) / 2)
+    fig = px.scatter(x=embedding.T[0], y=embedding.T[1], hover_name=order)
+    fig.update_layout(height=700, width=700, dragmode="pan", plot_bgcolor="white")
+    fig.update_layout(margin=dict(t=0, b=0, l=0, r=0))
+    fig.update_yaxes(visible=False)
+    fig.update_xaxes(visible=False)
+    return fig.to_json()
 
 
 @njit
@@ -60,59 +78,62 @@ def find_edges(square):
     return result
 
 
+def build_network(study, system, imgext, square, order):
+    n = len(square)
+    if n > fig_cutoff:
+        return None
+    mds = MDS(n_components=2, dissimilarity="precomputed")
+    embedding = mds.fit_transform((square + square.T) / 2)
+    emb_span = embedding.max() - embedding.min()
+    emb_df = pd.DataFrame(embedding, index=order, columns=["x", "y"])
+
+    network_elements = []
+    for i, row in emb_df.iterrows():
+        network_elements.append(
+            {
+                "data": {
+                    "id": i,
+                    "label": i,
+                    "url": f"/assets/results/{study}/{system}/img/{i}.{imgext}",
+                },
+                "position": {c: row[c] * 1000 / emb_span for c in ["x", "y"]},
+                "classes": "",
+            }
+        )
+
+    result = find_edges(square)
+    for i in range(n):
+        for j in range(n):
+            if result[i, j] == 0:  # no zero or self-edges
+                continue
+            longest = result[i, j] > result[j, i]
+            eq = result[i, j] == result[j, i]
+            this_eq = eq and i > j  # only first of the two bidir edges
+            if longest or this_eq:
+                network_elements.append(
+                    {
+                        "data": {
+                            "source": order[i],
+                            "target": order[j],
+                            "id": order[i] + "__" + order[j],
+                            "length": result[i, j],
+                        },
+                        "classes": (" bidir" if eq else ""),
+                    }
+                )
+
+    return json.dumps(network_elements)
+
+
 def precompute():
     results = dict()
     for (study, system), df in costs_df.groupby(["study", "system"]):
-        square = df.pivot_table(index="from_slug", columns="to_slug", values="cost").fillna(0)
-        order = list(square.index)
-        mds = MDS(n_components=2, dissimilarity="precomputed")
-        embedding = mds.fit_transform((square.values + square.values.T) / 2)
-        emb_min = embedding.min()
-        emb_max = embedding.max()
-        emb_span = emb_max - emb_min
-        emb_max += emb_span / 2
-        emb_min -= emb_span / 2
-        emb_df = pd.DataFrame(embedding, index=order, columns=["x", "y"])
-
-        # sort and grab longest, in case slug has a dot in it
         imgext = ext_of_longest(study, system, "img")
         srcext = ext_of_longest(study, system, "source")
-        network_elements = []
-        for i, row in emb_df.iterrows():
-            network_elements.append(
-                {
-                    "data": {
-                        "id": i,
-                        "label": i,
-                        "url": f"/assets/results/{study}/{system}/img/{i}.{imgext}",
-                    },
-                    "position": {c: row[c] * 1000 / emb_span for c in ["x", "y"]},
-                    "classes": "",
-                }
-            )
 
+        square = df.pivot_table(index="from_slug", columns="to_slug", values="cost").fillna(0)
+        order = list(square.index)
         square = square.values
-        n = len(square)
-        result = find_edges(square)
-        for i in range(n):
-            for j in range(n):
-                if result[i, j] == 0:  # no zero or self-edges
-                    continue
-                longest = result[i, j] > result[j, i]
-                eq = result[i, j] == result[j, i]
-                this_eq = eq and i > j  # only first of the two bidir edges
-                if longest or this_eq:
-                    network_elements.append(
-                        {
-                            "data": {
-                                "source": order[i],
-                                "target": order[j],
-                                "id": order[i] + "__" + order[j],
-                                "length": result[i, j],
-                            },
-                            "classes": (" bidir" if eq else ""),
-                        }
-                    )
 
         if study not in results:
             results[study] = dict()
@@ -121,7 +142,8 @@ def precompute():
             srcext=srcext,
             slugs=df.from_slug.unique(),
             tokens=tokens_df.query("study==@study and system==@system")["token"].nunique(),
-            network_elements=network_elements,
+            network_elements=build_network(study, system, imgext, square, order),
+            figure=build_figure(study, system, imgext, square, order),
         )
 
     print("ready")
@@ -129,14 +151,169 @@ def precompute():
 
 
 results = precompute()
-default_study = "tiny"
-
-
-def default_system(study):
-    return list(results[study].keys())[0]
-
 
 app = Dash(__name__, title="NotaScope", suppress_callback_exceptions=True)
+
+
+app.layout = html.Div(
+    [
+        html.Div(id="content"),
+        dcc.Location(id="location"),
+        dcc.Tooltip(id="tooltip"),
+        EventListener(
+            id="event_listener",
+            events=[
+                {"event": "keydown", "props": ["shiftKey"]},
+                {"event": "keyup", "props": ["shiftKey"]},
+            ],
+        ),
+    ]
+)
+
+
+def parse_hashpath(hashpath):
+    m = re.match(r"#/(.*)/(.*)/(.*)/(.*)/(.*)", hashpath)
+    study = system = system2 = from_slug = to_slug = ""
+    if m:
+        study = m.group(1)
+        system = m.group(2)
+        system2 = m.group(3)
+        from_slug = m.group(4)
+        to_slug = m.group(5)
+    return sanitize_state(study, system, system2, from_slug, to_slug)
+
+
+def sanitize_state(study, system, system2, from_slug, to_slug):
+    if study not in results:
+        study = default_study
+    study_res = results[study]
+    slugs = set()
+    if system in study_res:
+        for s in study_res[system]["slugs"]:
+            slugs.add(s)
+    else:
+        system = list(results[study].keys())[0]
+
+    if system2 in study_res and system2 != system:
+        for s in study_res[system2]["slugs"]:
+            slugs.add(s)
+    else:
+        system2 = ""
+
+    if from_slug not in slugs:
+        from_slug = to_slug = ""
+    elif to_slug not in slugs:
+        to_slug = from_slug
+
+    return study, system, system2, from_slug, to_slug
+
+
+@app.callback(
+    Output("location", "hash"),
+    Output("network", "tapNodeData"),
+    Output("network", "tapEdgeData"),
+    Output("network2", "tapNodeData"),
+    Output("network2", "tapEdgeData"),
+    Input("selection", "data"),
+    Input("study", "value"),
+    Input("system", "value"),
+    Input("system2", "value"),
+    Input("network", "tapNodeData"),
+    Input("network", "tapEdgeData"),
+    Input("figure", "clickData"),
+    Input("network2", "tapNodeData"),
+    Input("network2", "tapEdgeData"),
+    Input("figure2", "clickData"),
+    State("event_listener", "event"),
+)
+def update_hashpath(selection, study, system, system2, node_data, edge_data, fig_data, node_data2, edge_data2, fig_data2, event):
+    shift_down = bool((dict(shiftKey=False) if not event else event)["shiftKey"])
+    ctx = callback_context
+    from_slug, to_slug = selection
+    if ctx.triggered:
+        click_system = ctx.triggered[0]["prop_id"].split(".")[0]
+        click_type = ctx.triggered[0]["prop_id"].split(".")[1]
+
+        if click_type == "tapNodeData":
+            if click_system == "network":
+                to_slug = node_data["id"]
+                if not shift_down:
+                    from_slug = to_slug
+            if click_system == "network2":
+                to_slug = node_data2["id"]
+                if not shift_down:
+                    from_slug = to_slug
+            edge_data = None
+            edge_data2 = None
+        if click_type == "tapEdgeData":
+            if click_system == "network":
+                from_slug = edge_data["source"]
+                to_slug = edge_data["target"]
+            if click_system == "network2":
+                from_slug = edge_data2["source"]
+                to_slug = edge_data2["target"]
+            node_data = None
+            node_data2 = None
+        if click_type == "clickData":
+            if click_system == "figure":
+                to_slug = fig_data["points"][0]["hovertext"]
+                if not shift_down:
+                    from_slug = to_slug
+            if click_system == "figure2":
+                to_slug = fig_data2["points"][0]["hovertext"]
+                if not shift_down:
+                    from_slug = to_slug
+    study, system, system2, from_slug, to_slug = sanitize_state(study, system, system2, from_slug, to_slug)
+    hashpath = f"#/{study}/{system}/{system2 or ''}/{from_slug}/{to_slug}"
+    return hashpath, node_data, edge_data, node_data2, edge_data2
+
+
+@app.callback(
+    Output("content", "children"),
+    Input("location", "hash"),
+)
+def update_content(hashpath):
+    study, system, system2, from_slug, to_slug = parse_hashpath(hashpath)
+    cmp, net, fig = system_view(study, system, from_slug, to_slug)
+    if system2:
+        style = dict()
+        style2 = dict(gridColumnStart=2, display="block")
+        cmp2, net2, fig2 = system_view(study, system2, from_slug, to_slug)
+    else:
+        style = dict(gridRowStart=2)
+        style2 = dict(display="none", gridRowStart=3)
+        cmp2, net2, fig2 = None, [], {}
+
+    systems = [dict(label=f"{s} ({results[study][s]['tokens']})", value=s) for s in results[study]]
+
+    return html.Div(
+        className="wrapper",
+        children=[
+            html.Div(
+                [dcc.Dropdown(id="study", value=study, options=[s for s in results], clearable=False, className="dropdown")],
+                style=dict(position="absolute", left=10, top=10),
+            ),
+            html.Div([dcc.Dropdown(id="system", value=system, options=systems, clearable=False, className="dropdown")]),
+            html.Div([dcc.Dropdown(id="system2", value=system2, options=systems, clearable=True, className="dropdown")]),
+            html.Div(network_or_figure(net, fig, ""), style=style),
+            html.Div(network_or_figure(net2, fig2, "2"), style=style2),
+            html.Div(cmp, className="comparison"),
+            html.Div(cmp2, className="comparison"),
+            dcc.Store(id="selection", data=[from_slug, to_slug]),
+        ],
+    )
+
+
+def network_or_figure(net, fig, suffix):
+    if net:
+        net_style, fig_style = dict(), dict(display="none")
+    else:
+        net_style, fig_style = dict(display="none"), dict()
+
+    return [
+        html.Div(cytoscape("network" + suffix, net), style=net_style),
+        html.Div(dcc.Graph(id="figure" + suffix, figure=fig, config=dict(scrollZoom=True)), style=fig_style),
+    ]
 
 
 def cytoscape(id, elements):
@@ -198,187 +375,13 @@ def cytoscape(id, elements):
             },
             {
                 "selector": ".inserted",
-                "style": {
-                    "line-style": "dashed",
-                },
+                "style": {"line-style": "dashed"},
             },
         ],
     )
 
 
-def parse_hashpath(hashpath):
-    m = re.match(r"#/(.*)/(.*)/(.*)/(.*)/(.*)", hashpath)
-    study = system = system2 = from_slug = to_slug = ""
-    if m:
-        study = m.group(1)
-        system = m.group(2)
-        system2 = m.group(3)
-        from_slug = m.group(4)
-        to_slug = m.group(5)
-    return sanitize_state(study, system, system2, from_slug, to_slug)
-
-
-def sanitize_state(study, system, system2, from_slug, to_slug):
-    if study not in results:
-        study = default_study
-    study_res = results[study]
-    slugs = set()
-    if system in study_res:
-        for s in study_res[system]["slugs"]:
-            slugs.add(s)
-    else:
-        system = default_system(study)
-
-    if system2 in study_res and system2 != system:
-        for s in study_res[system2]["slugs"]:
-            slugs.add(s)
-    else:
-        system2 = ""
-
-    if from_slug not in slugs:
-        from_slug = to_slug = ""
-    elif to_slug not in slugs:
-        to_slug = from_slug
-
-    return study, system, system2, from_slug, to_slug
-
-
-app.layout = html.Div(
-    [
-        html.Div(id="content"),
-        dcc.Location(id="location"),
-        EventListener(
-            id="event_listener",
-            events=[
-                {"event": "keydown", "props": ["shiftKey"]},
-                {"event": "keyup", "props": ["shiftKey"]},
-            ],
-        ),
-    ]
-)
-
-
-@app.callback(
-    Output("content", "children"),
-    Input("location", "hash"),
-)
-def make_content(hashpath):
-    study, system, system2, from_slug, to_slug = parse_hashpath(hashpath)
-    cmp, net = make_comparison(study, system, from_slug, to_slug)
-    if system2:
-        style = dict()
-        style2 = dict(gridColumnStart=2, display="block")
-        cmp2, net2 = make_comparison(study, system2, from_slug, to_slug)
-    else:
-        style = dict(gridRowStart=2)
-        style2 = dict(display="none", gridRowStart=3)
-        cmp2, net2 = None, []
-
-    systems = [dict(label=f"{s} ({results[study][s]['tokens']})", value=s) for s in results[study]]
-
-    return html.Div(
-        className="wrapper",
-        children=[
-            html.Div(
-                [
-                    dcc.Dropdown(
-                        id="study",
-                        value=study,
-                        options=[s for s in results],
-                        clearable=False,
-                        className="dropdown",
-                    ),
-                ],
-                style=dict(position="absolute", left=10, top=10),
-            ),
-            html.Div(
-                [
-                    dcc.Dropdown(
-                        id="system",
-                        value=system,
-                        options=systems,
-                        clearable=False,
-                        className="dropdown",
-                    ),
-                ]
-            ),
-            html.Div(
-                [
-                    dcc.Dropdown(
-                        id="system2",
-                        value=system2,
-                        options=systems,
-                        clearable=True,
-                        className="dropdown",
-                    ),
-                ]
-            ),
-            html.Div([cytoscape("network", net)], style=style),
-            html.Div([cytoscape("network2", net2)], style=style2),
-            html.Div(cmp, className="comparison"),
-            html.Div(cmp2, className="comparison"),
-            dcc.Store(id="selection", data=[from_slug, to_slug]),
-        ],
-    )
-
-
-@app.callback(
-    Output("location", "hash"),
-    Output("network", "tapNodeData"),
-    Output("network", "tapEdgeData"),
-    Output("network2", "tapNodeData"),
-    Output("network2", "tapEdgeData"),
-    Input("selection", "data"),
-    Input("study", "value"),
-    Input("system", "value"),
-    Input("system2", "value"),
-    Input("network", "tapNodeData"),
-    Input("network", "tapEdgeData"),
-    Input("network2", "tapNodeData"),
-    Input("network2", "tapEdgeData"),
-    State("event_listener", "event"),
-)
-def update_hashpath(selection, study, system, system2, node_data, edge_data, node_data2, edge_data2, event):
-    shift_down = bool((dict(shiftKey=False) if not event else event)["shiftKey"])
-    ctx = callback_context
-    from_slug, to_slug = selection
-    if ctx.triggered:
-        click_system = ctx.triggered[0]["prop_id"].split(".")[0]
-        click_type = ctx.triggered[0]["prop_id"].split(".")[1]
-
-        if click_type == "tapNodeData":
-            if click_system == "network":
-                to_slug = node_data["id"]
-                if not shift_down:
-                    from_slug = to_slug
-            if click_system == "network2":
-                to_slug = node_data2["id"]
-                if not shift_down:
-                    from_slug = to_slug
-            edge_data = None
-            edge_data2 = None
-        if click_type == "tapEdgeData":
-            if click_system == "network":
-                from_slug = edge_data["source"]
-                to_slug = edge_data["target"]
-            if click_system == "network2":
-                from_slug = edge_data2["source"]
-                to_slug = edge_data2["target"]
-            node_data = None
-            node_data2 = None
-    study, system, system2, from_slug, to_slug = sanitize_state(study, system, system2, from_slug, to_slug)
-    hashpath = f"#/{study}/{system}/{system2 or ''}/{from_slug}/{to_slug}"
-    return hashpath, node_data, edge_data, node_data2, edge_data2
-
-
-def iframe(study, system, url):
-    return html.Iframe(
-        src=f"/assets/results/{study}/{system}/{url}?{random.random()}",
-        style=dict(width="100%", height="300px"),
-    )
-
-
-def single(study, system, slug, tokens_n, tokens_nunique):
+def header_and_image(study, system, slug, tokens_n, tokens_nunique):
     imgext = results[study][system]["imgext"]
     return [
         html.H3(slug),
@@ -390,7 +393,7 @@ def single(study, system, slug, tokens_n, tokens_nunique):
     ]
 
 
-def code(study, system, from_slug, to_slug):
+def diff_view(study, system, from_slug, to_slug):
     srcext = results[study][system]["srcext"]
     with open(f"results/{study}/{system}/source/{from_slug}.{srcext}", "r") as f:
         from_code = f.read()
@@ -405,10 +408,18 @@ def code(study, system, from_slug, to_slug):
     )
 
 
-def make_comparison(study, system, from_slug, to_slug):
+def system_view(study, system, from_slug, to_slug):
     cmp = None
     system_results = results[study][system]
-    net = json.loads(json.dumps(system_results["network_elements"]))
+    net = []
+    fig = {}
+    if system_results["network_elements"]:
+        net = json.loads(system_results["network_elements"])
+    elif system_results["figure"]:
+        fig = go.Figure(json.loads(system_results["figure"]))
+    else:
+        raise Exception("no network, no figure")
+
     try:
         filter_prefix = f"study=='{study}' and system=='{system}'"
         from_tokens_df = tokens_df.query(filter_prefix + f" and spec=='{from_slug}'")
@@ -424,26 +435,30 @@ def make_comparison(study, system, from_slug, to_slug):
             shared_tokens = list((Counter(from_tokens_df["token"].values) & Counter(to_tokens_df["token"].values)).elements())
             shared_uniques = set(from_tokens_df["token"]) & set(to_tokens_df["token"])
 
-            both_dirs = [[from_slug, to_slug], [to_slug, from_slug]]
-            to_drop = ["__".join(x) for x in both_dirs]
-            dropped = [elem for elem in net if elem["data"]["id"] in to_drop]
-            net = [elem for elem in net if elem["data"]["id"] not in to_drop]
-            for source, dest in both_dirs:
-                id = source + "__" + dest
-                new_elem = {
-                    "data": {
-                        "source": source,
-                        "target": dest,
-                        "id": id,
-                        "length": cost if source == from_slug else rev_cost,
-                    },
-                    "classes": "",
-                }
-                if len(dropped) == 0 or (id not in [x["data"]["id"] for x in dropped] and "bidir" not in dropped[0]["classes"]):
-                    new_elem["classes"] += " inserted"
-                if source == from_slug:
-                    new_elem["classes"] += " selected"
-                net.append(new_elem)
+            if net:
+                both_dirs = [[from_slug, to_slug], [to_slug, from_slug]]
+                to_drop = ["__".join(x) for x in both_dirs]
+                dropped = [elem for elem in net if elem["data"]["id"] in to_drop]
+                net = [elem for elem in net if elem["data"]["id"] not in to_drop]
+                for source, dest in both_dirs:
+                    id = source + "__" + dest
+                    new_elem = {
+                        "data": {
+                            "source": source,
+                            "target": dest,
+                            "id": id,
+                            "length": cost if source == from_slug else rev_cost,
+                        },
+                        "classes": "",
+                    }
+                    if len(dropped) == 0 or (id not in [x["data"]["id"] for x in dropped] and "bidir" not in dropped[0]["classes"]):
+                        new_elem["classes"] += " inserted"
+                    if source == from_slug:
+                        new_elem["classes"] += " selected"
+                    net.append(new_elem)
+
+            if fig:
+                pass
 
             cmp = [
                 html.Table(
@@ -451,7 +466,7 @@ def make_comparison(study, system, from_slug, to_slug):
                         html.Tr(
                             [
                                 html.Td(
-                                    single(study, system, from_slug, from_tokens_n, from_tokens_nunique),
+                                    header_and_image(study, system, from_slug, from_tokens_n, from_tokens_nunique),
                                     style=dict(verticalAlign="top"),
                                 ),
                                 html.Td(
@@ -474,29 +489,71 @@ def make_comparison(study, system, from_slug, to_slug):
                                     ]
                                 ),
                                 html.Td(
-                                    single(study, system, to_slug, to_tokens_n, to_tokens_nunique),
+                                    header_and_image(study, system, to_slug, to_tokens_n, to_tokens_nunique),
                                     style=dict(verticalAlign="top"),
                                 ),
                             ]
                         )
                     ],
-                    style=dict(width="100%"),
+                    style=dict(width="100%", height="300px"),
                 ),
-                code(study, system, from_slug, to_slug),
+                diff_view(study, system, from_slug, to_slug),
             ]
         elif from_slug != "":
-            cmp = single(study, system, from_slug, from_tokens_n, from_tokens_nunique)
-            cmp += [code(study, system, from_slug, from_slug)]
+            cmp = header_and_image(study, system, from_slug, from_tokens_n, from_tokens_nunique)
+            cmp += [diff_view(study, system, from_slug, from_slug)]
 
-            for elem in net:
-                if elem["data"]["id"] == from_slug:
-                    elem["classes"] += " selected"
+            if net:
+                for elem in net:
+                    if elem["data"]["id"] == from_slug:
+                        elem["classes"] += " selected"
+
+            if fig:
+                pass
 
     except Exception as e:
         print(repr(e))
 
-    return (cmp, net)
+    return (cmp, net, fig)
 
 
 if __name__ == "__main__":
     app.run_server(debug=True)
+
+
+@app.callback(
+    Output("tooltip", "show"),
+    Output("tooltip", "bbox"),
+    Output("tooltip", "children"),
+    Input("figure", "hoverData"),
+)
+def display_hover(hoverData):
+    return False, no_update, no_update
+    if hoverData is None:
+        return False, no_update, no_update
+    # demo only shows the first point, but other points may also be available
+    pt = hoverData["points"][0]
+    bbox = pt["bbox"]
+    num = pt["pointNumber"]
+
+    df_row = df.iloc[num]
+    img_src = df_row["IMG_URL"]
+    name = df_row["NAME"]
+    form = df_row["FORM"]
+    desc = df_row["DESC"]
+    if len(desc) > 300:
+        desc = desc[:100] + "..."
+
+    children = [
+        html.Div(
+            [
+                html.Img(src=img_src, style={"width": "100%"}),
+                html.H2(f"{name}", style={"color": "darkblue"}),
+                html.P(f"{form}"),
+                html.P(f"{desc}"),
+            ],
+            style={"width": "200px", "white-space": "normal"},
+        )
+    ]
+
+    return True, bbox, children
