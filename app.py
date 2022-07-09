@@ -24,19 +24,8 @@ default_study = "tiny"
 print("start", np.random.randint(1000))  # unseeded so every launch is different
 np.random.seed(1)  # now set seed for embedding algos
 
-costs_df = pd.read_csv(
-    f"results/{cost_type}_costs.csv",
-    names=["study", "system", "from_slug", "to_slug", "cost"],
-)
-tokens_df = pd.read_csv(
-    "results/tokens.tsv",
-    names=["study", "system", "spec", "token"],
-    delimiter="\t",
-)
-
-
-def ext_of_longest(study, system, obj):
-    return sorted(glob(f"results/{study}/{system}/{obj}/*"), key=len)[-1].split(".")[-1]
+costs_df = pd.read_csv(f"results/{cost_type}_costs.csv", names=["study", "system", "from_slug", "to_slug", "cost"])
+tokens_df = pd.read_csv("results/tokens.tsv", names=["study", "system", "spec", "token"], delimiter="\t")
 
 
 fig_cutoff = 30
@@ -44,17 +33,18 @@ fig_cutoff = 30
 
 def build_figure(study, system, imgext, square, order):
     if len(square) <= fig_cutoff:
-        return None
+        return None, None
     tsne = TSNE(n_components=2, metric="precomputed", square_distances=True, learning_rate="auto", init="random")
     embedding = tsne.fit_transform((square + square.T) / 2)
-    fig = px.scatter(x=embedding.T[0], y=embedding.T[1], hover_name=order)
+    emb_df = pd.DataFrame(embedding, index=order, columns=["x", "y"])
+    fig = px.scatter(emb_df, x="x", y="y", hover_name=order)
     fig.update_layout(height=700, width=700, dragmode="pan", plot_bgcolor="white")
     fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), uirevision="yes")
     fig.update_yaxes(visible=False)
     fig.update_xaxes(visible=False)
     fig.update_traces(hoverinfo="none", hovertemplate=None)
 
-    return fig.to_json()
+    return fig.to_json(), emb_df
 
 
 @njit
@@ -127,6 +117,10 @@ def build_network(study, system, imgext, square, order):
     return json.dumps(network_elements)
 
 
+def ext_of_longest(study, system, obj):
+    return sorted(glob(f"results/{study}/{system}/{obj}/*"), key=len)[-1].split(".")[-1]
+
+
 def precompute():
     results = dict()
     for (study, system), df in costs_df.groupby(["study", "system"]):
@@ -137,6 +131,7 @@ def precompute():
         order = list(square.index)
         square = square.values
 
+        figure, figure_df = build_figure(study, system, imgext, square, order)
         if study not in results:
             results[study] = dict()
         results[study][system] = dict(
@@ -145,7 +140,8 @@ def precompute():
             slugs=df.from_slug.unique(),
             tokens=tokens_df.query("study==@study and system==@system")["token"].nunique(),
             network_elements=build_network(study, system, imgext, square, order),
-            figure=build_figure(study, system, imgext, square, order),
+            figure=figure,
+            figure_df=figure_df,
         )
 
     print("ready")
@@ -430,6 +426,7 @@ def system_view(study, system, from_slug, to_slug):
         net = json.loads(system_results["network_elements"])
     elif system_results["figure"]:
         fig = go.Figure(json.loads(system_results["figure"]))
+        fig_df = system_results["figure_df"]
     else:
         raise Exception("no network, no figure")
 
@@ -471,43 +468,28 @@ def system_view(study, system, from_slug, to_slug):
                     net.append(new_elem)
 
             if fig:
-                pass
+                from_row = fig_df.loc[from_slug]
+                to_row = fig_df.loc[to_slug]
+                fig.add_scatter(x=[from_row.x, to_row.x], y=[from_row.y, to_row.y], hoverinfo="skip", showlegend=False)
 
+            td1 = html.Td(
+                header_and_image(study, system, from_slug, from_tokens_n, from_tokens_nunique),
+                style=dict(verticalAlign="top"),
+            )
+            td2 = html.Td(
+                ["tokens", html.Br()]
+                + [f"{from_tokens_n - len(shared_tokens)} ⬌ {to_tokens_n - len(shared_tokens)}"]
+                + [html.Br(), html.Br(), "uniques", html.Br()]
+                + [f"{from_tokens_nunique - len(shared_uniques)} ⬌ {to_tokens_nunique - len(shared_uniques)}"]
+                + [html.Br(), html.Br(), "tree edit", html.Br(), f"{rev_cost} ⬌ {cost}"]
+            )
+            td3 = html.Td(
+                header_and_image(study, system, to_slug, to_tokens_n, to_tokens_nunique),
+                style=dict(verticalAlign="top"),
+            )
             cmp = [
                 html.Table(
-                    [
-                        html.Tr(
-                            [
-                                html.Td(
-                                    header_and_image(study, system, from_slug, from_tokens_n, from_tokens_nunique),
-                                    style=dict(verticalAlign="top"),
-                                ),
-                                html.Td(
-                                    [
-                                        html.P(
-                                            [
-                                                "tokens",
-                                                html.Br(),
-                                                f"{from_tokens_n - len(shared_tokens)} ⬌ {to_tokens_n - len(shared_tokens)}",
-                                            ]
-                                        ),
-                                        html.P(
-                                            [
-                                                "uniques",
-                                                html.Br(),
-                                                f"{from_tokens_nunique - len(shared_uniques)} ⬌ {to_tokens_nunique - len(shared_uniques)}",
-                                            ]
-                                        ),
-                                        html.P(["tree edit", html.Br(), f"{rev_cost} ⬌ {cost}"]),
-                                    ]
-                                ),
-                                html.Td(
-                                    header_and_image(study, system, to_slug, to_tokens_n, to_tokens_nunique),
-                                    style=dict(verticalAlign="top"),
-                                ),
-                            ]
-                        )
-                    ],
+                    [html.Tr([td1, td2, td3])],
                     style=dict(width="100%", height="300px"),
                 ),
                 diff_view(study, system, from_slug, to_slug),
@@ -522,7 +504,8 @@ def system_view(study, system, from_slug, to_slug):
                         elem["classes"] += " selected"
 
             if fig:
-                pass
+                from_row = fig_df.loc[from_slug]
+                fig.add_scatter(x=[from_row.x], y=[from_row.y], hoverinfo="skip", showlegend=False)
 
     except Exception as e:
         print(repr(e))
