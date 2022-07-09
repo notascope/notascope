@@ -14,6 +14,13 @@ from numba import njit
 import plotly.express as px
 import plotly.graph_objects as go
 
+
+from scipy.sparse.csgraph import minimum_spanning_tree
+from scipy.sparse import coo_matrix
+
+
+cyto.load_extra_layouts()
+
 try:
     cost_type = sys.argv[1]
 except IndexError:
@@ -28,7 +35,7 @@ costs_df = pd.read_csv(f"results/{cost_type}_costs.csv", names=["study", "system
 tokens_df = pd.read_csv("results/tokens.tsv", names=["study", "system", "spec", "token"], delimiter="\t")
 
 
-fig_cutoff = 30
+fig_cutoff = 3000
 
 
 def build_figure(study, system, imgext, square, order):
@@ -93,26 +100,20 @@ def build_network(study, system, imgext, square, order):
             }
         )
 
-    result = find_edges(square)
-    for i in range(n):
-        for j in range(n):
-            if result[i, j] == 0:  # no zero or self-edges
-                continue
-            longest = result[i, j] > result[j, i]
-            eq = result[i, j] == result[j, i]
-            this_eq = eq and i > j  # only first of the two bidir edges
-            if longest or this_eq:
-                network_elements.append(
-                    {
-                        "data": {
-                            "source": order[i],
-                            "target": order[j],
-                            "id": order[i] + "__" + order[j],
-                            "length": result[i, j],
-                        },
-                        "classes": (" bidir" if eq else ""),
-                    }
-                )
+    spanning = coo_matrix(minimum_spanning_tree(square))
+
+    for i, j, d in zip(spanning.row, spanning.col, spanning.data):
+        network_elements.append(
+            {
+                "data": {
+                    "source": order[i],
+                    "target": order[j],
+                    "id": order[i] + "__" + order[j],
+                    "length": d,
+                },
+                "classes": "",
+            }
+        )
 
     return json.dumps(network_elements)
 
@@ -329,10 +330,21 @@ def cytoscape(id, elements):
     return cyto.Cytoscape(
         id=id,
         className="network",
-        layout={"name": "preset"},
-        minZoom=0.3,
-        maxZoom=2,
+        layout={
+            "name": "cola",
+            "maxSimulationTime": 10000,
+            "refresh": 10,
+            "unconstrIter": 500,
+            "userConstIter": 500,
+            "allConstIter": 200,
+        },
+        # minZoom=0.3,
+        # maxZoom=2,
         elements=elements,
+        style=dict(
+            height="800px",
+            width="800px",
+        ),
         stylesheet=[
             {
                 "selector": "node",
