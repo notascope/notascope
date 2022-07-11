@@ -78,6 +78,8 @@ def find_edges(square):
 
 
 def build_network(study, system, imgext, square, order):
+    with open("cola_out.json", "r") as f:
+        return f.read()
     n = len(square)
     if n > fig_cutoff:
         return None
@@ -85,6 +87,17 @@ def build_network(study, system, imgext, square, order):
     embedding = mds.fit_transform((square + square.T) / 2)
     emb_span = embedding.max() - embedding.min()
     emb_df = pd.DataFrame(embedding, index=order, columns=["x", "y"])
+    import igraph
+    from scipy.sparse.csgraph import minimum_spanning_tree
+    from scipy.sparse import coo_matrix
+
+    spanning = coo_matrix(minimum_spanning_tree(square))
+
+    g = igraph.Graph.Weighted_Adjacency(spanning.toarray().tolist())
+
+    layout = g.layout_kamada_kawai(maxiter=10000)
+    coords = np.array(layout.coords)
+    emb_df = pd.DataFrame(coords, index=order, columns=["x", "y"])
 
     network_elements = []
     for i, row in emb_df.iterrows():
@@ -114,6 +127,9 @@ def build_network(study, system, imgext, square, order):
                 "classes": "",
             }
         )
+
+    with open(f"results/{study}/{system}/net.json", "w") as f:
+        json.dump(network_elements, f)
 
     return json.dumps(network_elements)
 
@@ -330,14 +346,7 @@ def cytoscape(id, elements):
     return cyto.Cytoscape(
         id=id,
         className="network",
-        layout={
-            "name": "cola",
-            "maxSimulationTime": 10000,
-            "refresh": 10,
-            "unconstrIter": 500,
-            "userConstIter": 500,
-            "allConstIter": 200,
-        },
+        layout={"name": "preset"},
         # minZoom=0.3,
         # maxZoom=2,
         elements=elements,
