@@ -16,6 +16,9 @@ import plotly.graph_objects as go
 import igraph
 from scipy.sparse.csgraph import minimum_spanning_tree
 from scipy.sparse import coo_matrix
+from scipy.cluster import hierarchy
+import plotly.graph_objects as go
+from scipy.spatial.distance import squareform
 
 
 cyto.load_extra_layouts()
@@ -46,6 +49,32 @@ def build_figure(study, system, imgext, square, order):
     fig.update_traces(hoverinfo="none", hovertemplate=None)
 
     return fig.to_json(), emb_df
+
+
+def build_dendro(study, system, imgext, square, order):
+    Z = hierarchy.linkage(squareform((square + square.T) / 2.0), "complete", optimal_ordering=True)
+    P = hierarchy.dendrogram(Z, labels=order, no_plot=True)
+
+    x = []
+    y = []
+    label_x = []
+    label_y = []
+    label_text = []
+    for icoord, dcoord in zip(P["icoord"], P["dcoord"]):
+        for i, d in zip(icoord, dcoord):
+            y.append(i)
+            x.append(-d)
+            if d == 0:
+                label_x.append(-d)
+                label_y.append(i)
+                label_text.append(P["ivl"][int((i - 5) / 10)])
+        y.append(None)
+        x.append(None)
+    fig = go.Figure()
+    fig.add_scatter(x=x, y=y, line_width=1, hoverinfo="skip")
+    fig.add_scatter(x=label_x, y=label_y, text=label_text, hovertext=label_text, mode="text", textposition="middle right", hoverinfo="none")
+    fig.update_layout(height=800, showlegend=False)
+    return fig.to_json()
 
 
 @njit
@@ -152,6 +181,7 @@ def precompute():
         square = square.values
 
         figure, figure_df = build_figure(study, system, imgext, square, order)
+        dendro = build_dendro(study, system, imgext, square, order)
         if study not in results:
             results[study] = dict()
         results[study][system] = dict(
@@ -162,6 +192,7 @@ def precompute():
             network_elements=build_network(study, system, imgext, square, order),
             figure=figure,
             figure_df=figure_df,
+            dendro=dendro,
         )
 
     print("ready")
@@ -236,7 +267,7 @@ def sanitize_state(study, system, system2, from_slug, to_slug, vis):
         to_slug = from_slug
 
     if not vis:
-        vis = "cyto"
+        vis = "network"
 
     return study, system, system2, from_slug, to_slug, vis
 
@@ -328,7 +359,7 @@ def update_content(hashpath):
                 style=dict(position="absolute", left=10, top=10),
             ),
             html.Div(
-                [dcc.Dropdown(id="vis", value=vis, options=["cyto", "fig"], clearable=False, style=dict(width="100px"))],
+                [dcc.Dropdown(id="vis", value=vis, options=["network", "tsne", "dendro"], clearable=False, style=dict(width="100px"))],
                 style=dict(position="absolute", left=110, top=10),
             ),
             html.Div([dcc.Dropdown(id="system", value=system, options=systems, clearable=False, className="dropdown")]),
@@ -455,11 +486,13 @@ def system_view(study, system, from_slug, to_slug, vis):
     system_results = results[study][system]
     net = []
     fig = {}
-    if vis == "cyto":
+    if vis == "network":
         net = json.loads(system_results["network_elements"])
-    elif vis == "fig":
+    elif vis == "tsne":
         fig = go.Figure(json.loads(system_results["figure"]))
         fig_df = system_results["figure_df"]
+    elif vis == "dendro":
+        fig = go.Figure(json.loads(system_results["dendro"]))
     else:
         raise Exception("Neither fig nor cyto")
 
@@ -478,7 +511,7 @@ def system_view(study, system, from_slug, to_slug, vis):
             shared_tokens = list((Counter(from_tokens_df["token"].values) & Counter(to_tokens_df["token"].values)).elements())
             shared_uniques = set(from_tokens_df["token"]) & set(to_tokens_df["token"])
 
-            if vis == "cyto":
+            if vis == "network":
                 both_dirs = [[from_slug, to_slug], [to_slug, from_slug]]
                 to_drop = ["__".join(x) for x in both_dirs]
                 dropped = [elem for elem in net if elem["data"]["id"] in to_drop]
@@ -500,7 +533,7 @@ def system_view(study, system, from_slug, to_slug, vis):
                         new_elem["classes"] += " selected"
                     net.append(new_elem)
 
-            if vis == "fig":
+            if vis == "tsne":
                 from_row = fig_df.loc[from_slug]
                 to_row = fig_df.loc[to_slug]
                 fig.add_scatter(x=[from_row.x, to_row.x], y=[from_row.y, to_row.y], hoverinfo="skip", showlegend=False)
@@ -531,12 +564,12 @@ def system_view(study, system, from_slug, to_slug, vis):
             cmp = header_and_image(study, system, from_slug, from_tokens_n, from_tokens_nunique)
             cmp += [diff_view(study, system, from_slug, from_slug)]
 
-            if vis == "cyto":
+            if vis == "network":
                 for elem in net:
                     if elem["data"]["id"] == from_slug:
                         elem["classes"] += " selected"
 
-            if vis == "fig":
+            if vis == "tsne":
                 from_row = fig_df.loc[from_slug]
                 fig.add_scatter(x=[from_row.x], y=[from_row.y], hoverinfo="skip", showlegend=False)
 
@@ -554,7 +587,7 @@ app.clientside_callback(
         }
         pt = hoverData["points"][0];
         bbox = pt["bbox"]
-        slug = pt["hovertext"]
+        slug = pt["text"]
         return [true, bbox, "/assets/results/vega-lite/vega-lite/img/"+slug+".svg", slug]
     }
     """,
