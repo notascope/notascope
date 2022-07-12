@@ -13,8 +13,7 @@ from glob import glob
 from numba import njit
 import plotly.express as px
 import plotly.graph_objects as go
-
-
+import igraph
 from scipy.sparse.csgraph import minimum_spanning_tree
 from scipy.sparse import coo_matrix
 
@@ -35,12 +34,7 @@ costs_df = pd.read_csv(f"results/{cost_type}_costs.csv", names=["study", "system
 tokens_df = pd.read_csv("results/tokens.tsv", names=["study", "system", "spec", "token"], delimiter="\t")
 
 
-fig_cutoff = 3000
-
-
 def build_figure(study, system, imgext, square, order):
-    if len(square) <= fig_cutoff:
-        return None, None
     tsne = TSNE(n_components=2, metric="precomputed", square_distances=True, learning_rate="auto", init="random")
     embedding = tsne.fit_transform((square + square.T) / 2)
     emb_df = pd.DataFrame(embedding, index=order, columns=["x", "y"])
@@ -78,28 +72,56 @@ def find_edges(square):
 
 
 def build_network(study, system, imgext, square, order):
-    with open("cola_out.json", "r") as f:
-        return f.read()
-    n = len(square)
-    if n > fig_cutoff:
-        return None
-    mds = MDS(n_components=2, dissimilarity="precomputed")
-    embedding = mds.fit_transform((square + square.T) / 2)
-    emb_span = embedding.max() - embedding.min()
-    emb_df = pd.DataFrame(embedding, index=order, columns=["x", "y"])
-    import igraph
-    from scipy.sparse.csgraph import minimum_spanning_tree
-    from scipy.sparse import coo_matrix
-
-    spanning = coo_matrix(minimum_spanning_tree(square))
-
-    g = igraph.Graph.Weighted_Adjacency(spanning.toarray().tolist())
-
-    layout = g.layout_kamada_kawai(maxiter=10000)
-    coords = np.array(layout.coords)
-    emb_df = pd.DataFrame(coords, index=order, columns=["x", "y"])
-
     network_elements = []
+    n = len(square)
+    if n < 20:
+        mds = MDS(n_components=2, dissimilarity="precomputed")
+        embedding = mds.fit_transform((square + square.T) / 2)
+
+        edges = find_edges(square)
+        for i in range(n):
+            for j in range(n):
+                if edges[i, j] == 0:  # no zero or self-edges
+                    continue
+                longest = edges[i, j] > edges[j, i]
+                eq = edges[i, j] == edges[j, i]
+                this_eq = eq and i > j  # only first of the two bidir edges
+                if longest or this_eq:
+                    network_elements.append(
+                        {
+                            "data": {
+                                "source": order[i],
+                                "target": order[j],
+                                "id": order[i] + "__" + order[j],
+                                "length": edges[i, j],
+                            },
+                            "classes": (" bidir" if eq else ""),
+                        }
+                    )
+    else:
+        spanning = coo_matrix(minimum_spanning_tree(square))
+        g = igraph.Graph.Weighted_Adjacency(spanning.toarray().tolist())
+        layout = g.layout_kamada_kawai(maxiter=10000)
+        embedding = np.array(layout.coords)
+
+        for i, j, d in zip(spanning.row, spanning.col, spanning.data):
+            network_elements.append(
+                {
+                    "data": {
+                        "source": order[i],
+                        "target": order[j],
+                        "id": order[i] + "__" + order[j],
+                        "length": d,
+                    },
+                    "classes": "",
+                }
+            )
+
+    emb_df = pd.DataFrame(embedding, index=order, columns=["x", "y"])
+    emb_span = embedding.max() - embedding.min()
+
+    scale = 1000 if n < 20 else 10000
+
     for i, row in emb_df.iterrows():
         network_elements.append(
             {
@@ -108,29 +130,10 @@ def build_network(study, system, imgext, square, order):
                     "label": i,
                     "url": f"/assets/results/{study}/{system}/img/{i}.{imgext}",
                 },
-                "position": {c: row[c] * 1000 / emb_span for c in ["x", "y"]},
+                "position": {c: row[c] * scale / emb_span for c in ["x", "y"]},
                 "classes": "",
             }
         )
-
-    spanning = coo_matrix(minimum_spanning_tree(square))
-
-    for i, j, d in zip(spanning.row, spanning.col, spanning.data):
-        network_elements.append(
-            {
-                "data": {
-                    "source": order[i],
-                    "target": order[j],
-                    "id": order[i] + "__" + order[j],
-                    "length": d,
-                },
-                "classes": "",
-            }
-        )
-
-    with open(f"results/{study}/{system}/net.json", "w") as f:
-        json.dump(network_elements, f)
-
     return json.dumps(network_elements)
 
 
@@ -198,18 +201,19 @@ app.layout = html.Div(
 
 
 def parse_hashpath(hashpath):
-    m = re.match(r"#/(.*)/(.*)/(.*)/(.*)/(.*)", hashpath)
-    study = system = system2 = from_slug = to_slug = ""
+    m = re.match(r"#/(.*)/(.*)/(.*)/(.*)/(.*)/(.*)", hashpath)
+    study = system = system2 = from_slug = to_slug = vis = ""
     if m:
         study = m.group(1)
         system = m.group(2)
         system2 = m.group(3)
         from_slug = m.group(4)
         to_slug = m.group(5)
-    return sanitize_state(study, system, system2, from_slug, to_slug)
+        vis = m.group(6)
+    return sanitize_state(study, system, system2, from_slug, to_slug, vis)
 
 
-def sanitize_state(study, system, system2, from_slug, to_slug):
+def sanitize_state(study, system, system2, from_slug, to_slug, vis):
     if study not in results:
         study = default_study
     study_res = results[study]
@@ -231,7 +235,10 @@ def sanitize_state(study, system, system2, from_slug, to_slug):
     elif to_slug not in slugs:
         to_slug = from_slug
 
-    return study, system, system2, from_slug, to_slug
+    if not vis:
+        vis = "cyto"
+
+    return study, system, system2, from_slug, to_slug, vis
 
 
 @app.callback(
@@ -241,6 +248,7 @@ def sanitize_state(study, system, system2, from_slug, to_slug):
     Output("network2", "tapNodeData"),
     Output("network2", "tapEdgeData"),
     Input("selection", "data"),
+    Input("vis", "value"),
     Input("study", "value"),
     Input("system", "value"),
     Input("system2", "value"),
@@ -252,7 +260,7 @@ def sanitize_state(study, system, system2, from_slug, to_slug):
     Input("figure2", "clickData"),
     State("event_listener", "event"),
 )
-def update_hashpath(selection, study, system, system2, node_data, edge_data, fig_data, node_data2, edge_data2, fig_data2, event):
+def update_hashpath(selection, vis, study, system, system2, node_data, edge_data, fig_data, node_data2, edge_data2, fig_data2, event):
     shift_down = bool((dict(shiftKey=False) if not event else event)["shiftKey"])
     ctx = callback_context
     from_slug, to_slug = selection
@@ -289,8 +297,8 @@ def update_hashpath(selection, study, system, system2, node_data, edge_data, fig
                 to_slug = fig_data2["points"][0]["hovertext"]
                 if not shift_down:
                     from_slug = to_slug
-    study, system, system2, from_slug, to_slug = sanitize_state(study, system, system2, from_slug, to_slug)
-    hashpath = f"#/{study}/{system}/{system2 or ''}/{from_slug}/{to_slug}"
+    study, system, system2, from_slug, to_slug, vis = sanitize_state(study, system, system2, from_slug, to_slug, vis)
+    hashpath = f"#/{study}/{system}/{system2 or ''}/{from_slug}/{to_slug}/{vis}"
     return hashpath, node_data, edge_data, node_data2, edge_data2
 
 
@@ -299,12 +307,12 @@ def update_hashpath(selection, study, system, system2, node_data, edge_data, fig
     Input("location", "hash"),
 )
 def update_content(hashpath):
-    study, system, system2, from_slug, to_slug = parse_hashpath(hashpath)
-    cmp, net, fig = system_view(study, system, from_slug, to_slug)
+    study, system, system2, from_slug, to_slug, vis = parse_hashpath(hashpath)
+    cmp, net, fig = system_view(study, system, from_slug, to_slug, vis)
     if system2:
         style = dict()
         style2 = dict(gridColumnStart=2, display="block")
-        cmp2, net2, fig2 = system_view(study, system2, from_slug, to_slug)
+        cmp2, net2, fig2 = system_view(study, system2, from_slug, to_slug, vis)
     else:
         style = dict(gridRowStart=2)
         style2 = dict(display="none", gridRowStart=3)
@@ -316,8 +324,12 @@ def update_content(hashpath):
         className="wrapper",
         children=[
             html.Div(
-                [dcc.Dropdown(id="study", value=study, options=[s for s in results], clearable=False, className="dropdown")],
+                [dcc.Dropdown(id="study", value=study, options=[s for s in results], clearable=False, style=dict(width="100px"))],
                 style=dict(position="absolute", left=10, top=10),
+            ),
+            html.Div(
+                [dcc.Dropdown(id="vis", value=vis, options=["cyto", "fig"], clearable=False, style=dict(width="100px"))],
+                style=dict(position="absolute", left=110, top=10),
             ),
             html.Div([dcc.Dropdown(id="system", value=system, options=systems, clearable=False, className="dropdown")]),
             html.Div([dcc.Dropdown(id="system2", value=system2, options=systems, clearable=True, className="dropdown")]),
@@ -438,18 +450,18 @@ def diff_view(study, system, from_slug, to_slug):
     )
 
 
-def system_view(study, system, from_slug, to_slug):
+def system_view(study, system, from_slug, to_slug, vis):
     cmp = None
     system_results = results[study][system]
     net = []
     fig = {}
-    if system_results["network_elements"]:
+    if vis == "cyto":
         net = json.loads(system_results["network_elements"])
-    elif system_results["figure"]:
+    elif vis == "fig":
         fig = go.Figure(json.loads(system_results["figure"]))
         fig_df = system_results["figure_df"]
     else:
-        raise Exception("no network, no figure")
+        raise Exception("Neither fig nor cyto")
 
     try:
         filter_prefix = f"study=='{study}' and system=='{system}'"
@@ -466,7 +478,7 @@ def system_view(study, system, from_slug, to_slug):
             shared_tokens = list((Counter(from_tokens_df["token"].values) & Counter(to_tokens_df["token"].values)).elements())
             shared_uniques = set(from_tokens_df["token"]) & set(to_tokens_df["token"])
 
-            if net:
+            if vis == "cyto":
                 both_dirs = [[from_slug, to_slug], [to_slug, from_slug]]
                 to_drop = ["__".join(x) for x in both_dirs]
                 dropped = [elem for elem in net if elem["data"]["id"] in to_drop]
@@ -488,7 +500,7 @@ def system_view(study, system, from_slug, to_slug):
                         new_elem["classes"] += " selected"
                     net.append(new_elem)
 
-            if fig:
+            if vis == "fig":
                 from_row = fig_df.loc[from_slug]
                 to_row = fig_df.loc[to_slug]
                 fig.add_scatter(x=[from_row.x, to_row.x], y=[from_row.y, to_row.y], hoverinfo="skip", showlegend=False)
@@ -519,12 +531,12 @@ def system_view(study, system, from_slug, to_slug):
             cmp = header_and_image(study, system, from_slug, from_tokens_n, from_tokens_nunique)
             cmp += [diff_view(study, system, from_slug, from_slug)]
 
-            if net:
+            if vis == "cyto":
                 for elem in net:
                     if elem["data"]["id"] == from_slug:
                         elem["classes"] += " selected"
 
-            if fig:
+            if vis == "fig":
                 from_row = fig_df.loc[from_slug]
                 fig.add_scatter(x=[from_row.x], y=[from_row.y], hoverinfo="skip", showlegend=False)
 
