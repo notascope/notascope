@@ -7,6 +7,7 @@ from glob import glob
 
 # perf
 from numba import njit
+from functools import cache
 
 # plotly
 from dash import Dash, html, dcc, Input, Output, State, callback_context
@@ -37,13 +38,71 @@ except IndexError:
 default_study = "tiny"
 
 print("start", np.random.randint(1000))  # unseeded so every launch is different
-np.random.seed(1)  # now set seed for embedding algos
+np.random.seed(1)  # now set seed for deterministic embedding algos
 
 costs_df = pd.read_csv(f"results/{cost_type}_costs.csv", names=["study", "system", "from_slug", "to_slug", "cost"])
 tokens_df = pd.read_csv("results/tokens.tsv", names=["study", "system", "spec", "token"], delimiter="\t")
 
 
-def build_figure(study, system, imgext, square, order):
+def ext_of_longest(study, system, obj):
+    return sorted(glob(f"results/{study}/{system}/{obj}/*"), key=len)[-1].split(".")[-1]
+
+
+results = dict()
+for (study, system), df in costs_df.groupby(["study", "system"]):
+    if study not in results:
+        results[study] = dict()
+    results[study][system] = dict(
+        imgext=ext_of_longest(study, system, "img"),
+        srcext=ext_of_longest(study, system, "source"),
+        slugs=df.from_slug.unique(),
+        tokens=tokens_df.query("study==@study and system==@system")["token"].nunique(),
+    )
+
+print("ready")
+
+app = Dash(__name__, title="NotaScope", suppress_callback_exceptions=True)
+
+
+app.layout = html.Div(
+    [
+        html.Div(id="content"),
+        dcc.Location(id="location", hash=""),
+        dcc.Tooltip(
+            id="tooltip",
+            children=[
+                html.Div(
+                    [
+                        html.P(id="tt_name", style=dict(textAlign="center")),
+                        html.Img(id="tt_img", style={"max-width": "300px", "max-height": "200px"}),
+                    ],
+                    style={"width": "300px", "height": "230px", "overflow": "hidden"},
+                )
+            ],
+        ),
+        EventListener(
+            id="event_listener",
+            events=[
+                {"event": "keydown", "props": ["shiftKey"]},
+                {"event": "keyup", "props": ["shiftKey"]},
+            ],
+        ),
+    ]
+)
+
+
+@cache
+def square_and_order(study, system):
+    df = costs_df.query(f"study=='{study}' and system=='{system}'")
+    square = df.pivot_table(index="from_slug", columns="to_slug", values="cost").fillna(0)
+    order = list(square.index)
+    square = square.values
+    return square, order
+
+
+@cache
+def build_tsne(study, system):
+    square, order = square_and_order(study, system)
     tsne = TSNE(n_components=2, metric="precomputed", square_distances=True, learning_rate="auto", init="random")
     embedding = tsne.fit_transform((square + square.T) / 2)
     emb_df = pd.DataFrame(embedding, index=order, columns=["x", "y"])
@@ -57,7 +116,9 @@ def build_figure(study, system, imgext, square, order):
     return fig.to_json(), emb_df
 
 
-def build_dendro(study, system, imgext, square, order):
+@cache
+def build_dendro(study, system):
+    square, order = square_and_order(study, system)
     Z = hierarchy.linkage(squareform((square + square.T) / 2.0), "complete", optimal_ordering=True)
     P = hierarchy.dendrogram(Z, labels=order, no_plot=True)
 
@@ -77,7 +138,7 @@ def build_dendro(study, system, imgext, square, order):
         y.append(None)
         x.append(None)
     fig = go.Figure()
-    fig.add_scatter(x=x, y=y, line_width=1, hoverinfo="skip")
+    fig.add_scatter(x=x, y=y, line_width=1, hoverinfo="skip", mode="lines")
     fig.add_scatter(x=label_x, y=label_y, text=label_text, hovertext=label_text, mode="text", textposition="middle right", hoverinfo="none")
     fig.update_layout(height=800, showlegend=False)
     return fig.to_json()
@@ -106,7 +167,9 @@ def find_edges(square):
     return result
 
 
-def build_network(study, system, imgext, square, order):
+@cache
+def build_network(study, system):
+    square, order = square_and_order(study, system)
     network_elements = []
     n = len(square)
     if n < 20:
@@ -156,7 +219,7 @@ def build_network(study, system, imgext, square, order):
     emb_span = embedding.max() - embedding.min()
 
     scale = 1000 if n < 20 else 10000
-
+    imgext = results[study][system]["imgext"]
     for i, row in emb_df.iterrows():
         network_elements.append(
             {
@@ -170,71 +233,6 @@ def build_network(study, system, imgext, square, order):
             }
         )
     return json.dumps(network_elements)
-
-
-def ext_of_longest(study, system, obj):
-    return sorted(glob(f"results/{study}/{system}/{obj}/*"), key=len)[-1].split(".")[-1]
-
-
-def precompute():
-    results = dict()
-    for (study, system), df in costs_df.groupby(["study", "system"]):
-        imgext = ext_of_longest(study, system, "img")
-        srcext = ext_of_longest(study, system, "source")
-
-        square = df.pivot_table(index="from_slug", columns="to_slug", values="cost").fillna(0)
-        order = list(square.index)
-        square = square.values
-
-        figure, figure_df = build_figure(study, system, imgext, square, order)
-        dendro = build_dendro(study, system, imgext, square, order)
-        if study not in results:
-            results[study] = dict()
-        results[study][system] = dict(
-            imgext=imgext,
-            srcext=srcext,
-            slugs=df.from_slug.unique(),
-            tokens=tokens_df.query("study==@study and system==@system")["token"].nunique(),
-            network_elements=build_network(study, system, imgext, square, order),
-            figure=figure,
-            figure_df=figure_df,
-            dendro=dendro,
-        )
-
-    print("ready")
-    return results
-
-
-results = precompute()
-
-app = Dash(__name__, title="NotaScope", suppress_callback_exceptions=True)
-
-
-app.layout = html.Div(
-    [
-        html.Div(id="content"),
-        dcc.Location(id="location"),
-        dcc.Tooltip(
-            id="tooltip",
-            children=[
-                html.Div(
-                    [
-                        html.P(id="tt_name", style=dict(textAlign="center")),
-                        html.Img(id="tt_img", style={"max-width": "300px", "max-height": "200px"}),
-                    ],
-                    style={"width": "300px", "height": "230px", "overflow": "hidden"},
-                )
-            ],
-        ),
-        EventListener(
-            id="event_listener",
-            events=[
-                {"event": "keydown", "props": ["shiftKey"]},
-                {"event": "keyup", "props": ["shiftKey"]},
-            ],
-        ),
-    ]
-)
 
 
 def parse_hashpath(hashpath):
@@ -396,13 +394,10 @@ def cytoscape(id, elements):
         id=id,
         className="network",
         layout={"name": "preset"},
-        # minZoom=0.3,
-        # maxZoom=2,
+        minZoom=0.05,
+        maxZoom=1,
+        autoRefreshLayout=False,
         elements=elements,
-        style=dict(
-            height="800px",
-            width="800px",
-        ),
         stylesheet=[
             {
                 "selector": "node",
@@ -489,16 +484,17 @@ def diff_view(study, system, from_slug, to_slug):
 
 def system_view(study, system, from_slug, to_slug, vis):
     cmp = None
-    system_results = results[study][system]
     net = []
     fig = {}
     if vis == "network":
-        net = json.loads(system_results["network_elements"])
+        net_json = build_network(study, system)
+        net = json.loads(net_json)
     elif vis == "tsne":
-        fig = go.Figure(json.loads(system_results["figure"]))
-        fig_df = system_results["figure_df"]
+        fig_json, fig_df = build_tsne(study, system)
+        fig = go.Figure(json.loads(fig_json))
     elif vis == "dendro":
-        fig = go.Figure(json.loads(system_results["dendro"]))
+        fig_json = build_dendro(study, system)
+        fig = go.Figure(json.loads(fig_json))
     else:
         raise Exception("Neither fig nor cyto")
 
@@ -585,16 +581,20 @@ def system_view(study, system, from_slug, to_slug, vis):
     return (cmp, net, fig)
 
 
+# if/when there is a PNG system, just inline the imgext dict in the string
 app.clientside_callback(
     """
     function(hoverData) {
         if(!hoverData){
             return [false, null, null, null];
         }
+        pieces = window.location.hash.split("/");
+        study=pieces[1];
+        system=pieces[2];
         pt = hoverData["points"][0];
         bbox = pt["bbox"]
         slug = pt["hovertext"]
-        return [true, bbox, "/assets/results/vega-lite/vega-lite/img/"+slug+".svg", slug]
+        return [true, bbox, "/assets/results/"+study+"/"+system+"/img/"+slug+".svg", slug]
     }
     """,
     Output("tooltip", "show"),
