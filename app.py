@@ -17,7 +17,6 @@ import igraph
 from scipy.sparse.csgraph import minimum_spanning_tree
 from scipy.sparse import coo_matrix
 from scipy.cluster import hierarchy
-import plotly.graph_objects as go
 from scipy.spatial.distance import squareform
 
 
@@ -587,7 +586,7 @@ app.clientside_callback(
         }
         pt = hoverData["points"][0];
         bbox = pt["bbox"]
-        slug = pt["text"]
+        slug = pt["hovertext"]
         return [true, bbox, "/assets/results/vega-lite/vega-lite/img/"+slug+".svg", slug]
     }
     """,
