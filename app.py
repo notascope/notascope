@@ -1,19 +1,26 @@
+# builtins
 import re
-from dash import Dash, html, dcc, Input, Output, State, callback_context
+import sys
 import json
-import pandas as pd
-import numpy as np
-from sklearn.manifold import MDS, TSNE
-import dash_cytoscape as cyto
 from collections import Counter
+from glob import glob
+
+# perf
+from numba import njit
+
+# plotly
+from dash import Dash, html, dcc, Input, Output, State, callback_context
+import dash_cytoscape as cyto
 from dash_extensions import EventListener
 from notascope_components import DashDiff
-import sys
-from glob import glob
-from numba import njit
 import plotly.express as px
 import plotly.graph_objects as go
+
+# data science
+import pandas as pd
+import numpy as np
 import igraph
+from sklearn.manifold import MDS, TSNE
 from scipy.sparse.csgraph import minimum_spanning_tree
 from scipy.sparse import coo_matrix
 from scipy.cluster import hierarchy
