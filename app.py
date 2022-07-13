@@ -584,13 +584,19 @@ def system_view(study, system, from_slug, to_slug, vis):
 # if/when there is a PNG system, just inline the imgext dict in the string
 app.clientside_callback(
     """
-    function(hoverData) {
-        if(!hoverData){
-            return [false, null, null, null];
-        }
+    function(hoverData, hoverData2) {
         pieces = window.location.hash.split("/");
         study=pieces[1];
-        system=pieces[2];
+        if(!hoverData){
+            if(!hoverData2){
+                return [false, null, null, null];
+            }
+            hoverData = hoverData2;
+            system=pieces[3];
+        }
+        else {
+            system=pieces[2];
+        }
         pt = hoverData["points"][0];
         bbox = pt["bbox"]
         slug = pt["hovertext"]
@@ -602,6 +608,7 @@ app.clientside_callback(
     Output("tt_img", "src"),
     Output("tt_name", "children"),
     Input("figure", "hoverData"),
+    Input("figure2", "hoverData"),
     prevent_initial_call=True,
 )
 

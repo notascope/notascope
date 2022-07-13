@@ -33,6 +33,13 @@ results/$(1)/$(2)/difflib_costs.csv:
 	@mkdir -p $$(dir $$@)
 	@python batch_difflib.py studies/$(1)/$(2)
 results/difflib_costs.csv: results/$(1)/$(2)/difflib_costs.csv
+
+
+results/$(1)/$(2)/ncd_costs.csv:
+	@echo "[ncd]      $(1)/$(2)"
+	@mkdir -p $$(dir $$@)
+	@python batch_ncd.py studies/$(1)/$(2)
+results/ncd_costs.csv: results/$(1)/$(2)/ncd_costs.csv
 endef
 
 define STUDY_rule # study
@@ -47,6 +54,12 @@ results/difflib_costs.csv:
 	@mkdir -p $(dir $@)
 	@cat $+ > $@
 difflib: results/difflib_costs.csv
+
+results/ncd_costs.csv:
+	@echo "[ncd]      global"
+	@mkdir -p $(dir $@)
+	@cat $+ > $@
+ncd: results/ncd_costs.csv
 
 results/tokens.tsv:
 	@echo "[tokens]   global"
