@@ -36,6 +36,7 @@ except IndexError:
     cost_type = "difflib"
 
 default_study = "tiny"
+vis_types = ["network", "tsne", "dendro"]
 
 print("start", np.random.randint(1000))  # unseeded so every launch is different
 np.random.seed(1)  # now set seed for deterministic embedding algos
@@ -67,7 +68,7 @@ app = Dash(__name__, title="NotaScope", suppress_callback_exceptions=True)
 app.layout = html.Div(
     [
         html.Div(id="content"),
-        dcc.Location(id="location", hash=""),
+        dcc.Location(id="location"),
         dcc.Tooltip(
             id="tooltip",
             children=[
@@ -236,19 +237,14 @@ def build_network(study, system):
 
 
 def parse_hashpath(hashpath):
-    m = re.match(r"#/(.*)/(.*)/(.*)/(.*)/(.*)/(.*)", hashpath)
-    study = system = system2 = from_slug = to_slug = vis = ""
+    m = re.match("#" + "/(.*)" * 6, hashpath)
     if m:
-        study = m.group(1)
-        system = m.group(2)
-        system2 = m.group(3)
-        from_slug = m.group(4)
-        to_slug = m.group(5)
-        vis = m.group(6)
-    return sanitize_state(study, system, system2, from_slug, to_slug, vis)
+        return sanitize_state(*m.groups())
+    else:
+        return sanitize_state()
 
 
-def sanitize_state(study, system, system2, from_slug, to_slug, vis):
+def sanitize_state(study="", system="", system2="", from_slug="", to_slug="", vis=""):
     if study not in results:
         study = default_study
     study_res = results[study]
@@ -270,8 +266,8 @@ def sanitize_state(study, system, system2, from_slug, to_slug, vis):
     elif to_slug not in slugs:
         to_slug = from_slug
 
-    if not vis:
-        vis = "network"
+    if vis not in vis_types:
+        vis = vis_types[0]
 
     return study, system, system2, from_slug, to_slug, vis
 
@@ -332,8 +328,7 @@ def update_hashpath(selection, vis, study, system, system2, node_data, edge_data
                 to_slug = fig_data2["points"][0]["hovertext"]
                 if not shift_down:
                     from_slug = to_slug
-    study, system, system2, from_slug, to_slug, vis = sanitize_state(study, system, system2, from_slug, to_slug, vis)
-    hashpath = f"#/{study}/{system}/{system2 or ''}/{from_slug}/{to_slug}/{vis}"
+    hashpath = "#/" + "/".join(sanitize_state(study, system, system2, from_slug, to_slug, vis))
     return hashpath, node_data, edge_data, node_data2, edge_data2
 
 
@@ -363,7 +358,7 @@ def update_content(hashpath):
                 style=dict(position="absolute", left=10, top=10),
             ),
             html.Div(
-                [dcc.Dropdown(id="vis", value=vis, options=["network", "tsne", "dendro"], clearable=False, style=dict(width="100px"))],
+                [dcc.Dropdown(id="vis", value=vis, options=vis_types, clearable=False, style=dict(width="100px"))],
                 style=dict(position="absolute", left=110, top=10),
             ),
             html.Div([dcc.Dropdown(id="system", value=system, options=systems, clearable=False, className="dropdown")]),
@@ -496,7 +491,7 @@ def system_view(study, system, from_slug, to_slug, vis):
         fig_json = build_dendro(study, system)
         fig = go.Figure(json.loads(fig_json))
     else:
-        raise Exception("Neither fig nor cyto")
+        raise Exception("invalid vis")
 
     try:
         filter_prefix = f"study=='{study}' and system=='{system}'"
