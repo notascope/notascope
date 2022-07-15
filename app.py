@@ -188,7 +188,7 @@ def get_network(study, system, from_slug, to_slug):
                 new_elem["classes"] += " inserted"
             if source == from_slug:
                 new_elem["classes"] += " selected"
-                net.append(new_elem)
+            net.append(new_elem)
     else:
         for elem in net:
             if elem["data"]["id"] == from_slug:
