@@ -49,6 +49,8 @@ def ext_of_longest(study, system, obj):
     return sorted(glob(f"results/{study}/{system}/{obj}/*"), key=len)[-1].split(".")[-1]
 
 
+filter_prefix = "study==@study and system==@system"
+
 results = dict()
 for (study, system), df in costs_df.groupby(["study", "system"]):
     if study not in results:
@@ -57,7 +59,7 @@ for (study, system), df in costs_df.groupby(["study", "system"]):
         imgext=ext_of_longest(study, system, "img"),
         srcext=ext_of_longest(study, system, "source"),
         slugs=df.from_slug.unique(),
-        tokens=tokens_df.query("study==@study and system==@system")["token"].nunique(),
+        tokens=tokens_df.query(filter_prefix)["token"].nunique(),
     )
 
 print("ready")
@@ -94,11 +96,22 @@ app.layout = html.Div(
 
 @cache
 def square_and_order(study, system):
-    df = costs_df.query(f"study=='{study}' and system=='{system}'")
+    df = costs_df.query(filter_prefix)
     square = df.pivot_table(index="from_slug", columns="to_slug", values="cost").fillna(0)
     order = list(square.index)
     square = square.values
     return square, order
+
+
+def get_tsne(study, system, from_slug, to_slug):
+    fig_json, fig_df = build_tsne(study, system)
+    fig = go.Figure(json.loads(fig_json))
+
+    from_row = fig_df.loc[from_slug]
+    to_row = fig_df.loc[to_slug]
+    fig.add_scatter(x=[from_row.x, to_row.x], y=[from_row.y, to_row.y], hoverinfo="skip", showlegend=False)
+
+    return fig
 
 
 @cache
@@ -115,6 +128,11 @@ def build_tsne(study, system):
     fig.update_traces(hoverinfo="none", hovertemplate=None)
 
     return fig.to_json(), emb_df
+
+
+def get_dendro(study, system, from_slug, to_slug):
+    fig = go.Figure(json.loads(build_dendro(study, system)))
+    return fig
 
 
 @cache
@@ -143,6 +161,39 @@ def build_dendro(study, system):
     fig.add_scatter(x=label_x, y=label_y, text=label_text, hovertext=label_text, mode="text", textposition="middle right", hoverinfo="none")
     fig.update_layout(height=800, showlegend=False)
     return fig.to_json()
+
+
+def get_network(study, system, from_slug, to_slug):
+    net = json.loads(build_network(study, system))
+
+    if from_slug != to_slug:
+        cost = get_cost(study, system, from_slug, to_slug)
+        rev_cost = get_cost(study, system, to_slug, from_slug)
+        both_dirs = [[from_slug, to_slug], [to_slug, from_slug]]
+        to_drop = ["__".join(x) for x in both_dirs]
+        dropped = [elem for elem in net if elem["data"]["id"] in to_drop]
+        net = [elem for elem in net if elem["data"]["id"] not in to_drop]
+        for source, dest in both_dirs:
+            id = source + "__" + dest
+            new_elem = {
+                "data": {
+                    "source": source,
+                    "target": dest,
+                    "id": id,
+                    "length": cost if source == from_slug else rev_cost,
+                },
+                "classes": "",
+            }
+            if len(dropped) == 0 or (id not in [x["data"]["id"] for x in dropped] and "bidir" not in dropped[0]["classes"]):
+                new_elem["classes"] += " inserted"
+            if source == from_slug:
+                new_elem["classes"] += " selected"
+                net.append(new_elem)
+    else:
+        for elem in net:
+            if elem["data"]["id"] == from_slug:
+                elem["classes"] += " selected"
+    return net
 
 
 @njit
@@ -338,11 +389,11 @@ def update_hashpath(selection, vis, study, system, system2, node_data, edge_data
 )
 def update_content(hashpath):
     study, system, system2, from_slug, to_slug, vis = parse_hashpath(hashpath)
-    cmp, net, fig = system_view(study, system, from_slug, to_slug, vis)
+    cmp, net, fig = details_view(study, system, from_slug, to_slug, vis)
     if system2:
         style = dict()
         style2 = dict(gridColumnStart=2, display="block")
-        cmp2, net2, fig2 = system_view(study, system2, from_slug, to_slug, vis)
+        cmp2, net2, fig2 = details_view(study, system2, from_slug, to_slug, vis)
     else:
         style = dict(gridRowStart=2)
         style2 = dict(display="none", gridRowStart=3)
@@ -477,64 +528,39 @@ def diff_view(study, system, from_slug, to_slug):
     )
 
 
-def system_view(study, system, from_slug, to_slug, vis):
+def get_token_info(study, system, slug):
+    df = tokens_df.query(filter_prefix + " and spec==@slug")["token"]
+    return df.values, len(df), df.nunique()
+
+
+@cache
+def get_cost(study, system, from_slug, to_slug):
+    return costs_df.query(filter_prefix + " and from_slug==@from_slug and to_slug==@to_slug")["cost"].values[0]
+
+
+def details_view(study, system, from_slug, to_slug, vis):
     cmp = None
     net = []
     fig = {}
     if vis == "network":
-        net_json = build_network(study, system)
-        net = json.loads(net_json)
+        net = get_network(study, system, from_slug, to_slug)
     elif vis == "tsne":
-        fig_json, fig_df = build_tsne(study, system)
-        fig = go.Figure(json.loads(fig_json))
+        fig = get_tsne(study, system, from_slug, to_slug)
     elif vis == "dendro":
-        fig_json = build_dendro(study, system)
-        fig = go.Figure(json.loads(fig_json))
+        fig = get_dendro(study, system, from_slug, to_slug)
     else:
         raise Exception("invalid vis")
 
     try:
-        filter_prefix = f"study=='{study}' and system=='{system}'"
-        from_tokens_df = tokens_df.query(filter_prefix + f" and spec=='{from_slug}'")
-        from_tokens_n = len(from_tokens_df)
-        from_tokens_nunique = from_tokens_df["token"].nunique()
+        from_tokens, from_tokens_n, from_tokens_nunique = get_token_info(study, system, from_slug)
         if from_slug != to_slug:
-            to_tokens_df = tokens_df.query(filter_prefix + f" and spec=='{to_slug}'")
-            to_tokens_n = len(to_tokens_df)
-            to_tokens_nunique = to_tokens_df["token"].nunique()
-            cost = costs_df.query(filter_prefix + f" and from_slug=='{from_slug}' and to_slug=='{to_slug}'")["cost"].values[0]
-            rev_cost = costs_df.query(filter_prefix + f" and from_slug=='{to_slug}' and to_slug=='{from_slug}'")["cost"].values[0]
 
-            shared_tokens = list((Counter(from_tokens_df["token"].values) & Counter(to_tokens_df["token"].values)).elements())
-            shared_uniques = set(from_tokens_df["token"]) & set(to_tokens_df["token"])
+            to_tokens, to_tokens_n, to_tokens_nunique = get_token_info(study, system, to_slug)
+            cost = get_cost(study, system, from_slug, to_slug)
+            rev_cost = get_cost(study, system, to_slug, from_slug)
 
-            if vis == "network":
-                both_dirs = [[from_slug, to_slug], [to_slug, from_slug]]
-                to_drop = ["__".join(x) for x in both_dirs]
-                dropped = [elem for elem in net if elem["data"]["id"] in to_drop]
-                net = [elem for elem in net if elem["data"]["id"] not in to_drop]
-                for source, dest in both_dirs:
-                    id = source + "__" + dest
-                    new_elem = {
-                        "data": {
-                            "source": source,
-                            "target": dest,
-                            "id": id,
-                            "length": cost if source == from_slug else rev_cost,
-                        },
-                        "classes": "",
-                    }
-                    if len(dropped) == 0 or (id not in [x["data"]["id"] for x in dropped] and "bidir" not in dropped[0]["classes"]):
-                        new_elem["classes"] += " inserted"
-                    if source == from_slug:
-                        new_elem["classes"] += " selected"
-                    net.append(new_elem)
-
-            if vis == "tsne":
-                from_row = fig_df.loc[from_slug]
-                to_row = fig_df.loc[to_slug]
-                fig.add_scatter(x=[from_row.x, to_row.x], y=[from_row.y, to_row.y], hoverinfo="skip", showlegend=False)
-
+            shared_tokens = list((Counter(from_tokens) & Counter(to_tokens)).elements())
+            shared_uniques = set(from_tokens) & set(to_tokens)
             td1 = html.Td(
                 header_and_image(study, system, from_slug, from_tokens_n, from_tokens_nunique),
                 style=dict(verticalAlign="top"),
@@ -550,25 +576,13 @@ def system_view(study, system, from_slug, to_slug, vis):
                 header_and_image(study, system, to_slug, to_tokens_n, to_tokens_nunique),
                 style=dict(verticalAlign="top"),
             )
-            cmp = [
-                html.Table(
-                    [html.Tr([td1, td2, td3])],
-                    style=dict(width="100%", height="300px"),
-                ),
-                diff_view(study, system, from_slug, to_slug),
-            ]
+            cmp = [html.Table([html.Tr([td1, td2, td3])], style=dict(width="100%", height="300px"))]
         elif from_slug != "":
+            _, from_tokens_n, from_tokens_nunique = get_token_info(study, system, from_slug)
             cmp = header_and_image(study, system, from_slug, from_tokens_n, from_tokens_nunique)
-            cmp += [diff_view(study, system, from_slug, from_slug)]
 
-            if vis == "network":
-                for elem in net:
-                    if elem["data"]["id"] == from_slug:
-                        elem["classes"] += " selected"
-
-            if vis == "tsne":
-                from_row = fig_df.loc[from_slug]
-                fig.add_scatter(x=[from_row.x], y=[from_row.y], hoverinfo="skip", showlegend=False)
+        if from_slug != "":
+            cmp += [diff_view(study, system, from_slug, to_slug)]
 
     except Exception as e:
         print(repr(e))
