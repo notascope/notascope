@@ -28,8 +28,6 @@ from scipy.cluster import hierarchy
 from scipy.spatial.distance import squareform
 
 
-cyto.load_extra_layouts()
-
 try:
     cost_type = sys.argv[1]
 except IndexError:
@@ -51,17 +49,22 @@ def ext_of_longest(study, system, obj):
 
 filter_prefix = "study==@study and system==@system"
 
-results = dict()
-for (study, system), df in costs_df.groupby(["study", "system"]):
-    if study not in results:
-        results[study] = dict()
-    results[study][system] = dict(
-        imgext=ext_of_longest(study, system, "img"),
-        srcext=ext_of_longest(study, system, "source"),
-        slugs=df.from_slug.unique(),
-        tokens=tokens_df.query(filter_prefix)["token"].nunique(),
-    )
 
+def load_results():
+    results = dict()
+    for (study, system), df in costs_df.groupby(["study", "system"]):
+        if study not in results:
+            results[study] = dict()
+        results[study][system] = dict(
+            imgext=ext_of_longest(study, system, "img"),
+            srcext=ext_of_longest(study, system, "source"),
+            slugs=df.from_slug.unique(),
+            tokens=tokens_df.query(filter_prefix)["token"].nunique(),
+        )
+    return results
+
+
+results = load_results()
 print("ready")
 
 app = Dash(__name__, title="NotaScope", suppress_callback_exceptions=True)
