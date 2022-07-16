@@ -110,9 +110,10 @@ def get_tsne(study, system, from_slug, to_slug):
     fig_json, fig_df = build_tsne(study, system)
     fig = go.Figure(json.loads(fig_json))
 
-    from_row = fig_df.loc[from_slug]
-    to_row = fig_df.loc[to_slug]
-    fig.add_scatter(x=[from_row.x, to_row.x], y=[from_row.y, to_row.y], hoverinfo="skip", showlegend=False)
+    if from_slug:
+        from_row = fig_df.loc[from_slug]
+        to_row = fig_df.loc[to_slug]
+        fig.add_scatter(x=[from_row.x, to_row.x], y=[from_row.y, to_row.y], hoverinfo="skip", showlegend=False)
 
     return fig
 
@@ -192,10 +193,9 @@ def get_network(study, system, from_slug, to_slug):
             if source == from_slug:
                 new_elem["classes"] += " selected"
             net.append(new_elem)
-    else:
-        for elem in net:
-            if elem["data"]["id"] == from_slug:
-                elem["classes"] += " selected"
+    for elem in net:
+        if elem["data"]["id"] in [from_slug, to_slug]:
+            elem["classes"] += " selected"
     return net
 
 
@@ -291,16 +291,23 @@ def build_network(study, system):
 
 
 def parse_hashpath(hashpath):
-    m = re.match("#" + "/(.*)" * 6, hashpath)
+    m = re.match("#" + "/(.*)" * 7, hashpath)
     if m:
         return sanitize_state(*m.groups())
     else:
         return sanitize_state()
 
 
-def sanitize_state(study="", system="", system2="", from_slug="", to_slug="", vis=""):
+def sanitize_state(study="", system="", vis="", system2="", vis2="", from_slug="", to_slug=""):
+    if vis not in vis_types:
+        vis = vis_types[0]
+
+    if vis2 not in vis_types:
+        vis2 = vis_types[0]
+
     if study not in results:
         study = default_study
+
     study_res = results[study]
     slugs = set()
     if system in study_res:
@@ -309,21 +316,21 @@ def sanitize_state(study="", system="", system2="", from_slug="", to_slug="", vi
     else:
         system = list(results[study].keys())[0]
 
-    if system2 in study_res and system2 != system:
+    if system2 in study_res:
         for s in study_res[system2]["slugs"]:
             slugs.add(s)
     else:
         system2 = ""
+
+    if system2 == "":
+        vis2 = ""
 
     if from_slug not in slugs:
         from_slug = to_slug = ""
     elif to_slug not in slugs:
         to_slug = from_slug
 
-    if vis not in vis_types:
-        vis = vis_types[0]
-
-    return study, system, system2, from_slug, to_slug, vis
+    return study, system, vis, system2, vis2, from_slug, to_slug
 
 
 @app.callback(
@@ -334,6 +341,7 @@ def sanitize_state(study="", system="", system2="", from_slug="", to_slug="", vi
     Output("network2", "tapEdgeData"),
     Input("selection", "data"),
     Input("vis", "value"),
+    Input("vis2", "value"),
     Input("study", "value"),
     Input("system", "value"),
     Input("system2", "value"),
@@ -345,7 +353,7 @@ def sanitize_state(study="", system="", system2="", from_slug="", to_slug="", vi
     Input("figure2", "clickData"),
     State("event_listener", "event"),
 )
-def update_hashpath(selection, vis, study, system, system2, node_data, edge_data, fig_data, node_data2, edge_data2, fig_data2, event):
+def update_hashpath(selection, vis, vis2, study, system, system2, node_data, edge_data, fig_data, node_data2, edge_data2, fig_data2, event):
     shift_down = bool((dict(shiftKey=False) if not event else event)["shiftKey"])
     ctx = callback_context
     from_slug, to_slug = selection
@@ -382,7 +390,7 @@ def update_hashpath(selection, vis, study, system, system2, node_data, edge_data
                 to_slug = fig_data2["points"][0]["hovertext"]
                 if not shift_down:
                     from_slug = to_slug
-    hashpath = "#/" + "/".join(sanitize_state(study, system, system2, from_slug, to_slug, vis))
+    hashpath = "#/" + "/".join(sanitize_state(study, system, vis, system2, vis2, from_slug, to_slug))
     return hashpath, node_data, edge_data, node_data2, edge_data2
 
 
@@ -391,16 +399,22 @@ def update_hashpath(selection, vis, study, system, system2, node_data, edge_data
     Input("location", "hash"),
 )
 def update_content(hashpath):
-    study, system, system2, from_slug, to_slug, vis = parse_hashpath(hashpath)
+    study, system, vis, system2, vis2, from_slug, to_slug = parse_hashpath(hashpath)
     cmp, net, fig = details_view(study, system, from_slug, to_slug, vis)
     if system2:
         style = dict()
         style2 = dict(gridColumnStart=2, display="block")
-        cmp2, net2, fig2 = details_view(study, system2, from_slug, to_slug, vis)
+        cmp2, net2, fig2 = details_view(study, system2, from_slug, to_slug, vis2)
     else:
         style = dict(gridRowStart=2)
         style2 = dict(display="none", gridRowStart=3)
         cmp2, net2, fig2 = None, [], {}
+
+    vis2_style = dict(width="100px")
+    if system == system2:
+        cmp2 = None
+    if not system2:
+        vis2_style["display"] = "none"
 
     systems = [dict(label=f"{s} ({results[study][s]['tokens']})", value=s) for s in results[study]]
 
@@ -412,11 +426,31 @@ def update_content(hashpath):
                 style=dict(position="absolute", left=10, top=10),
             ),
             html.Div(
-                [dcc.Dropdown(id="vis", value=vis, options=vis_types, clearable=False, style=dict(width="100px"))],
-                style=dict(position="absolute", left=110, top=10),
+                [
+                    html.Div(
+                        dcc.Dropdown(id="system", value=system, options=systems, clearable=False, className="dropdown"),
+                        style=dict(display="inline-block"),
+                    ),
+                    html.Div(
+                        dcc.Dropdown(id="vis", value=vis, options=vis_types, clearable=False, style=dict(width="100px")),
+                        style=dict(display="inline-block"),
+                    ),
+                ],
+                style=dict(margin="0 auto"),
             ),
-            html.Div([dcc.Dropdown(id="system", value=system, options=systems, clearable=False, className="dropdown")]),
-            html.Div([dcc.Dropdown(id="system2", value=system2, options=systems, clearable=True, className="dropdown")]),
+            html.Div(
+                [
+                    html.Div(
+                        dcc.Dropdown(id="system2", value=system2, options=systems, clearable=True, className="dropdown"),
+                        style=dict(display="inline-block"),
+                    ),
+                    html.Div(
+                        dcc.Dropdown(id="vis2", value=vis2, options=vis_types, clearable=False, style=vis2_style),
+                        style=dict(display="inline-block"),
+                    ),
+                ],
+                style=dict(margin="0 auto"),
+            ),
             html.Div(network_or_figure(net, fig, ""), style=style),
             html.Div(network_or_figure(net2, fig2, "2"), style=style2),
             html.Div(cmp, className="comparison"),
@@ -604,7 +638,7 @@ app.clientside_callback(
                 return [false, null, null, null];
             }
             hoverData = hoverData2;
-            system=pieces[3];
+            system=pieces[4];
         }
         else {
             system=pieces[2];

@@ -14,12 +14,11 @@ body {
 }
 
 .dropdown {
-  width: 200px;
-  margin: 0 auto;
+  width: 150px;
 }
 
 .network {
-  border: 1px solid black;
+  border: 1px solid lightgrey;
   margin: 0 auto;
 }
 
