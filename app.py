@@ -27,20 +27,17 @@ from scipy.sparse import coo_matrix
 from scipy.cluster import hierarchy
 from scipy.spatial.distance import squareform
 
-
-try:
-    cost_type = sys.argv[1]
-except IndexError:
-    cost_type = "difflib"
-
 default_study = "tiny"
 vis_types = ["network", "tsne", "dendro"]
+cost_types = ["difflib", "compression"]
 
 print("start", np.random.randint(1000))  # unseeded so every launch is different
 np.random.seed(1)  # now set seed for deterministic embedding algos
 
-costs_df = pd.read_csv(f"results/{cost_type}_costs.csv", names=["study", "system", "from_slug", "to_slug", "cost"])
-tokens_df = pd.read_csv("results/tokens.tsv", names=["study", "system", "spec", "token"], delimiter="\t")
+difflib_df = pd.read_csv(f"results/difflib_costs.csv", names=["study", "system", "from_slug", "to_slug", "difflib"])
+ncd_df = pd.read_csv(f"results/ncd_costs.csv", names=["study", "system", "from_slug", "to_slug", "compression"])
+costs_df = pd.merge(difflib_df, ncd_df, how="outer")
+tokens_df = pd.read_csv("results/tokens.tsv", names=["study", "system", "slug", "token"], delimiter="\t")
 
 
 def ext_of_longest(study, system, obj):
@@ -52,14 +49,14 @@ filter_prefix = "study==@study and system==@system"
 
 def load_results():
     results = dict()
-    for (study, system), df in costs_df.groupby(["study", "system"]):
+    for (study, system), df in tokens_df.groupby(["study", "system"]):
         if study not in results:
             results[study] = dict()
         results[study][system] = dict(
             imgext=ext_of_longest(study, system, "img"),
             srcext=ext_of_longest(study, system, "source"),
-            slugs=df.from_slug.unique(),
-            tokens=tokens_df.query(filter_prefix)["token"].nunique(),
+            slugs=df["slug"].unique(),
+            tokens=df["token"].nunique(),
         )
     return results
 
@@ -98,16 +95,16 @@ app.layout = html.Div(
 
 
 @cache
-def square_and_order(study, system):
+def square_and_order(study, system, cost):
     df = costs_df.query(filter_prefix)
-    square = df.pivot_table(index="from_slug", columns="to_slug", values="cost").fillna(0)
+    square = df.pivot_table(index="from_slug", columns="to_slug", values=cost).fillna(0)
     order = list(square.index)
     square = square.values
     return square, order
 
 
-def get_tsne(study, system, from_slug, to_slug):
-    fig_json, fig_df = build_tsne(study, system)
+def get_tsne(study, system, cost, from_slug, to_slug):
+    fig_json, fig_df = build_tsne(study, system, cost)
     fig = go.Figure(json.loads(fig_json))
 
     if from_slug:
@@ -119,8 +116,8 @@ def get_tsne(study, system, from_slug, to_slug):
 
 
 @cache
-def build_tsne(study, system):
-    square, order = square_and_order(study, system)
+def build_tsne(study, system, cost):
+    square, order = square_and_order(study, system, cost)
     tsne = TSNE(n_components=2, metric="precomputed", square_distances=True, learning_rate="auto", init="random")
     embedding = tsne.fit_transform((square + square.T) / 2)
     emb_df = pd.DataFrame(embedding, index=order, columns=["x", "y"])
@@ -134,14 +131,14 @@ def build_tsne(study, system):
     return fig.to_json(), emb_df
 
 
-def get_dendro(study, system, from_slug, to_slug):
-    fig = go.Figure(json.loads(build_dendro(study, system)))
+def get_dendro(study, system, cost, from_slug, to_slug):
+    fig = go.Figure(json.loads(build_dendro(study, system, cost)))
     return fig
 
 
 @cache
-def build_dendro(study, system):
-    square, order = square_and_order(study, system)
+def build_dendro(study, system, cost):
+    square, order = square_and_order(study, system, cost)
     Z = hierarchy.linkage(squareform((square + square.T) / 2.0), "complete", optimal_ordering=True)
     P = hierarchy.dendrogram(Z, labels=order, no_plot=True)
 
@@ -167,12 +164,12 @@ def build_dendro(study, system):
     return fig.to_json()
 
 
-def get_network(study, system, from_slug, to_slug):
-    net = json.loads(build_network(study, system))
+def get_network(study, system, cost, from_slug, to_slug):
+    net = json.loads(build_network(study, system, cost))
 
     if from_slug != to_slug:
-        cost = get_cost(study, system, from_slug, to_slug)
-        rev_cost = get_cost(study, system, to_slug, from_slug)
+        for_cost = get_cost(study, system, cost, from_slug, to_slug)
+        rev_cost = get_cost(study, system, cost, to_slug, from_slug)
         both_dirs = [[from_slug, to_slug], [to_slug, from_slug]]
         to_drop = ["__".join(x) for x in both_dirs]
         dropped = [elem for elem in net if elem["data"]["id"] in to_drop]
@@ -184,7 +181,7 @@ def get_network(study, system, from_slug, to_slug):
                     "source": source,
                     "target": dest,
                     "id": id,
-                    "length": cost if source == from_slug else rev_cost,
+                    "length": for_cost if source == from_slug else rev_cost,
                 },
                 "classes": "",
             }
@@ -223,8 +220,8 @@ def find_edges(square):
 
 
 @cache
-def build_network(study, system):
-    square, order = square_and_order(study, system)
+def build_network(study, system, cost):
+    square, order = square_and_order(study, system, cost)
     network_elements = []
     n = len(square)
     if n < 20:
@@ -291,19 +288,25 @@ def build_network(study, system):
 
 
 def parse_hashpath(hashpath):
-    m = re.match("#" + "/(.*)" * 7, hashpath)
+    m = re.match("#" + "/(.*)" * 9, hashpath)
     if m:
         return sanitize_state(*m.groups())
     else:
         return sanitize_state()
 
 
-def sanitize_state(study="", system="", vis="", system2="", vis2="", from_slug="", to_slug=""):
+def sanitize_state(study="", system="", cost="", vis="", system2="", cost2="", vis2="", from_slug="", to_slug=""):
     if vis not in vis_types:
         vis = vis_types[0]
 
     if vis2 not in vis_types:
         vis2 = vis_types[0]
+
+    if cost not in cost_types:
+        cost = cost_types[0]
+
+    if cost2 not in cost_types:
+        cost2 = cost_types[0]
 
     if study not in results:
         study = default_study
@@ -324,13 +327,14 @@ def sanitize_state(study="", system="", vis="", system2="", vis2="", from_slug="
 
     if system2 == "":
         vis2 = ""
+        cost2 = ""
 
     if from_slug not in slugs:
         from_slug = to_slug = ""
     elif to_slug not in slugs:
         to_slug = from_slug
 
-    return study, system, vis, system2, vis2, from_slug, to_slug
+    return study, system, cost, vis, system2, cost2, vis2, from_slug, to_slug
 
 
 @app.callback(
@@ -340,11 +344,13 @@ def sanitize_state(study="", system="", vis="", system2="", vis2="", from_slug="
     Output("network2", "tapNodeData"),
     Output("network2", "tapEdgeData"),
     Input("selection", "data"),
-    Input("vis", "value"),
-    Input("vis2", "value"),
     Input("study", "value"),
     Input("system", "value"),
     Input("system2", "value"),
+    Input("cost", "value"),
+    Input("cost2", "value"),
+    Input("vis", "value"),
+    Input("vis2", "value"),
     Input("network", "tapNodeData"),
     Input("network", "tapEdgeData"),
     Input("figure", "clickData"),
@@ -353,7 +359,9 @@ def sanitize_state(study="", system="", vis="", system2="", vis2="", from_slug="
     Input("figure2", "clickData"),
     State("event_listener", "event"),
 )
-def update_hashpath(selection, vis, vis2, study, system, system2, node_data, edge_data, fig_data, node_data2, edge_data2, fig_data2, event):
+def update_hashpath(
+    selection, study, system, system2, cost, cost2, vis, vis2, node_data, edge_data, fig_data, node_data2, edge_data2, fig_data2, event
+):
     shift_down = bool((dict(shiftKey=False) if not event else event)["shiftKey"])
     ctx = callback_context
     from_slug, to_slug = selection
@@ -390,7 +398,7 @@ def update_hashpath(selection, vis, vis2, study, system, system2, node_data, edg
                 to_slug = fig_data2["points"][0]["hovertext"]
                 if not shift_down:
                     from_slug = to_slug
-    hashpath = "#/" + "/".join(sanitize_state(study, system, vis, system2, vis2, from_slug, to_slug))
+    hashpath = "#/" + "/".join(sanitize_state(study, system, cost, vis, system2, cost2, vis2, from_slug, to_slug))
     return hashpath, node_data, edge_data, node_data2, edge_data2
 
 
@@ -399,19 +407,19 @@ def update_hashpath(selection, vis, vis2, study, system, system2, node_data, edg
     Input("location", "hash"),
 )
 def update_content(hashpath):
-    study, system, vis, system2, vis2, from_slug, to_slug = parse_hashpath(hashpath)
-    cmp, net, fig = details_view(study, system, from_slug, to_slug, vis)
+    study, system, cost, vis, system2, cost2, vis2, from_slug, to_slug = parse_hashpath(hashpath)
+    cmp, net, fig = details_view(study, system, cost, vis, from_slug, to_slug)
     if system2:
         style = dict()
         style2 = dict(gridColumnStart=2, display="block")
-        cmp2, net2, fig2 = details_view(study, system2, from_slug, to_slug, vis2)
+        cmp2, net2, fig2 = details_view(study, system2, cost2, vis2, from_slug, to_slug)
     else:
         style = dict(gridRowStart=2)
         style2 = dict(display="none", gridRowStart=3)
         cmp2, net2, fig2 = None, [], {}
 
     vis2_style = dict(width="100px")
-    if system == system2:
+    if system == system2 and cost == cost2:
         cmp2 = None
     if not system2:
         vis2_style["display"] = "none"
@@ -435,6 +443,10 @@ def update_content(hashpath):
                         dcc.Dropdown(id="vis", value=vis, options=vis_types, clearable=False, style=dict(width="100px")),
                         style=dict(display="inline-block"),
                     ),
+                    html.Div(
+                        dcc.Dropdown(id="cost", value=cost, options=cost_types, clearable=False, style=dict(width="100px")),
+                        style=dict(display="inline-block"),
+                    ),
                 ],
                 style=dict(margin="0 auto"),
             ),
@@ -446,6 +458,10 @@ def update_content(hashpath):
                     ),
                     html.Div(
                         dcc.Dropdown(id="vis2", value=vis2, options=vis_types, clearable=False, style=vis2_style),
+                        style=dict(display="inline-block"),
+                    ),
+                    html.Div(
+                        dcc.Dropdown(id="cost2", value=cost2, options=cost_types, clearable=False, style=vis2_style),
                         style=dict(display="inline-block"),
                     ),
                 ],
@@ -566,25 +582,25 @@ def diff_view(study, system, from_slug, to_slug):
 
 
 def get_token_info(study, system, slug):
-    df = tokens_df.query(filter_prefix + " and spec==@slug")["token"]
+    df = tokens_df.query(filter_prefix + " and slug==@slug")["token"]
     return df.values, len(df), df.nunique()
 
 
 @cache
-def get_cost(study, system, from_slug, to_slug):
-    return costs_df.query(filter_prefix + " and from_slug==@from_slug and to_slug==@to_slug")["cost"].values[0]
+def get_cost(study, system, cost, from_slug, to_slug):
+    return costs_df.query(filter_prefix + " and from_slug==@from_slug and to_slug==@to_slug")[cost].values[0]
 
 
-def details_view(study, system, from_slug, to_slug, vis):
+def details_view(study, system, cost, vis, from_slug, to_slug):
     cmp = None
     net = []
     fig = {}
     if vis == "network":
-        net = get_network(study, system, from_slug, to_slug)
+        net = get_network(study, system, cost, from_slug, to_slug)
     elif vis == "tsne":
-        fig = get_tsne(study, system, from_slug, to_slug)
+        fig = get_tsne(study, system, cost, from_slug, to_slug)
     elif vis == "dendro":
-        fig = get_dendro(study, system, from_slug, to_slug)
+        fig = get_dendro(study, system, cost, from_slug, to_slug)
     else:
         raise Exception("invalid vis")
 
@@ -593,8 +609,8 @@ def details_view(study, system, from_slug, to_slug, vis):
         if from_slug != to_slug:
 
             to_tokens, to_tokens_n, to_tokens_nunique = get_token_info(study, system, to_slug)
-            cost = get_cost(study, system, from_slug, to_slug)
-            rev_cost = get_cost(study, system, to_slug, from_slug)
+            for_cost = get_cost(study, system, cost, from_slug, to_slug)
+            rev_cost = get_cost(study, system, cost, to_slug, from_slug)
 
             shared_tokens = list((Counter(from_tokens) & Counter(to_tokens)).elements())
             shared_uniques = set(from_tokens) & set(to_tokens)
@@ -607,7 +623,7 @@ def details_view(study, system, from_slug, to_slug, vis):
                 + [f"{from_tokens_n - len(shared_tokens)} ⬌ {to_tokens_n - len(shared_tokens)}"]
                 + [html.Br(), html.Br(), "uniques", html.Br()]
                 + [f"{from_tokens_nunique - len(shared_uniques)} ⬌ {to_tokens_nunique - len(shared_uniques)}"]
-                + [html.Br(), html.Br(), "tree edit", html.Br(), f"{rev_cost} ⬌ {cost}"]
+                + [html.Br(), html.Br(), "tree edit", html.Br(), f"{rev_cost} ⬌ {for_cost}"]
             )
             td3 = html.Td(
                 header_and_image(study, system, to_slug, to_tokens_n, to_tokens_nunique),
