@@ -132,7 +132,22 @@ def build_tsne(study, system, cost):
 
 
 def get_dendro(study, system, cost, from_slug, to_slug):
-    fig = go.Figure(json.loads(build_dendro(study, system, cost)))
+    square, order = square_and_order(study, system, cost)
+    fig_json, y_by_slug = build_dendro(study, system, cost)
+    fig = go.Figure(json.loads(fig_json))
+    if from_slug:
+        from_y = y_by_slug[from_slug]
+        to_y = y_by_slug[to_slug]
+        distance = ((square + square.T) / 2.0)[order.index(from_slug), order.index(to_slug)]
+        fig.add_scatter(
+            x=[0, -distance, -distance, 0],
+            y=[from_y, from_y, to_y, to_y],
+            marker_opacity=[1, 0, 0, 1],
+            hoverinfo="skip",
+            showlegend=False,
+            marker_color="red",
+            mode="lines+markers",
+        )
     return fig
 
 
@@ -147,6 +162,7 @@ def build_dendro(study, system, cost):
     label_x = []
     label_y = []
     label_text = []
+    y_by_slug = dict()
     for icoord, dcoord in zip(P["icoord"], P["dcoord"]):
         for i, d in zip(icoord, dcoord):
             y.append(i)
@@ -154,14 +170,16 @@ def build_dendro(study, system, cost):
             if d == 0:
                 label_x.append(-d)
                 label_y.append(i)
-                label_text.append(P["ivl"][int((i - 5) / 10)])
+                slug = P["ivl"][int((i - 5) / 10)]
+                label_text.append(slug)
+                y_by_slug[slug] = i
         y.append(None)
         x.append(None)
     fig = go.Figure()
     fig.add_scatter(x=x, y=y, line_width=1, hoverinfo="skip", mode="lines")
     fig.add_scatter(x=label_x, y=label_y, text=label_text, hovertext=label_text, mode="text", textposition="middle right", hoverinfo="none")
-    fig.update_layout(height=800, showlegend=False)
-    return fig.to_json()
+    fig.update_layout(height=800, showlegend=False, uirevision="yes", dragmode="pan")
+    return fig.to_json(), y_by_slug
 
 
 def get_network(study, system, cost, from_slug, to_slug):
