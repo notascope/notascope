@@ -29,32 +29,32 @@ from scipy.spatial.distance import squareform
 
 default_study = "tiny"
 vis_types = ["network", "tsne", "dendro"]
-cost_types = ["difflib", "compression"]
+distance_types = ["difflib", "compression"]
 
 print("start", np.random.randint(1000))  # unseeded so every launch is different
 np.random.seed(1)  # now set seed for deterministic embedding algos
 
-difflib_df = pd.read_csv(f"results/difflib_costs.csv", names=["study", "system", "from_slug", "to_slug", "difflib"])
-ncd_df = pd.read_csv(f"results/ncd_costs.csv", names=["study", "system", "from_slug", "to_slug", "compression"])
-costs_df = pd.merge(difflib_df, ncd_df, how="outer")
-tokens_df = pd.read_csv("results/tokens.tsv", names=["study", "system", "slug", "token"], delimiter="\t")
+difflib_df = pd.read_csv(f"results/difflib_costs.csv", names=["study", "notation", "from_slug", "to_slug", "difflib"])
+ncd_df = pd.read_csv(f"results/ncd_costs.csv", names=["study", "notation", "from_slug", "to_slug", "compression"])
+distances_df = pd.merge(difflib_df, ncd_df, how="outer")
+tokens_df = pd.read_csv("results/tokens.tsv", names=["study", "notation", "slug", "token"], delimiter="\t")
 
 
-def ext_of_longest(study, system, obj):
-    return sorted(glob(f"results/{study}/{system}/{obj}/*"), key=len)[-1].split(".")[-1]
+def ext_of_longest(study, notation, obj):
+    return sorted(glob(f"results/{study}/{notation}/{obj}/*"), key=len)[-1].split(".")[-1]
 
 
-filter_prefix = "study==@study and system==@system"
+filter_prefix = "study==@study and notation==@notation"
 
 
 def load_results():
     results = dict()
-    for (study, system), df in tokens_df.groupby(["study", "system"]):
+    for (study, notation), df in tokens_df.groupby(["study", "notation"]):
         if study not in results:
             results[study] = dict()
-        results[study][system] = dict(
-            imgext=ext_of_longest(study, system, "img"),
-            srcext=ext_of_longest(study, system, "source"),
+        results[study][notation] = dict(
+            imgext=ext_of_longest(study, notation, "img"),
+            srcext=ext_of_longest(study, notation, "source"),
             slugs=df["slug"].unique(),
             tokens=df["token"].nunique(),
         )
@@ -95,16 +95,16 @@ app.layout = html.Div(
 
 
 @cache
-def square_and_order(study, system, cost):
-    df = costs_df.query(filter_prefix)
-    square = df.pivot_table(index="from_slug", columns="to_slug", values=cost).fillna(0)
-    order = list(square.index)
-    square = square.values
-    return square, order
+def dmat_and_order(study, notation, distance):
+    df = distances_df.query(filter_prefix)
+    dmat = df.pivot_table(index="from_slug", columns="to_slug", values=distance).fillna(0)
+    order = list(dmat.index)
+    dmat = dmat.values
+    return dmat, order
 
 
-def get_tsne(study, system, cost, from_slug, to_slug):
-    fig_json, fig_df = build_tsne(study, system, cost)
+def get_tsne(study, notation, distance, from_slug, to_slug):
+    fig_json, fig_df = build_tsne(study, notation, distance)
     fig = go.Figure(json.loads(fig_json))
 
     if from_slug:
@@ -116,10 +116,10 @@ def get_tsne(study, system, cost, from_slug, to_slug):
 
 
 @cache
-def build_tsne(study, system, cost):
-    square, order = square_and_order(study, system, cost)
-    tsne = TSNE(n_components=2, metric="precomputed", square_distances=True, learning_rate="auto", init="random")
-    embedding = tsne.fit_transform((square + square.T) / 2)
+def build_tsne(study, notation, distance):
+    dmat, order = dmat_and_order(study, notation, distance)
+    tsne = TSNE(n_components=2, metric="precomputed", dmat_distances=True, learning_rate="auto", init="random")
+    embedding = tsne.fit_transform((dmat + dmat.T) / 2)
     emb_df = pd.DataFrame(embedding, index=order, columns=["x", "y"])
     fig = px.scatter(emb_df, x="x", y="y", hover_name=order)
     fig.update_layout(height=700, width=700, dragmode="pan", plot_bgcolor="white")
@@ -131,14 +131,14 @@ def build_tsne(study, system, cost):
     return fig.to_json(), emb_df
 
 
-def get_dendro(study, system, cost, from_slug, to_slug):
-    square, order = square_and_order(study, system, cost)
-    fig_json, y_by_slug = build_dendro(study, system, cost)
+def get_dendro(study, notation, distance, from_slug, to_slug):
+    dmat, order = dmat_and_order(study, notation, distance)
+    fig_json, y_by_slug = build_dendro(study, notation, distance)
     fig = go.Figure(json.loads(fig_json))
     if from_slug:
         from_y = y_by_slug[from_slug]
         to_y = y_by_slug[to_slug]
-        distance = ((square + square.T) / 2.0)[order.index(from_slug), order.index(to_slug)]
+        distance = ((dmat + dmat.T) / 2.0)[order.index(from_slug), order.index(to_slug)]
         fig.add_scatter(
             x=[0, -distance, -distance, 0],
             y=[from_y, from_y, to_y, to_y],
@@ -152,9 +152,9 @@ def get_dendro(study, system, cost, from_slug, to_slug):
 
 
 @cache
-def build_dendro(study, system, cost):
-    square, order = square_and_order(study, system, cost)
-    Z = hierarchy.linkage(squareform((square + square.T) / 2.0), "complete", optimal_ordering=True)
+def build_dendro(study, notation, distance):
+    dmat, order = dmat_and_order(study, notation, distance)
+    Z = hierarchy.linkage(squareform((dmat + dmat.T) / 2.0), "complete", optimal_ordering=True)
     P = hierarchy.dendrogram(Z, labels=order, no_plot=True)
 
     x = []
@@ -176,18 +176,18 @@ def build_dendro(study, system, cost):
         y.append(None)
         x.append(None)
     fig = go.Figure()
-    fig.add_scatter(x=x, y=y, line_width=1, hoverinfo="skip", mode="lines")
+    fig.add_scatter(x=x, y=y, line_width=1, hoverinfo="skip", mode="lines+markers", marker_size=1)
     fig.add_scatter(x=label_x, y=label_y, text=label_text, hovertext=label_text, mode="text", textposition="middle right", hoverinfo="none")
     fig.update_layout(height=800, showlegend=False, uirevision="yes", dragmode="pan")
     return fig.to_json(), y_by_slug
 
 
-def get_network(study, system, cost, from_slug, to_slug):
-    net = json.loads(build_network(study, system, cost))
+def get_network(study, notation, distance, from_slug, to_slug):
+    net = json.loads(build_network(study, notation, distance))
 
     if from_slug != to_slug:
-        for_cost = get_cost(study, system, cost, from_slug, to_slug)
-        rev_cost = get_cost(study, system, cost, to_slug, from_slug)
+        from_to_distance = get_distance(study, notation, distance, from_slug, to_slug)
+        to_from_distance = get_distance(study, notation, distance, to_slug, from_slug)
         both_dirs = [[from_slug, to_slug], [to_slug, from_slug]]
         to_drop = ["__".join(x) for x in both_dirs]
         dropped = [elem for elem in net if elem["data"]["id"] in to_drop]
@@ -199,7 +199,7 @@ def get_network(study, system, cost, from_slug, to_slug):
                     "source": source,
                     "target": dest,
                     "id": id,
-                    "length": for_cost if source == from_slug else rev_cost,
+                    "length": from_to_distance if source == from_slug else to_from_distance,
                 },
                 "classes": "",
             }
@@ -215,20 +215,20 @@ def get_network(study, system, cost, from_slug, to_slug):
 
 
 @njit
-def find_edges(square):
-    n = len(square)
+def find_edges(dmat):
+    n = len(dmat)
     result = np.zeros((n, n))
     for i in range(n):
         for j in range(n):
             if i == j:
                 continue
             has_k = False
-            direct = square[i, j]
+            direct = dmat[i, j]
             if direct != 0:
                 for k in range(n):
                     if k == i or k == j:
                         continue
-                    via_k = square[i, k] + square[k, j]
+                    via_k = dmat[i, k] + dmat[k, j]
                     if (via_k - direct) / direct <= 0:
                         has_k = True
                         break
@@ -238,15 +238,15 @@ def find_edges(square):
 
 
 @cache
-def build_network(study, system, cost):
-    square, order = square_and_order(study, system, cost)
+def build_network(study, notation, distance):
+    dmat, order = dmat_and_order(study, notation, distance)
     network_elements = []
-    n = len(square)
+    n = len(dmat)
     if n < 20:
         mds = MDS(n_components=2, dissimilarity="precomputed")
-        embedding = mds.fit_transform((square + square.T) / 2)
+        embedding = mds.fit_transform((dmat + dmat.T) / 2)
 
-        edges = find_edges(square)
+        edges = find_edges(dmat)
         for i in range(n):
             for j in range(n):
                 if edges[i, j] == 0:  # no zero or self-edges
@@ -267,7 +267,7 @@ def build_network(study, system, cost):
                         }
                     )
     else:
-        spanning = coo_matrix(minimum_spanning_tree(square))
+        spanning = coo_matrix(minimum_spanning_tree(dmat))
         g = igraph.Graph.Weighted_Adjacency(spanning.toarray().tolist())
         layout = g.layout_kamada_kawai(maxiter=10000)
         embedding = np.array(layout.coords)
@@ -289,14 +289,14 @@ def build_network(study, system, cost):
     emb_span = embedding.max() - embedding.min()
 
     scale = 1000 if n < 20 else 10000
-    imgext = results[study][system]["imgext"]
+    imgext = results[study][notation]["imgext"]
     for i, row in emb_df.iterrows():
         network_elements.append(
             {
                 "data": {
                     "id": i,
                     "label": i,
-                    "url": f"/assets/results/{study}/{system}/img/{i}.{imgext}",
+                    "url": f"/assets/results/{study}/{notation}/img/{i}.{imgext}",
                 },
                 "position": {c: row[c] * scale / emb_span for c in ["x", "y"]},
                 "classes": "",
@@ -313,46 +313,46 @@ def parse_hashpath(hashpath):
         return sanitize_state()
 
 
-def sanitize_state(study="", system="", cost="", vis="", system2="", cost2="", vis2="", from_slug="", to_slug=""):
+def sanitize_state(study="", notation="", distance="", vis="", notation2="", distance2="", vis2="", from_slug="", to_slug=""):
     if vis not in vis_types:
         vis = vis_types[0]
 
     if vis2 not in vis_types:
         vis2 = vis_types[0]
 
-    if cost not in cost_types:
-        cost = cost_types[0]
+    if distance not in distance_types:
+        distance = distance_types[0]
 
-    if cost2 not in cost_types:
-        cost2 = cost_types[0]
+    if distance2 not in distance_types:
+        distance2 = distance_types[0]
 
     if study not in results:
         study = default_study
 
     study_res = results[study]
     slugs = set()
-    if system in study_res:
-        for s in study_res[system]["slugs"]:
+    if notation in study_res:
+        for s in study_res[notation]["slugs"]:
             slugs.add(s)
     else:
-        system = list(results[study].keys())[0]
+        notation = list(results[study].keys())[0]
 
-    if system2 in study_res:
-        for s in study_res[system2]["slugs"]:
+    if notation2 in study_res:
+        for s in study_res[notation2]["slugs"]:
             slugs.add(s)
     else:
-        system2 = ""
+        notation2 = ""
 
-    if system2 == "":
+    if notation2 == "":
         vis2 = ""
-        cost2 = ""
+        distance2 = ""
 
     if from_slug not in slugs:
         from_slug = to_slug = ""
     elif to_slug not in slugs:
         to_slug = from_slug
 
-    return study, system, cost, vis, system2, cost2, vis2, from_slug, to_slug
+    return study, notation, distance, vis, notation2, distance2, vis2, from_slug, to_slug
 
 
 @app.callback(
@@ -363,10 +363,10 @@ def sanitize_state(study="", system="", cost="", vis="", system2="", cost2="", v
     Output("network2", "tapEdgeData"),
     Input("selection", "data"),
     Input("study", "value"),
-    Input("system", "value"),
-    Input("system2", "value"),
-    Input("cost", "value"),
-    Input("cost2", "value"),
+    Input("notation", "value"),
+    Input("notation2", "value"),
+    Input("distance", "value"),
+    Input("distance2", "value"),
     Input("vis", "value"),
     Input("vis2", "value"),
     Input("network", "tapNodeData"),
@@ -378,45 +378,45 @@ def sanitize_state(study="", system="", cost="", vis="", system2="", cost2="", v
     State("event_listener", "event"),
 )
 def update_hashpath(
-    selection, study, system, system2, cost, cost2, vis, vis2, node_data, edge_data, fig_data, node_data2, edge_data2, fig_data2, event
+    selection, study, notation, notation2, distance, distance2, vis, vis2, node_data, edge_data, fig_data, node_data2, edge_data2, fig_data2, event
 ):
     shift_down = bool((dict(shiftKey=False) if not event else event)["shiftKey"])
     ctx = callback_context
     from_slug, to_slug = selection
     if ctx.triggered:
-        click_system = ctx.triggered[0]["prop_id"].split(".")[0]
+        click_notation = ctx.triggered[0]["prop_id"].split(".")[0]
         click_type = ctx.triggered[0]["prop_id"].split(".")[1]
 
         if click_type == "tapNodeData":
-            if click_system == "network":
+            if click_notation == "network":
                 to_slug = node_data["id"]
                 if not shift_down:
                     from_slug = to_slug
-            if click_system == "network2":
+            if click_notation == "network2":
                 to_slug = node_data2["id"]
                 if not shift_down:
                     from_slug = to_slug
             edge_data = None
             edge_data2 = None
         if click_type == "tapEdgeData":
-            if click_system == "network":
+            if click_notation == "network":
                 from_slug = edge_data["source"]
                 to_slug = edge_data["target"]
-            if click_system == "network2":
+            if click_notation == "network2":
                 from_slug = edge_data2["source"]
                 to_slug = edge_data2["target"]
             node_data = None
             node_data2 = None
         if click_type == "clickData":
-            if click_system == "figure":
+            if click_notation == "figure":
                 to_slug = fig_data["points"][0]["hovertext"]
                 if not shift_down:
                     from_slug = to_slug
-            if click_system == "figure2":
+            if click_notation == "figure2":
                 to_slug = fig_data2["points"][0]["hovertext"]
                 if not shift_down:
                     from_slug = to_slug
-    hashpath = "#/" + "/".join(sanitize_state(study, system, cost, vis, system2, cost2, vis2, from_slug, to_slug))
+    hashpath = "#/" + "/".join(sanitize_state(study, notation, distance, vis, notation2, distance2, vis2, from_slug, to_slug))
     return hashpath, node_data, edge_data, node_data2, edge_data2
 
 
@@ -425,24 +425,24 @@ def update_hashpath(
     Input("location", "hash"),
 )
 def update_content(hashpath):
-    study, system, cost, vis, system2, cost2, vis2, from_slug, to_slug = parse_hashpath(hashpath)
-    cmp, net, fig = details_view(study, system, cost, vis, from_slug, to_slug)
-    if system2:
+    study, notation, distance, vis, notation2, distance2, vis2, from_slug, to_slug = parse_hashpath(hashpath)
+    cmp, net, fig = details_view(study, notation, distance, vis, from_slug, to_slug)
+    if notation2:
         style = dict()
         style2 = dict(gridColumnStart=2, display="block")
-        cmp2, net2, fig2 = details_view(study, system2, cost2, vis2, from_slug, to_slug)
+        cmp2, net2, fig2 = details_view(study, notation2, distance2, vis2, from_slug, to_slug)
     else:
         style = dict(gridRowStart=2)
         style2 = dict(display="none", gridRowStart=3)
         cmp2, net2, fig2 = None, [], {}
 
     vis2_style = dict(width="100px")
-    if system == system2 and cost == cost2:
+    if notation == notation2 and distance == distance2:
         cmp2 = None
-    if not system2:
+    if not notation2:
         vis2_style["display"] = "none"
 
-    systems = [dict(label=f"{s} ({results[study][s]['tokens']})", value=s) for s in results[study]]
+    notations = [dict(label=f"{s} ({results[study][s]['tokens']})", value=s) for s in results[study]]
 
     return html.Div(
         className="wrapper",
@@ -454,7 +454,7 @@ def update_content(hashpath):
             html.Div(
                 [
                     html.Div(
-                        dcc.Dropdown(id="system", value=system, options=systems, clearable=False, className="dropdown"),
+                        dcc.Dropdown(id="notation", value=notation, options=notations, clearable=False, className="dropdown"),
                         style=dict(display="inline-block"),
                     ),
                     html.Div(
@@ -462,7 +462,7 @@ def update_content(hashpath):
                         style=dict(display="inline-block"),
                     ),
                     html.Div(
-                        dcc.Dropdown(id="cost", value=cost, options=cost_types, clearable=False, style=dict(width="100px")),
+                        dcc.Dropdown(id="distance", value=distance, options=distance_types, clearable=False, style=dict(width="100px")),
                         style=dict(display="inline-block"),
                     ),
                 ],
@@ -471,7 +471,7 @@ def update_content(hashpath):
             html.Div(
                 [
                     html.Div(
-                        dcc.Dropdown(id="system2", value=system2, options=systems, clearable=True, className="dropdown"),
+                        dcc.Dropdown(id="notation2", value=notation2, options=notations, clearable=True, className="dropdown"),
                         style=dict(display="inline-block"),
                     ),
                     html.Div(
@@ -479,7 +479,7 @@ def update_content(hashpath):
                         style=dict(display="inline-block"),
                     ),
                     html.Div(
-                        dcc.Dropdown(id="cost2", value=cost2, options=cost_types, clearable=False, style=vis2_style),
+                        dcc.Dropdown(id="distance2", value=distance2, options=distance_types, clearable=False, style=vis2_style),
                         style=dict(display="inline-block"),
                     ),
                 ],
@@ -572,26 +572,26 @@ def cytoscape(id, elements):
     )
 
 
-def header_and_image(study, system, slug, tokens_n, tokens_nunique):
-    imgext = results[study][system]["imgext"]
+def header_and_image(study, notation, slug, tokens_n, tokens_nunique):
+    imgext = results[study][notation]["imgext"]
     return [
         html.H3(slug),
         html.P(f"{tokens_n} tokens, {tokens_nunique} uniques"),
         html.Img(
-            src=f"/assets/results/{study}/{system}/img/{slug}.{imgext}",
+            src=f"/assets/results/{study}/{notation}/img/{slug}.{imgext}",
             style=dict(verticalAlign="middle", maxHeight="200px", maxWidth="20vw"),
         ),
     ]
 
 
-def diff_view(study, system, from_slug, to_slug):
-    srcext = results[study][system]["srcext"]
-    with open(f"results/{study}/{system}/source/{from_slug}.{srcext}", "r") as f:
+def diff_view(study, notation, from_slug, to_slug):
+    srcext = results[study][notation]["srcext"]
+    with open(f"results/{study}/{notation}/source/{from_slug}.{srcext}", "r") as f:
         from_code = f.read()
     if from_slug == to_slug:
         to_code = from_code
     else:
-        with open(f"results/{study}/{system}/source/{to_slug}.{srcext}", "r") as f:
+        with open(f"results/{study}/{notation}/source/{to_slug}.{srcext}", "r") as f:
             to_code = f.read()
     return html.Div(
         [html.Div([DashDiff(oldCode=from_code, newCode=to_code)], style=dict(border="none"))],
@@ -599,41 +599,41 @@ def diff_view(study, system, from_slug, to_slug):
     )
 
 
-def get_token_info(study, system, slug):
+def get_token_info(study, notation, slug):
     df = tokens_df.query(filter_prefix + " and slug==@slug")["token"]
     return df.values, len(df), df.nunique()
 
 
 @cache
-def get_cost(study, system, cost, from_slug, to_slug):
-    return costs_df.query(filter_prefix + " and from_slug==@from_slug and to_slug==@to_slug")[cost].values[0]
+def get_distance(study, notation, distance, from_slug, to_slug):
+    return distances_df.query(filter_prefix + " and from_slug==@from_slug and to_slug==@to_slug")[distance].values[0]
 
 
-def details_view(study, system, cost, vis, from_slug, to_slug):
+def details_view(study, notation, distance, vis, from_slug, to_slug):
     cmp = None
     net = []
     fig = {}
     if vis == "network":
-        net = get_network(study, system, cost, from_slug, to_slug)
+        net = get_network(study, notation, distance, from_slug, to_slug)
     elif vis == "tsne":
-        fig = get_tsne(study, system, cost, from_slug, to_slug)
+        fig = get_tsne(study, notation, distance, from_slug, to_slug)
     elif vis == "dendro":
-        fig = get_dendro(study, system, cost, from_slug, to_slug)
+        fig = get_dendro(study, notation, distance, from_slug, to_slug)
     else:
         raise Exception("invalid vis")
 
     try:
-        from_tokens, from_tokens_n, from_tokens_nunique = get_token_info(study, system, from_slug)
+        from_tokens, from_tokens_n, from_tokens_nunique = get_token_info(study, notation, from_slug)
         if from_slug != to_slug:
 
-            to_tokens, to_tokens_n, to_tokens_nunique = get_token_info(study, system, to_slug)
-            for_cost = get_cost(study, system, cost, from_slug, to_slug)
-            rev_cost = get_cost(study, system, cost, to_slug, from_slug)
+            to_tokens, to_tokens_n, to_tokens_nunique = get_token_info(study, notation, to_slug)
+            from_to_distance = get_distance(study, notation, distance, from_slug, to_slug)
+            to_from_distance = get_distance(study, notation, distance, to_slug, from_slug)
 
             shared_tokens = list((Counter(from_tokens) & Counter(to_tokens)).elements())
             shared_uniques = set(from_tokens) & set(to_tokens)
             td1 = html.Td(
-                header_and_image(study, system, from_slug, from_tokens_n, from_tokens_nunique),
+                header_and_image(study, notation, from_slug, from_tokens_n, from_tokens_nunique),
                 style=dict(verticalAlign="top"),
             )
             td2 = html.Td(
@@ -641,19 +641,19 @@ def details_view(study, system, cost, vis, from_slug, to_slug):
                 + [f"{from_tokens_n - len(shared_tokens)} ⬌ {to_tokens_n - len(shared_tokens)}"]
                 + [html.Br(), html.Br(), "uniques", html.Br()]
                 + [f"{from_tokens_nunique - len(shared_uniques)} ⬌ {to_tokens_nunique - len(shared_uniques)}"]
-                + [html.Br(), html.Br(), "tree edit", html.Br(), f"{rev_cost} ⬌ {for_cost}"]
+                + [html.Br(), html.Br(), "tree edit", html.Br(), f"{to_from_distance} ⬌ {from_to_distance}"]
             )
             td3 = html.Td(
-                header_and_image(study, system, to_slug, to_tokens_n, to_tokens_nunique),
+                header_and_image(study, notation, to_slug, to_tokens_n, to_tokens_nunique),
                 style=dict(verticalAlign="top"),
             )
             cmp = [html.Table([html.Tr([td1, td2, td3])], style=dict(width="100%", height="300px"))]
         elif from_slug != "":
-            _, from_tokens_n, from_tokens_nunique = get_token_info(study, system, from_slug)
-            cmp = header_and_image(study, system, from_slug, from_tokens_n, from_tokens_nunique)
+            _, from_tokens_n, from_tokens_nunique = get_token_info(study, notation, from_slug)
+            cmp = header_and_image(study, notation, from_slug, from_tokens_n, from_tokens_nunique)
 
         if from_slug != "":
-            cmp += [diff_view(study, system, from_slug, to_slug)]
+            cmp += [diff_view(study, notation, from_slug, to_slug)]
 
     except Exception as e:
         print(repr(e))
@@ -661,7 +661,7 @@ def details_view(study, system, cost, vis, from_slug, to_slug):
     return (cmp, net, fig)
 
 
-# if/when there is a PNG system, just inline the imgext dict in the string
+# if/when there is a PNG notation, just inline the imgext dict in the string
 app.clientside_callback(
     """
     function(hoverData, hoverData2) {
@@ -672,15 +672,15 @@ app.clientside_callback(
                 return [false, null, null, null];
             }
             hoverData = hoverData2;
-            system=pieces[4];
+            notation=pieces[5];
         }
         else {
-            system=pieces[2];
+            notation=pieces[2];
         }
         pt = hoverData["points"][0];
         bbox = pt["bbox"]
         slug = pt["hovertext"]
-        return [true, bbox, "/assets/results/"+study+"/"+system+"/img/"+slug+".svg", slug]
+        return [true, bbox, "/assets/results/"+study+"/"+notation+"/img/"+slug+".svg", slug]
     }
     """,
     Output("tooltip", "show"),
