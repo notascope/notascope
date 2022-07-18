@@ -100,7 +100,8 @@ def dmat_and_order(study, notation, distance):
     dmat = df.pivot_table(index="from_slug", columns="to_slug", values=distance).fillna(0)
     order = list(dmat.index)
     dmat = dmat.values
-    return dmat, order
+    dmat_sym = (dmat + dmat.T) / 2.0
+    return dmat, dmat_sym, order
 
 
 def get_tsne(study, notation, distance, from_slug, to_slug):
@@ -117,9 +118,9 @@ def get_tsne(study, notation, distance, from_slug, to_slug):
 
 @cache
 def build_tsne(study, notation, distance):
-    dmat, order = dmat_and_order(study, notation, distance)
-    tsne = TSNE(n_components=2, metric="precomputed", dmat_distances=True, learning_rate="auto", init="random")
-    embedding = tsne.fit_transform((dmat + dmat.T) / 2)
+    dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
+    tsne = TSNE(n_components=2, metric="precomputed", square_distances=True, learning_rate="auto", init="random")
+    embedding = tsne.fit_transform(dmat_sym)
     emb_df = pd.DataFrame(embedding, index=order, columns=["x", "y"])
     fig = px.scatter(emb_df, x="x", y="y", hover_name=order)
     fig.update_layout(height=700, width=700, dragmode="pan", plot_bgcolor="white")
@@ -132,13 +133,13 @@ def build_tsne(study, notation, distance):
 
 
 def get_dendro(study, notation, distance, from_slug, to_slug):
-    dmat, order = dmat_and_order(study, notation, distance)
+    dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
     fig_json, y_by_slug = build_dendro(study, notation, distance)
     fig = go.Figure(json.loads(fig_json))
     if from_slug:
         from_y = y_by_slug[from_slug]
         to_y = y_by_slug[to_slug]
-        distance = ((dmat + dmat.T) / 2.0)[order.index(from_slug), order.index(to_slug)]
+        distance = dmat_sym[order.index(from_slug), order.index(to_slug)]
         fig.add_scatter(
             x=[0, -distance, -distance, 0],
             y=[from_y, from_y, to_y, to_y],
@@ -153,8 +154,8 @@ def get_dendro(study, notation, distance, from_slug, to_slug):
 
 @cache
 def build_dendro(study, notation, distance):
-    dmat, order = dmat_and_order(study, notation, distance)
-    Z = hierarchy.linkage(squareform((dmat + dmat.T) / 2.0), "complete", optimal_ordering=True)
+    dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
+    Z = hierarchy.linkage(squareform(dmat_sym), "complete", optimal_ordering=True)
     P = hierarchy.dendrogram(Z, labels=order, no_plot=True)
 
     x = []
@@ -208,6 +209,20 @@ def get_network(study, notation, distance, from_slug, to_slug):
             if source == from_slug:
                 new_elem["classes"] += " selected"
             net.append(new_elem)
+    elif from_slug:
+        dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
+        from_index = order.index(from_slug)
+        top_indices = np.argsort(dmat_sym[from_index])
+        for i in range(10):
+            source = from_slug
+            to_index = top_indices[i]
+            dest = order[to_index]
+            net.append(
+                {
+                    "data": {"source": source, "target": dest, "id": source + "__" + dest, "length": dmat_sym[from_index, to_index]},
+                    "classes": "neighbour",
+                }
+            )
     for elem in net:
         if elem["data"]["id"] in [from_slug, to_slug]:
             elem["classes"] += " selected"
@@ -239,12 +254,12 @@ def find_edges(dmat):
 
 @cache
 def build_network(study, notation, distance):
-    dmat, order = dmat_and_order(study, notation, distance)
+    dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
     network_elements = []
     n = len(dmat)
     if n < 20:
         mds = MDS(n_components=2, dissimilarity="precomputed")
-        embedding = mds.fit_transform((dmat + dmat.T) / 2)
+        embedding = mds.fit_transform(dmat_sym)
 
         edges = find_edges(dmat)
         for i in range(n):
@@ -267,7 +282,7 @@ def build_network(study, notation, distance):
                         }
                     )
     else:
-        spanning = coo_matrix(minimum_spanning_tree(dmat))
+        spanning = coo_matrix(minimum_spanning_tree(dmat_sym))
         g = igraph.Graph.Weighted_Adjacency(spanning.toarray().tolist())
         layout = g.layout_kamada_kawai(maxiter=10000)
         embedding = np.array(layout.coords)
@@ -535,9 +550,9 @@ def cytoscape(id, elements):
             {
                 "selector": "edge",
                 "style": {
-                    "line-color": "grey",
+                    "line-color": "lightgrey",
                     "curve-style": "bezier",
-                    "target-arrow-color": "grey",
+                    "target-arrow-color": "lightgrey",
                     "control-point-weight": 0.6,
                     "target-arrow-shape": "triangle-backcurve",
                     "arrow-scale": 2,
@@ -550,7 +565,7 @@ def cytoscape(id, elements):
             {
                 "selector": ".bidir",
                 "style": {
-                    "source-arrow-color": "grey",
+                    "source-arrow-color": "lightgrey",
                     "source-arrow-shape": "triangle-backcurve",
                 },
             },
@@ -567,6 +582,10 @@ def cytoscape(id, elements):
             {
                 "selector": ".inserted",
                 "style": {"line-style": "dashed"},
+            },
+            {
+                "selector": ".neighbour",
+                "style": {"line-color": "red"},
             },
         ],
     )
