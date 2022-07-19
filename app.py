@@ -112,6 +112,9 @@ def get_tsne(study, notation, distance, from_slug, to_slug):
         from_row = fig_df.loc[from_slug]
         to_row = fig_df.loc[to_slug]
         fig.add_scatter(x=[from_row.x, to_row.x], y=[from_row.y, to_row.y], hoverinfo="skip", showlegend=False)
+    if from_slug == to_slug:
+        dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
+        fig.data[0].marker = dict(color=dmat_sym[order.index(from_slug)], cmin=0, cmax=np.mean(dmat_sym), colorscale="Viridis")
 
     return fig
 
@@ -134,7 +137,7 @@ def build_tsne(study, notation, distance):
 
 def get_dendro(study, notation, distance, from_slug, to_slug):
     dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
-    fig_json, y_by_slug = build_dendro(study, notation, distance)
+    fig_json, y_by_slug, leaves = build_dendro(study, notation, distance)
     fig = go.Figure(json.loads(fig_json))
     if from_slug:
         from_y = y_by_slug[from_slug]
@@ -148,6 +151,15 @@ def get_dendro(study, notation, distance, from_slug, to_slug):
             showlegend=False,
             marker_color="red",
             mode="lines+markers",
+        )
+    if from_slug == to_slug:
+        fig.data[1].mode = "markers+text"
+        fig.data[1].marker = dict(
+            symbol="square",
+            color=dmat_sym[order.index(from_slug)][leaves],
+            cmin=0,
+            cmax=np.mean(dmat_sym),
+            colorscale="Viridis",
         )
     return fig
 
@@ -169,18 +181,27 @@ def build_dendro(study, notation, distance):
             y.append(i)
             x.append(-d)
             if d == 0:
-                label_x.append(-d)
-                label_y.append(i)
                 slug = P["ivl"][int((i - 5) / 10)]
-                label_text.append(slug)
-                y_by_slug[slug] = i
+                if slug not in y_by_slug:
+                    y_by_slug[slug] = i
+                    label_x.append(-d)
+                    label_y.append(i)
+                    label_text.append(slug)
         y.append(None)
         x.append(None)
     fig = go.Figure()
     fig.add_scatter(x=x, y=y, line_width=1, hoverinfo="skip", mode="lines+markers", marker_size=1)
-    fig.add_scatter(x=label_x, y=label_y, text=label_text, hovertext=label_text, mode="text", textposition="middle right", hoverinfo="none")
+    fig.add_scatter(
+        x=np.array(label_x)[np.argsort(label_y)],
+        y=np.array(label_y)[np.argsort(label_y)],
+        texttemplate="%{hovertext}",
+        hovertext=np.array(label_text)[np.argsort(label_y)],
+        mode="text",
+        textposition="middle right",
+        hoverinfo="none",
+    )
     fig.update_layout(height=800, showlegend=False, uirevision="yes", dragmode="pan")
-    return fig.to_json(), y_by_slug
+    return fig.to_json(), y_by_slug, P["leaves"]
 
 
 def get_network(study, notation, distance, from_slug, to_slug):
@@ -213,7 +234,7 @@ def get_network(study, notation, distance, from_slug, to_slug):
         dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
         from_index = order.index(from_slug)
         top_indices = np.argsort(dmat_sym[from_index])
-        for i in range(10):
+        for i in range(min(10, len(dmat_sym))):
             source = from_slug
             to_index = top_indices[i]
             dest = order[to_index]
@@ -509,15 +530,14 @@ def update_content(hashpath):
     )
 
 
-def network_or_figure(net, fig, suffix):
-    if net:
-        net_style, fig_style = dict(), dict(display="none")
-    else:
-        net_style, fig_style = dict(display="none"), dict()
+def hide_if_none(thing):
+    return dict() if thing else dict(display="none")
 
+
+def network_or_figure(net, fig, suffix):
     return [
-        html.Div(cytoscape("network" + suffix, net), style=net_style),
-        html.Div(dcc.Graph(id="figure" + suffix, figure=fig, config=dict(scrollZoom=True), clear_on_unhover=True), style=fig_style),
+        html.Div(cytoscape("network" + suffix, net), style=hide_if_none(net)),
+        html.Div(dcc.Graph(id="figure" + suffix, figure=fig, config=dict(scrollZoom=True), clear_on_unhover=True), style=hide_if_none(fig)),
     ]
 
 
