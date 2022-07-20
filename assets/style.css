@@ -11,15 +11,11 @@ body {
 
 .comparison {
   text-align: center;
+  margin: 0 20px;
 }
 
 .dropdown {
   width: 175px;
-}
-
-.network {
-  border: 1px solid lightgrey;
-  margin: 0 auto;
 }
 
 pre {

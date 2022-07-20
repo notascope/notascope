@@ -113,9 +113,17 @@ def get_tsne(study, notation, distance, from_slug, to_slug):
         to_row = fig_df.loc[to_slug]
         fig.add_scatter(x=[from_row.x, to_row.x], y=[from_row.y, to_row.y], hoverinfo="skip", showlegend=False)
         if from_slug == to_slug:
-            fig.data[0].marker.color = dmat_sym[order.index(from_slug)]
+            fig.data[0].marker = dict(
+                color=dmat_sym[order.index(from_slug)],
+                cmax=np.mean(dmat_sym),
+                colorscale="Viridis",
+            )
     else:
-        fig.data[0].marker.color = np.median(dmat_sym, axis=0)
+        fig.data[0].marker = dict(
+            color=np.median(dmat_sym, axis=0),
+            cmax=np.mean(dmat_sym),
+            colorscale="Plasma",
+        )
 
     return fig
 
@@ -128,14 +136,14 @@ def build_tsne(study, notation, distance):
     embedding = tsne.fit_transform(dmat_sym)
     emb_df = pd.DataFrame(embedding, index=order, columns=["x", "y"])
     fig = px.scatter(emb_df, x="x", y="y", hover_name=order)
-    fig.update_layout(height=700, width=700, dragmode="pan", plot_bgcolor="white")
+    fig.update_layout(height=800, dragmode="pan", plot_bgcolor="white")
     fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), uirevision="yes")
     fig.update_yaxes(visible=False)
     fig.update_xaxes(visible=False)
     fig.update_traces(
         hoverinfo="none",
         hovertemplate=None,
-        marker=dict(cmin=0, cmax=np.mean(dmat_sym), colorscale="Viridis"),
+        marker=dict(cmin=0),
     )
 
     return fig.to_json(), emb_df
@@ -159,11 +167,19 @@ def get_dendro(study, notation, distance, from_slug, to_slug):
             mode="lines+markers",
         )
         if from_slug == to_slug:
-            fig.data[1].marker.color = dmat_sym[order.index(from_slug)][leaves]
+            fig.data[1].marker = dict(
+                color=dmat_sym[order.index(from_slug)][leaves],
+                cmax=np.max(dmat_sym),
+                colorscale="Viridis",
+            )
         else:
             fig.data[1].marker.opacity = 0
     else:
-        fig.data[1].marker.color = np.median(dmat_sym, axis=0)[leaves]
+        fig.data[1].marker = dict(
+            color=np.median(dmat_sym, axis=0)[leaves],
+            cmax=np.max(dmat_sym),
+            colorscale="Plasma",
+        )
     return fig
 
 
@@ -246,9 +262,11 @@ def build_dendro(study, notation, distance):
         mode="markers+text",
         textposition="middle right",
         hoverinfo="skip",
-        marker=dict(symbol="square", cmin=0, cmax=np.mean(dmat_sym), colorscale="Viridis"),
+        marker=dict(cmin=0, symbol="square"),
     )
-    fig.update_layout(height=800, showlegend=False, uirevision="yes", dragmode="pan", plot_bgcolor="white")
+    fig.update_layout(height=800, showlegend=False, dragmode="pan", plot_bgcolor="white")
+    fig.update_layout(uirevision="yes")
+    fig.update_yaxes(visible=False)
     return fig.to_json(), y_by_slug, P["leaves"]
 
 
@@ -591,11 +609,12 @@ def cytoscape(id, elements):
     return cyto.Cytoscape(
         id=id,
         className="network",
-        layout={"name": "preset"},
+        layout={"name": "preset", "fit": True},
         minZoom=0.05,
         maxZoom=1,
         autoRefreshLayout=False,
         elements=elements,
+        style=dict(height="800px", width="initial"),
         stylesheet=[
             {
                 "selector": "node",
