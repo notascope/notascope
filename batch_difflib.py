@@ -9,8 +9,8 @@ from utils import slug_from_path
 
 inpath = sys.argv[1]
 pieces = inpath.split("/")
-study = pieces[-2]
-system = pieces[-1]
+study = pieces[1]
+system = pieces[2]
 tokens = dict()
 for fpath in glob(os.path.join(inpath, "*.*")):
     tokens[slug_from_path(fpath)] = get_tokens_for_file(fpath)

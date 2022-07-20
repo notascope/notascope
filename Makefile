@@ -19,9 +19,16 @@ results/tokens.tsv: results/$(1)/$(2)/tokens/$(basename $(3)).tsv
 results/$(1)/$(2)/img/$(basename $(3)): studies/$(1)/$(2)/$(3)
 	@echo "[img]      $(1)/$(2): $(3)"
 	@mkdir -p $$(dir $$@)
-	@scripts/$(2).sh $$< $$@
+	@savers/$(2).sh $$< $$@
 	@touch $$@
 base: results/$(1)/$(2)/img/$(basename $(3))
+
+results/$(1)/$(2)/preproc/$(3): studies/$(1)/$(2)/$(3)
+	@echo "[preproc]  $(1)/$(2): $(3)"
+	@mkdir -p $$(dir $$@)
+	@preprocessors/$(2).sh $$< $$@
+	@touch $$@
+results/$(1)/$(2)/difflib_costs.csv results/$(1)/$(2)/ncd_costs.csv: results/$(1)/$(2)/preproc/$(3)
 
 endef
 
@@ -31,14 +38,14 @@ $(foreach example, $(shell ls studies/$(1)/$(2) | grep -F .), $(eval $(call EXAM
 results/$(1)/$(2)/difflib_costs.csv:
 	@echo "[difflib]  $(1)/$(2)"
 	@mkdir -p $$(dir $$@)
-	@python batch_difflib.py studies/$(1)/$(2)
+	@python batch_difflib.py results/$(1)/$(2)/preproc
 results/difflib_costs.csv: results/$(1)/$(2)/difflib_costs.csv
 
 
 results/$(1)/$(2)/ncd_costs.csv:
 	@echo "[ncd]      $(1)/$(2)"
 	@mkdir -p $$(dir $$@)
-	@python batch_ncd.py studies/$(1)/$(2)
+	@python batch_ncd.py results/$(1)/$(2)/preproc
 results/ncd_costs.csv: results/$(1)/$(2)/ncd_costs.csv
 endef
 

@@ -9,8 +9,8 @@ from multiprocessing import Pool
 
 inpath = sys.argv[1]
 pieces = inpath.split("/")
-study = pieces[-2]
-system = pieces[-1]
+study = pieces[1]
+system = pieces[2]
 file_bytes = dict()
 single_compressed_length = dict()
 for fpath in glob(os.path.join(inpath, "*.*")):
@@ -18,8 +18,6 @@ for fpath in glob(os.path.join(inpath, "*.*")):
     with open(fpath, "rb") as f:
         file_bytes[slug] = f.read()
     single_compressed_length[slug] = len(compress(file_bytes[slug]))
-
-[]
 
 
 def cost(args):
