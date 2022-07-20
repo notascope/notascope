@@ -107,18 +107,15 @@ def get_tsne(study, notation, distance, from_slug, to_slug):
     fig_json, fig_df = build_tsne(study, notation, distance)
     fig = go.Figure(json.loads(fig_json))
 
+    dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
     if from_slug:
         from_row = fig_df.loc[from_slug]
         to_row = fig_df.loc[to_slug]
         fig.add_scatter(x=[from_row.x, to_row.x], y=[from_row.y, to_row.y], hoverinfo="skip", showlegend=False)
-    if from_slug == to_slug:
-        dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
-        fig.data[0].marker = dict(
-            color=dmat_sym[order.index(from_slug)],
-            cmin=0,
-            cmax=np.mean(dmat_sym),
-            colorscale="Viridis",
-        )
+        if from_slug == to_slug:
+            fig.data[0].marker.color = dmat_sym[order.index(from_slug)]
+    else:
+        fig.data[0].marker.color = np.median(dmat_sym, axis=0)
 
     return fig
 
@@ -135,7 +132,11 @@ def build_tsne(study, notation, distance):
     fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), uirevision="yes")
     fig.update_yaxes(visible=False)
     fig.update_xaxes(visible=False)
-    fig.update_traces(hoverinfo="none", hovertemplate=None)
+    fig.update_traces(
+        hoverinfo="none",
+        hovertemplate=None,
+        marker=dict(cmin=0, cmax=np.mean(dmat_sym), colorscale="Viridis"),
+    )
 
     return fig.to_json(), emb_df
 
@@ -157,15 +158,12 @@ def get_dendro(study, notation, distance, from_slug, to_slug):
             marker_color="red",
             mode="lines+markers",
         )
-    if from_slug == to_slug:
-        fig.data[1].mode = "markers+text"
-        fig.data[1].marker = dict(
-            symbol="square",
-            color=dmat_sym[order.index(from_slug)][leaves],
-            cmin=0,
-            cmax=np.mean(dmat_sym),
-            colorscale="Viridis",
-        )
+        if from_slug == to_slug:
+            fig.data[1].marker.color = dmat_sym[order.index(from_slug)][leaves]
+        else:
+            fig.data[1].marker.opacity = 0
+    else:
+        fig.data[1].marker.color = np.median(dmat_sym, axis=0)[leaves]
     return fig
 
 
@@ -245,9 +243,10 @@ def build_dendro(study, notation, distance):
         x=np.array(label_x)[np.argsort(label_y)],
         y=np.array(label_y)[np.argsort(label_y)],
         text=np.array(label_text)[np.argsort(label_y)],
-        mode="text",
+        mode="markers+text",
         textposition="middle right",
         hoverinfo="skip",
+        marker=dict(symbol="square", cmin=0, cmax=np.mean(dmat_sym), colorscale="Viridis"),
     )
     fig.update_layout(height=800, showlegend=False, uirevision="yes", dragmode="pan")
     return fig.to_json(), y_by_slug, P["leaves"]
