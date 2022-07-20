@@ -476,11 +476,15 @@ def update_hashpath(
         if click_type == "tapNodeData":
             if click_notation == "network":
                 to_slug = node_data["id"]
-                if not shift_down:
+                if from_slug == to_slug:
+                    from_slug = to_slug = ""
+                elif not shift_down:
                     from_slug = to_slug
             if click_notation == "network2":
                 to_slug = node_data2["id"]
-                if not shift_down:
+                if from_slug == to_slug:
+                    from_slug = to_slug = ""
+                elif not shift_down:
                     from_slug = to_slug
             edge_data = None
             edge_data2 = None
@@ -496,11 +500,15 @@ def update_hashpath(
         if click_type == "clickData":
             if click_notation == "figure":
                 to_slug = fig_data["points"][0]["hovertext"]
-                if not shift_down:
+                if from_slug == to_slug:
+                    from_slug = to_slug = ""
+                elif not shift_down:
                     from_slug = to_slug
             if click_notation == "figure2":
                 to_slug = fig_data2["points"][0]["hovertext"]
-                if not shift_down:
+                if from_slug == to_slug:
+                    from_slug = to_slug = ""
+                elif not shift_down:
                     from_slug = to_slug
     hashpath = "#/" + "/".join(sanitize_state(study, notation, distance, vis, notation2, distance2, vis2, from_slug, to_slug))
     return hashpath, node_data, edge_data, node_data2, edge_data2
