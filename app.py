@@ -1,6 +1,5 @@
 # builtins
 import re
-import sys
 import json
 from collections import Counter
 from glob import glob
@@ -114,17 +113,9 @@ def get_dimred(study, notation, distance, from_slug, to_slug, method):
         to_row = fig_df.loc[to_slug]
         fig.add_scatter(x=[from_row.x, to_row.x], y=[from_row.y, to_row.y], hoverinfo="skip", showlegend=False)
         if from_slug == to_slug:
-            fig.data[0].marker = dict(
-                color=dmat_sym[order.index(from_slug)],
-                cmax=np.mean(dmat_sym),
-                colorscale="Viridis",
-            )
+            fig.data[0].marker = dict(color=dmat_sym[order.index(from_slug)], cmax=np.median(dmat_sym), colorscale="Viridis")
     else:
-        fig.data[0].marker = dict(
-            color=np.median(dmat_sym, axis=0),
-            cmax=np.mean(dmat_sym),
-            colorscale="Plasma",
-        )
+        fig.data[0].marker = dict(color=np.median(dmat_sym, axis=0))
 
     return fig
 
@@ -136,7 +127,7 @@ def build_dimred(study, notation, distance, method):
     if method == "tsne":
         dimred = TSNE(n_components=2, metric="precomputed", square_distances=True, learning_rate="auto", init="random")
     elif method == "umap":
-        dimred = UMAP()
+        dimred = UMAP(n_components=2)
     embedding = dimred.fit_transform(dmat_sym)
     emb_df = pd.DataFrame(embedding, index=order, columns=["x", "y"])
     fig = px.scatter(emb_df, x="x", y="y", hover_name=order)
@@ -144,11 +135,7 @@ def build_dimred(study, notation, distance, method):
     fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), uirevision="yes")
     fig.update_yaxes(visible=False)
     fig.update_xaxes(visible=False)
-    fig.update_traces(
-        hoverinfo="none",
-        hovertemplate=None,
-        marker=dict(cmin=0),
-    )
+    fig.update_traces(hoverinfo="none", hovertemplate=None)
 
     return fig.to_json(), emb_df
 
@@ -171,19 +158,11 @@ def get_dendro(study, notation, distance, from_slug, to_slug):
             mode="lines+markers",
         )
         if from_slug == to_slug:
-            fig.data[1].marker = dict(
-                color=dmat_sym[order.index(from_slug)][leaves],
-                cmax=np.max(dmat_sym),
-                colorscale="Viridis",
-            )
+            fig.data[1].marker = dict(color=dmat_sym[order.index(from_slug)][leaves], cmax=np.median(dmat_sym), colorscale="Viridis")
         else:
             fig.data[1].marker.opacity = 0
     else:
-        fig.data[1].marker = dict(
-            color=np.median(dmat_sym, axis=0)[leaves],
-            cmax=np.max(dmat_sym),
-            colorscale="Plasma",
-        )
+        fig.data[1].marker = dict(color=np.median(dmat_sym, axis=0)[leaves])
     return fig
 
 
