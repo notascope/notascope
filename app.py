@@ -248,7 +248,7 @@ def build_dendro(study, notation, distance):
         hoverinfo="skip",
         marker=dict(symbol="square", cmin=0, cmax=np.mean(dmat_sym), colorscale="Viridis"),
     )
-    fig.update_layout(height=800, showlegend=False, uirevision="yes", dragmode="pan")
+    fig.update_layout(height=800, showlegend=False, uirevision="yes", dragmode="pan", plot_bgcolor="white")
     return fig.to_json(), y_by_slug, P["leaves"]
 
 
