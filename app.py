@@ -473,43 +473,31 @@ def update_hashpath(
         click_notation = ctx.triggered[0]["prop_id"].split(".")[0]
         click_type = ctx.triggered[0]["prop_id"].split(".")[1]
 
+        if click_type == "clickData":
+            for id, data in [["figure", fig_data], ["figure2", fig_data2]]:
+                if click_notation == id:
+                    to_slug = data["points"][0]["hovertext"]
+                    if from_slug == to_slug:
+                        from_slug = to_slug = ""
+                    elif not shift_down:
+                        from_slug = to_slug
         if click_type == "tapNodeData":
-            if click_notation == "network":
-                to_slug = node_data["id"]
-                if from_slug == to_slug:
-                    from_slug = to_slug = ""
-                elif not shift_down:
-                    from_slug = to_slug
-            if click_notation == "network2":
-                to_slug = node_data2["id"]
-                if from_slug == to_slug:
-                    from_slug = to_slug = ""
-                elif not shift_down:
-                    from_slug = to_slug
+            for id, data in [["network", node_data], ["network2", node_data2]]:
+                if click_notation == id:
+                    to_slug = data["id"]
+                    if from_slug == to_slug:
+                        from_slug = to_slug = ""
+                    elif not shift_down:
+                        from_slug = to_slug
             edge_data = None
             edge_data2 = None
         if click_type == "tapEdgeData":
-            if click_notation == "network":
-                from_slug = edge_data["source"]
-                to_slug = edge_data["target"]
-            if click_notation == "network2":
-                from_slug = edge_data2["source"]
-                to_slug = edge_data2["target"]
+            for id, data in [["network", edge_data], ["network2", edge_data2]]:
+                if click_notation == id:
+                    from_slug = data["source"]
+                    to_slug = data["target"]
             node_data = None
             node_data2 = None
-        if click_type == "clickData":
-            if click_notation == "figure":
-                to_slug = fig_data["points"][0]["hovertext"]
-                if from_slug == to_slug:
-                    from_slug = to_slug = ""
-                elif not shift_down:
-                    from_slug = to_slug
-            if click_notation == "figure2":
-                to_slug = fig_data2["points"][0]["hovertext"]
-                if from_slug == to_slug:
-                    from_slug = to_slug = ""
-                elif not shift_down:
-                    from_slug = to_slug
     hashpath = "#/" + "/".join(sanitize_state(study, notation, distance, vis, notation2, distance2, vis2, from_slug, to_slug))
     return hashpath, node_data, edge_data, node_data2, edge_data2
 
