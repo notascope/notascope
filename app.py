@@ -22,13 +22,14 @@ import pandas as pd
 import numpy as np
 import igraph
 from sklearn.manifold import MDS, TSNE
+from umap import UMAP
 from scipy.sparse.csgraph import minimum_spanning_tree
 from scipy.sparse import coo_matrix
 from scipy.cluster import hierarchy
 from scipy.spatial.distance import squareform
 
 default_study = "tiny"
-vis_types = ["network", "tsne", "dendro"]
+vis_types = ["network", "tsne", "umap", "dendro"]
 distance_types = ["difflib", "compression"]
 
 print("start", np.random.randint(1000))  # unseeded so every launch is different
@@ -103,8 +104,8 @@ def dmat_and_order(study, notation, distance):
     return dmat, dmat_sym, order
 
 
-def get_tsne(study, notation, distance, from_slug, to_slug):
-    fig_json, fig_df = build_tsne(study, notation, distance)
+def get_dimred(study, notation, distance, from_slug, to_slug, method):
+    fig_json, fig_df = build_dimred(study, notation, distance, method)
     fig = go.Figure(json.loads(fig_json))
 
     dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
@@ -129,11 +130,14 @@ def get_tsne(study, notation, distance, from_slug, to_slug):
 
 
 @cache
-def build_tsne(study, notation, distance):
+def build_dimred(study, notation, distance, method):
     dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
     np.random.seed(123)
-    tsne = TSNE(n_components=2, metric="precomputed", square_distances=True, learning_rate="auto", init="random")
-    embedding = tsne.fit_transform(dmat_sym)
+    if method == "tsne":
+        dimred = TSNE(n_components=2, metric="precomputed", square_distances=True, learning_rate="auto", init="random")
+    elif method == "umap":
+        dimred = UMAP()
+    embedding = dimred.fit_transform(dmat_sym)
     emb_df = pd.DataFrame(embedding, index=order, columns=["x", "y"])
     fig = px.scatter(emb_df, x="x", y="y", hover_name=order)
     fig.update_layout(height=800, dragmode="pan", plot_bgcolor="white")
@@ -720,7 +724,9 @@ def details_view(study, notation, distance, vis, from_slug, to_slug):
     if vis == "network":
         net = get_network(study, notation, distance, from_slug, to_slug)
     elif vis == "tsne":
-        fig = get_tsne(study, notation, distance, from_slug, to_slug)
+        fig = get_dimred(study, notation, distance, from_slug, to_slug, method="tsne")
+    elif vis == "umap":
+        fig = get_dimred(study, notation, distance, from_slug, to_slug, method="umap")
     elif vis == "dendro":
         fig = get_dendro(study, notation, distance, from_slug, to_slug)
     else:
