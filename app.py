@@ -32,7 +32,6 @@ vis_types = ["network", "tsne", "dendro"]
 distance_types = ["difflib", "compression"]
 
 print("start", np.random.randint(1000))  # unseeded so every launch is different
-np.random.seed(1)  # now set seed for deterministic embedding algos
 
 difflib_df = pd.read_csv(f"results/difflib_costs.csv", names=["study", "notation", "from_slug", "to_slug", "difflib"])
 ncd_df = pd.read_csv(f"results/ncd_costs.csv", names=["study", "notation", "from_slug", "to_slug", "compression"])
@@ -114,7 +113,12 @@ def get_tsne(study, notation, distance, from_slug, to_slug):
         fig.add_scatter(x=[from_row.x, to_row.x], y=[from_row.y, to_row.y], hoverinfo="skip", showlegend=False)
     if from_slug == to_slug:
         dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
-        fig.data[0].marker = dict(color=dmat_sym[order.index(from_slug)], cmin=0, cmax=np.mean(dmat_sym), colorscale="Viridis")
+        fig.data[0].marker = dict(
+            color=dmat_sym[order.index(from_slug)],
+            cmin=0,
+            cmax=np.mean(dmat_sym),
+            colorscale="Viridis",
+        )
 
     return fig
 
@@ -122,6 +126,7 @@ def get_tsne(study, notation, distance, from_slug, to_slug):
 @cache
 def build_tsne(study, notation, distance):
     dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
+    np.random.seed(123)
     tsne = TSNE(n_components=2, metric="precomputed", square_distances=True, learning_rate="auto", init="random")
     embedding = tsne.fit_transform(dmat_sym)
     emb_df = pd.DataFrame(embedding, index=order, columns=["x", "y"])
@@ -164,41 +169,85 @@ def get_dendro(study, notation, distance, from_slug, to_slug):
     return fig
 
 
+def append_members(nodes, node):
+    if len(nodes[node]) == 2:
+        return nodes[node][1]
+    nodes[node].append([])
+    for child in nodes[node][0]:
+        if type(child) is int:
+            nodes[node][1].append(child)
+        else:
+            nodes[node][1] += append_members(nodes, child)
+    return nodes[node][1]
+
+
+def make_nodes(P, order):
+    nodes = dict()
+    for xs, ys in zip(P["dcoord"], P["icoord"]):
+        x_mid = (xs[1] + xs[2]) / 2
+        y_mid = (ys[1] + ys[2]) / 2
+        for k, key in enumerate([(xs[1], ys[1]), (x_mid, y_mid), (xs[2], ys[2])]):
+            nodes[key] = [[]]
+            for i in [0, 3]:
+                if (i == 0 and k != 2) or (i == 3 and k != 0):
+                    nodes[key][0].append((xs[i], ys[i]))
+                if xs[i] == 0:
+                    leaf_id = order.index(P["ivl"][int((ys[i] - 5) / 10)])
+                    nodes[(xs[i], ys[i])] = [[leaf_id], [leaf_id]]
+    for n in nodes:
+        append_members(nodes, n)
+    return nodes
+
+
+def medioid(samples, dmat_sym):
+    subset = dmat_sym[samples][:, samples]
+    sum_dist = np.sum(subset, axis=0)
+    return samples[np.argsort(sum_dist)[0]]
+
+
 @cache
 def build_dendro(study, notation, distance):
     dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
     Z = hierarchy.linkage(squareform(dmat_sym), "complete", optimal_ordering=True)
     P = hierarchy.dendrogram(Z, labels=order, no_plot=True)
-
+    nodes = make_nodes(P, order)
     x = []
     y = []
+    hovertext = []
     label_x = []
     label_y = []
     label_text = []
     y_by_slug = dict()
-    for icoord, dcoord in zip(P["icoord"], P["dcoord"]):
-        for i, d in zip(icoord, dcoord):
-            y.append(i)
-            x.append(-d)
-            if d == 0:
-                slug = P["ivl"][int((i - 5) / 10)]
+    for i, (icoord, dcoord) in enumerate(zip(P["icoord"], P["dcoord"])):
+        for j, (y_val, x_val) in enumerate(zip(icoord, dcoord)):
+            y.append(y_val)
+            x.append(-x_val)
+            cluster_members = nodes[(x_val, y_val)][1]
+            node_slug = None
+            if len(cluster_members):
+                cluster_medioid = medioid(cluster_members, dmat_sym)
+                node_slug = order[cluster_medioid]
+            hovertext.append(node_slug)
+
+            if x_val == 0:
+                slug = P["ivl"][int((y_val - 5) / 10)]
                 if slug not in y_by_slug:
-                    y_by_slug[slug] = i
-                    label_x.append(-d)
-                    label_y.append(i)
+                    y_by_slug[slug] = y_val
+                    label_x.append(-x_val)
+                    label_y.append(y_val)
                     label_text.append(slug)
         y.append(None)
         x.append(None)
+        hovertext.append(None)
     fig = go.Figure()
-    fig.add_scatter(x=x, y=y, line_width=1, hoverinfo="skip", mode="lines+markers", marker_size=1)
+    fig.add_scatter(x=x, y=y, line_width=1, hovertext=hovertext, hoverinfo="none", mode="lines+markers", marker_size=1)
     fig.add_scatter(
         x=np.array(label_x)[np.argsort(label_y)],
         y=np.array(label_y)[np.argsort(label_y)],
-        texttemplate="%{hovertext}",
-        hovertext=np.array(label_text)[np.argsort(label_y)],
+        text=np.array(label_text)[np.argsort(label_y)],
         mode="text",
         textposition="middle right",
-        hoverinfo="none",
+        hoverinfo="skip",
     )
     fig.update_layout(height=800, showlegend=False, uirevision="yes", dragmode="pan")
     return fig.to_json(), y_by_slug, P["leaves"]
@@ -279,6 +328,7 @@ def build_network(study, notation, distance):
     network_elements = []
     n = len(dmat)
     if n < 20:
+        np.random.seed(123)
         mds = MDS(n_components=2, dissimilarity="precomputed")
         embedding = mds.fit_transform(dmat_sym)
 
@@ -305,6 +355,7 @@ def build_network(study, notation, distance):
     else:
         spanning = coo_matrix(minimum_spanning_tree(dmat_sym))
         g = igraph.Graph.Weighted_Adjacency(spanning.toarray().tolist())
+        np.random.seed(123)
         layout = g.layout_kamada_kawai(maxiter=10000)
         embedding = np.array(layout.coords)
 
