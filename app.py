@@ -1,51 +1,32 @@
 # builtins
 import re
-import json
 from collections import Counter
 from glob import glob
 
-# perf
-from numba import njit
-from functools import cache
-
 # plotly
 from dash import Dash, html, dcc, Input, Output, State, callback_context
-import dash_cytoscape as cyto
 from dash_extensions import EventListener
 from notascope_components import DashDiff
-import plotly.express as px
-import plotly.graph_objects as go
 
 # data science
 import pandas as pd
 import numpy as np
-import igraph
-from sklearn.manifold import MDS, TSNE
-from umap import UMAP
-from scipy.sparse.csgraph import minimum_spanning_tree
-from scipy.sparse import coo_matrix
-from scipy.cluster import hierarchy
-from scipy.spatial.distance import squareform
+
+from src import vis_types
+from src.distances import get_distance, distance_types
+from src.dimred import get_dimred
+from src.dendro import get_dendro
+from src.network import get_network, cytoscape
 
 default_study = "tiny"
-vis_types = ["network", "tsne", "umap", "dendro"]
-distance_types = ["difflib", "cd", "ncd"]
 
 print("start", np.random.randint(1000))  # unseeded so every launch is different
 
-difflib_df = pd.read_csv("results/difflib_costs.csv", names=["study", "notation", "from_slug", "to_slug", "difflib"])
-ncd_df = pd.read_csv("results/ncd_costs.csv", names=["study", "notation", "from_slug", "to_slug", "a", "b", "ab"])
-ncd_df["cd"] = ncd_df["ab"] - ncd_df[["a", "b"]].min(axis=1)
-ncd_df["ncd"] = (1000 * ncd_df["cd"] / ncd_df[["a", "b"]].max(axis=1)).astype(int)
-distances_df = pd.merge(difflib_df, ncd_df, how="outer")
 tokens_df = pd.read_csv("results/tokens.tsv", names=["study", "notation", "slug", "token"], delimiter="\t")
 
 
 def ext_of_longest(study, notation, obj):
     return sorted(glob(f"results/{study}/{notation}/{obj}/*"), key=len)[-1].split(".")[-1]
-
-
-filter_prefix = "study==@study and notation==@notation"
 
 
 def load_results():
@@ -93,305 +74,6 @@ app.layout = html.Div(
         ),
     ]
 )
-
-
-@cache
-def dmat_and_order(study, notation, distance):
-    df = distances_df.query(filter_prefix)
-    dmat = df.pivot_table(index="from_slug", columns="to_slug", values=distance).fillna(0)
-    order = list(dmat.index)
-    dmat = dmat.values
-    dmat_sym = (dmat + dmat.T) / 2.0
-    return dmat, dmat_sym, order
-
-
-def get_dimred(study, notation, distance, from_slug, to_slug, method):
-    fig_json, fig_df = build_dimred(study, notation, distance, method)
-    fig = go.Figure(json.loads(fig_json))
-
-    dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
-    if from_slug:
-        from_row = fig_df.loc[from_slug]
-        to_row = fig_df.loc[to_slug]
-        fig.add_scatter(x=[from_row.x, to_row.x], y=[from_row.y, to_row.y], hoverinfo="skip", showlegend=False)
-        if from_slug == to_slug:
-            fig.data[0].marker = dict(color=dmat_sym[order.index(from_slug)], cmax=np.median(dmat_sym), colorscale="Viridis")
-    else:
-        fig.data[0].marker = dict(color=np.median(dmat_sym, axis=0))
-
-    return fig
-
-
-@cache
-def build_dimred(study, notation, distance, method):
-    dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
-    np.random.seed(123)
-    if method == "tsne":
-        dimred = TSNE(n_components=2, metric="precomputed", square_distances=True, learning_rate="auto", init="random")
-    elif method == "umap":
-        dimred = UMAP(n_components=2)
-    embedding = dimred.fit_transform(dmat_sym)
-    emb_df = pd.DataFrame(embedding, index=order, columns=["x", "y"])
-    fig = px.scatter(emb_df, x="x", y="y", hover_name=order)
-    fig.update_layout(height=800, dragmode="pan", plot_bgcolor="white")
-    fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), uirevision="yes")
-    fig.update_yaxes(visible=False)
-    fig.update_xaxes(visible=False)
-    fig.update_traces(hoverinfo="none", hovertemplate=None)
-
-    return fig.to_json(), emb_df
-
-
-def get_dendro(study, notation, distance, from_slug, to_slug):
-    dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
-    fig_json, y_by_slug, leaves = build_dendro(study, notation, distance)
-    fig = go.Figure(json.loads(fig_json))
-    if from_slug:
-        from_y = y_by_slug[from_slug]
-        to_y = y_by_slug[to_slug]
-        distance = dmat_sym[order.index(from_slug), order.index(to_slug)]
-        fig.add_scatter(
-            x=[0, -distance, -distance, 0],
-            y=[from_y, from_y, to_y, to_y],
-            marker_opacity=[1, 0, 0, 1],
-            hoverinfo="skip",
-            showlegend=False,
-            marker_color="red",
-            mode="lines+markers",
-        )
-        if from_slug == to_slug:
-            fig.data[1].marker = dict(color=dmat_sym[order.index(from_slug)][leaves], cmax=np.median(dmat_sym), colorscale="Viridis")
-        else:
-            fig.data[1].marker.opacity = 0
-    else:
-        fig.data[1].marker = dict(color=np.median(dmat_sym, axis=0)[leaves])
-    return fig
-
-
-def append_members(nodes, node):
-    if len(nodes[node]) == 2:
-        return nodes[node][1]
-    nodes[node].append([])
-    for child in nodes[node][0]:
-        if type(child) is int:
-            nodes[node][1].append(child)
-        else:
-            nodes[node][1] += append_members(nodes, child)
-    return nodes[node][1]
-
-
-def make_nodes(P, order):
-    nodes = dict()
-    for xs, ys in zip(P["dcoord"], P["icoord"]):
-        x_mid = (xs[1] + xs[2]) / 2
-        y_mid = (ys[1] + ys[2]) / 2
-        for k, key in enumerate([(xs[1], ys[1]), (x_mid, y_mid), (xs[2], ys[2])]):
-            nodes[key] = [[]]
-            for i in [0, 3]:
-                if (i == 0 and k != 2) or (i == 3 and k != 0):
-                    nodes[key][0].append((xs[i], ys[i]))
-                if xs[i] == 0:
-                    leaf_id = order.index(P["ivl"][int((ys[i] - 5) / 10)])
-                    nodes[(xs[i], ys[i])] = [[leaf_id], [leaf_id]]
-    for n in nodes:
-        append_members(nodes, n)
-    return nodes
-
-
-def medioid(samples, dmat_sym):
-    subset = dmat_sym[samples][:, samples]
-    sum_dist = np.sum(subset, axis=0)
-    return samples[np.argsort(sum_dist)[0]]
-
-
-@cache
-def build_dendro(study, notation, distance):
-    dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
-    Z = hierarchy.linkage(squareform(dmat_sym), "complete", optimal_ordering=True)
-    P = hierarchy.dendrogram(Z, labels=order, no_plot=True)
-    nodes = make_nodes(P, order)
-    x = []
-    y = []
-    hovertext = []
-    label_x = []
-    label_y = []
-    label_text = []
-    y_by_slug = dict()
-    for i, (icoord, dcoord) in enumerate(zip(P["icoord"], P["dcoord"])):
-        for j, (y_val, x_val) in enumerate(zip(icoord, dcoord)):
-            y.append(y_val)
-            x.append(-x_val)
-            cluster_members = nodes[(x_val, y_val)][1]
-            node_slug = None
-            if len(cluster_members):
-                cluster_medioid = medioid(cluster_members, dmat_sym)
-                node_slug = order[cluster_medioid]
-            hovertext.append(node_slug)
-
-            if x_val == 0:
-                slug = P["ivl"][int((y_val - 5) / 10)]
-                if slug not in y_by_slug:
-                    y_by_slug[slug] = y_val
-                    label_x.append(-x_val)
-                    label_y.append(y_val)
-                    label_text.append(slug)
-        y.append(None)
-        x.append(None)
-        hovertext.append(None)
-    fig = go.Figure()
-    fig.add_scatter(x=x, y=y, line_width=1, hovertext=hovertext, hoverinfo="none", mode="lines+markers", marker_size=1)
-    fig.add_scatter(
-        x=np.array(label_x)[np.argsort(label_y)],
-        y=np.array(label_y)[np.argsort(label_y)],
-        text=np.array(label_text)[np.argsort(label_y)],
-        mode="markers+text",
-        textposition="middle right",
-        hoverinfo="skip",
-        marker=dict(cmin=0, symbol="square"),
-    )
-    fig.update_layout(height=800, showlegend=False, dragmode="pan", plot_bgcolor="white")
-    fig.update_layout(uirevision="yes")
-    fig.update_yaxes(visible=False)
-    return fig.to_json(), y_by_slug, P["leaves"]
-
-
-def get_network(study, notation, distance, from_slug, to_slug):
-    net = json.loads(build_network(study, notation, distance))
-
-    if from_slug != to_slug:
-        from_to_distance = get_distance(study, notation, distance, from_slug, to_slug)
-        to_from_distance = get_distance(study, notation, distance, to_slug, from_slug)
-        both_dirs = [[from_slug, to_slug], [to_slug, from_slug]]
-        to_drop = ["__".join(x) for x in both_dirs]
-        dropped = [elem for elem in net if elem["data"]["id"] in to_drop]
-        net = [elem for elem in net if elem["data"]["id"] not in to_drop]
-        for source, dest in both_dirs:
-            id = source + "__" + dest
-            new_elem = {
-                "data": {
-                    "source": source,
-                    "target": dest,
-                    "id": id,
-                    "length": from_to_distance if source == from_slug else to_from_distance,
-                },
-                "classes": "",
-            }
-            if len(dropped) == 0 or (id not in [x["data"]["id"] for x in dropped] and "bidir" not in dropped[0]["classes"]):
-                new_elem["classes"] += " inserted"
-            if source == from_slug:
-                new_elem["classes"] += " selected"
-            net.append(new_elem)
-    elif from_slug:
-        dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
-        from_index = order.index(from_slug)
-        top_indices = np.argsort(dmat_sym[from_index])
-        for i in range(min(10, len(dmat_sym))):
-            source = from_slug
-            to_index = top_indices[i]
-            dest = order[to_index]
-            net.append(
-                {
-                    "data": {"source": source, "target": dest, "id": source + "__" + dest, "length": dmat_sym[from_index, to_index]},
-                    "classes": "neighbour",
-                }
-            )
-    for elem in net:
-        if elem["data"]["id"] in [from_slug, to_slug]:
-            elem["classes"] += " selected"
-    return net
-
-
-@njit
-def find_edges(dmat):
-    n = len(dmat)
-    result = np.zeros((n, n))
-    for i in range(n):
-        for j in range(n):
-            if i == j:
-                continue
-            has_k = False
-            direct = dmat[i, j]
-            if direct != 0:
-                for k in range(n):
-                    if k == i or k == j:
-                        continue
-                    via_k = dmat[i, k] + dmat[k, j]
-                    if (via_k - direct) / direct <= 0:
-                        has_k = True
-                        break
-                if not has_k:
-                    result[i, j] = direct
-    return result
-
-
-@cache
-def build_network(study, notation, distance):
-    dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
-    network_elements = []
-    n = len(dmat)
-    if n < 20:
-        np.random.seed(123)
-        mds = MDS(n_components=2, dissimilarity="precomputed")
-        embedding = mds.fit_transform(dmat_sym)
-
-        edges = find_edges(dmat)
-        for i in range(n):
-            for j in range(n):
-                if edges[i, j] == 0:  # no zero or self-edges
-                    continue
-                longest = edges[i, j] > edges[j, i]
-                eq = edges[i, j] == edges[j, i]
-                this_eq = eq and i > j  # only first of the two bidir edges
-                if longest or this_eq:
-                    network_elements.append(
-                        {
-                            "data": {
-                                "source": order[i],
-                                "target": order[j],
-                                "id": order[i] + "__" + order[j],
-                                "length": edges[i, j],
-                            },
-                            "classes": (" bidir" if eq else ""),
-                        }
-                    )
-    else:
-        spanning = coo_matrix(minimum_spanning_tree(dmat_sym))
-        g = igraph.Graph.Weighted_Adjacency(spanning.toarray().tolist())
-        np.random.seed(123)
-        layout = g.layout_kamada_kawai(maxiter=10000)
-        embedding = np.array(layout.coords)
-
-        for i, j, d in zip(spanning.row, spanning.col, spanning.data):
-            network_elements.append(
-                {
-                    "data": {
-                        "source": order[i],
-                        "target": order[j],
-                        "id": order[i] + "__" + order[j],
-                        "length": d,
-                    },
-                    "classes": "",
-                }
-            )
-
-    emb_df = pd.DataFrame(embedding, index=order, columns=["x", "y"])
-    emb_span = embedding.max() - embedding.min()
-
-    scale = 1000 if n < 20 else 10000
-    imgext = results[study][notation]["imgext"]
-    for i, row in emb_df.iterrows():
-        network_elements.append(
-            {
-                "data": {
-                    "id": i,
-                    "label": i,
-                    "url": f"/assets/results/{study}/{notation}/img/{i}.{imgext}",
-                },
-                "position": {c: row[c] * scale / emb_span for c in ["x", "y"]},
-                "classes": "",
-            }
-        )
-    return json.dumps(network_elements)
 
 
 def parse_hashpath(hashpath):
@@ -590,77 +272,6 @@ def network_or_figure(net, fig, suffix):
     ]
 
 
-def cytoscape(id, elements):
-    return cyto.Cytoscape(
-        id=id,
-        className="network",
-        layout={"name": "preset", "fit": True},
-        minZoom=0.05,
-        maxZoom=1,
-        autoRefreshLayout=False,
-        elements=elements,
-        style=dict(height="800px", width="initial"),
-        stylesheet=[
-            {
-                "selector": "node",
-                "style": {
-                    "width": 100,
-                    "height": 100,
-                    "shape": "rectangle",
-                    "background-fit": "cover",
-                    "background-image": "data(url)",
-                    "label": "data(label)",
-                    "border-color": "grey",
-                    "border-width": 1,
-                    "text-outline-color": "white",
-                    "text-outline-width": "2",
-                    "text-margin-y": "20",
-                },
-            },
-            {
-                "selector": "edge",
-                "style": {
-                    "line-color": "lightgrey",
-                    "curve-style": "bezier",
-                    "target-arrow-color": "lightgrey",
-                    "control-point-weight": 0.6,
-                    "target-arrow-shape": "triangle-backcurve",
-                    "arrow-scale": 2,
-                    "label": "data(length)",
-                    "font-size": "24px",
-                    "text-outline-color": "white",
-                    "text-outline-width": "3",
-                },
-            },
-            {
-                "selector": ".bidir",
-                "style": {
-                    "source-arrow-color": "lightgrey",
-                    "source-arrow-shape": "triangle-backcurve",
-                },
-            },
-            {
-                "selector": ".selected",
-                "style": {
-                    "source-arrow-color": "red",
-                    "target-arrow-color": "red",
-                    "line-color": "red",
-                    "border-color": "red",
-                    "border-width": 5,
-                },
-            },
-            {
-                "selector": ".inserted",
-                "style": {"line-style": "dashed"},
-            },
-            {
-                "selector": ".neighbour",
-                "style": {"line-color": "red"},
-            },
-        ],
-    )
-
-
 def header_and_image(study, notation, slug, tokens_n, tokens_nunique):
     imgext = results[study][notation]["imgext"]
     return [
@@ -689,13 +300,8 @@ def diff_view(study, notation, from_slug, to_slug):
 
 
 def get_token_info(study, notation, slug):
-    df = tokens_df.query(filter_prefix + " and slug==@slug")["token"]
+    df = tokens_df.query("study==@study and notation==@notation and slug==@slug")["token"]
     return df.values, len(df), df.nunique()
-
-
-@cache
-def get_distance(study, notation, distance, from_slug, to_slug):
-    return distances_df.query(filter_prefix + " and from_slug==@from_slug and to_slug==@to_slug")[distance].values[0]
 
 
 def details_view(study, notation, distance, vis, from_slug, to_slug):
@@ -703,7 +309,8 @@ def details_view(study, notation, distance, vis, from_slug, to_slug):
     net = []
     fig = {}
     if vis == "network":
-        net = get_network(study, notation, distance, from_slug, to_slug)
+        imgext = results[study][notation]["imgext"]
+        net = get_network(study, notation, distance, from_slug, to_slug, imgext)
     elif vis == "tsne":
         fig = get_dimred(study, notation, distance, from_slug, to_slug, method="tsne")
     elif vis == "umap":
