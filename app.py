@@ -1,32 +1,21 @@
 # builtins
 import re
 from collections import Counter
-from glob import glob
 
 # plotly
 from dash import Dash, html, dcc, Input, Output, State, callback_context
 from dash_extensions import EventListener
+import dash_cytoscape as cyto
 from notascope_components import DashDiff
 
 # data science
 import pandas as pd
 import numpy as np
 
-from src import vis_types
-from src.distances import get_distance, distance_types
-from src.dimred import get_dimred
-from src.dendro import get_dendro
-from src.network import get_network, cytoscape
+from src import vis_types, ext, get_distance, distance_types, get_vis
 
-default_study = "tiny"
-
-print("start", np.random.randint(1000))  # unseeded so every launch is different
-
+print("start", np.random.randint(1000))
 tokens_df = pd.read_csv("results/tokens.tsv", names=["study", "notation", "slug", "token"], delimiter="\t")
-
-
-def ext_of_longest(study, notation, obj):
-    return sorted(glob(f"results/{study}/{notation}/{obj}/*"), key=len)[-1].split(".")[-1]
 
 
 def load_results():
@@ -35,8 +24,6 @@ def load_results():
         if study not in results:
             results[study] = dict()
         results[study][notation] = dict(
-            imgext=ext_of_longest(study, notation, "img"),
-            srcext=ext_of_longest(study, notation, "source"),
             slugs=df["slug"].unique(),
             tokens=df["token"].nunique(),
         )
@@ -58,12 +45,13 @@ app.layout = html.Div(
             children=[
                 html.Div(
                     [
-                        html.P(id="tt_name", style=dict(textAlign="center")),
-                        html.Img(id="tt_img", style={"max-width": "300px", "max-height": "200px"}),
+                        html.P(id="tt_name", style=dict(textAlign="center", display="none")),
+                        html.Img(id="tt_img", style={"width": "100px", "height": "100px", "object-fit": "cover", "margin": 0}),
                     ],
-                    style={"width": "300px", "height": "230px", "overflow": "hidden"},
+                    style={"width": "100px", "height": "100px", "padding": 0, "margin": 0},
                 )
             ],
+            style={"opacity": 0.85, "padding": 0, "margin": 0},
         ),
         EventListener(
             id="event_listener",
@@ -98,7 +86,7 @@ def sanitize_state(study="", notation="", distance="", vis="", notation2="", dis
         distance2 = distance_types[0]
 
     if study not in results:
-        study = default_study
+        study = "tiny"
 
     study_res = results[study]
     slugs = set()
@@ -268,12 +256,88 @@ def hide_if_none(thing):
 def network_or_figure(net, fig, suffix):
     return [
         html.Div(cytoscape("network" + suffix, net), style=hide_if_none(net)),
-        html.Div(dcc.Graph(id="figure" + suffix, figure=fig, config=dict(scrollZoom=True), clear_on_unhover=True), style=hide_if_none(fig)),
+        html.Div(figure("figure" + suffix, fig), style=hide_if_none(fig)),
     ]
 
 
+def figure(id, fig):
+    return dcc.Graph(id=id, figure=fig, config=dict(scrollZoom=True), clear_on_unhover=True)
+
+
+def cytoscape(id, elements):
+    return cyto.Cytoscape(
+        id=id,
+        className="network",
+        layout={"name": "preset", "fit": True},
+        minZoom=0.05,
+        maxZoom=1,
+        autoRefreshLayout=False,
+        elements=elements,
+        style=dict(height="800px", width="initial"),
+        stylesheet=[
+            {
+                "selector": "node",
+                "style": {
+                    "width": 100,
+                    "height": 100,
+                    "shape": "rectangle",
+                    "background-fit": "cover",
+                    "background-image": "data(url)",
+                    "label": "data(label)",
+                    "border-color": "grey",
+                    "border-width": 1,
+                    "text-outline-color": "white",
+                    "text-outline-width": "2",
+                    "text-margin-y": "20",
+                },
+            },
+            {
+                "selector": "edge",
+                "style": {
+                    "line-color": "lightgrey",
+                    "curve-style": "bezier",
+                    "target-arrow-color": "lightgrey",
+                    "control-point-weight": 0.6,
+                    "target-arrow-shape": "triangle-backcurve",
+                    "arrow-scale": 2,
+                    "label": "data(length)",
+                    "font-size": "24px",
+                    "text-outline-color": "white",
+                    "text-outline-width": "3",
+                },
+            },
+            {
+                "selector": ".bidir",
+                "style": {
+                    "source-arrow-color": "lightgrey",
+                    "source-arrow-shape": "triangle-backcurve",
+                },
+            },
+            {
+                "selector": ".selected",
+                "style": {
+                    "source-arrow-color": "red",
+                    "target-arrow-color": "red",
+                    "line-color": "red",
+                    "border-color": "red",
+                    "border-width": 5,
+                },
+            },
+            {
+                "selector": ".inserted",
+                "style": {"line-style": "dashed"},
+            },
+            {
+                "selector": ".neighbour",
+                "style": {"line-color": "red"},
+            },
+        ],
+    )
+
+
 def header_and_image(study, notation, slug, tokens_n, tokens_nunique):
-    imgext = results[study][notation]["imgext"]
+    imgext = ext(study, notation, "img")
+
     return [
         html.H3(slug),
         html.P(f"{tokens_n} tokens, {tokens_nunique} uniques"),
@@ -285,7 +349,7 @@ def header_and_image(study, notation, slug, tokens_n, tokens_nunique):
 
 
 def diff_view(study, notation, from_slug, to_slug):
-    srcext = results[study][notation]["srcext"]
+    srcext = ext(study, notation, "source")
     with open(f"results/{study}/{notation}/source/{from_slug}.{srcext}", "r") as f:
         from_code = f.read()
     if from_slug == to_slug:
@@ -306,19 +370,7 @@ def get_token_info(study, notation, slug):
 
 def details_view(study, notation, distance, vis, from_slug, to_slug):
     cmp = None
-    net = []
-    fig = {}
-    if vis == "network":
-        imgext = results[study][notation]["imgext"]
-        net = get_network(study, notation, distance, from_slug, to_slug, imgext)
-    elif vis == "tsne":
-        fig = get_dimred(study, notation, distance, from_slug, to_slug, method="tsne")
-    elif vis == "umap":
-        fig = get_dimred(study, notation, distance, from_slug, to_slug, method="umap")
-    elif vis == "dendro":
-        fig = get_dendro(study, notation, distance, from_slug, to_slug)
-    else:
-        raise Exception("invalid vis")
+    net, fig = get_vis(study, notation, distance, vis, from_slug, to_slug)
 
     try:
         from_tokens, from_tokens_n, from_tokens_nunique = get_token_info(study, notation, from_slug)

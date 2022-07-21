@@ -1,20 +1,29 @@
-from functools import cache
+from sklearn.manifold import TSNE, MDS
+from umap import UMAP
 import pandas as pd
+import numpy as np
+from scipy.sparse.csgraph import minimum_spanning_tree
+from scipy.sparse import coo_matrix
+from functools import cache
+import igraph
+
 
 distance_types = ["difflib", "cd", "ncd"]
 filter_prefix = "study==@study and notation==@notation"
 
 
-difflib_df = pd.read_csv("results/difflib_costs.csv", names=["study", "notation", "from_slug", "to_slug", "difflib"])
-ncd_df = pd.read_csv("results/ncd_costs.csv", names=["study", "notation", "from_slug", "to_slug", "a", "b", "ab"])
-ncd_df["cd"] = ncd_df["ab"] - ncd_df[["a", "b"]].min(axis=1)
-ncd_df["ncd"] = (1000 * ncd_df["cd"] / ncd_df[["a", "b"]].max(axis=1)).astype(int)
-distances_df = pd.merge(difflib_df, ncd_df, how="outer")
+@cache
+def load_distances():
+    difflib_df = pd.read_csv("results/difflib_costs.csv", names=["study", "notation", "from_slug", "to_slug", "difflib"])
+    ncd_df = pd.read_csv("results/ncd_costs.csv", names=["study", "notation", "from_slug", "to_slug", "a", "b", "ab"])
+    ncd_df["cd"] = ncd_df["ab"] - ncd_df[["a", "b"]].min(axis=1)
+    ncd_df["ncd"] = (1000 * ncd_df["cd"] / ncd_df[["a", "b"]].max(axis=1)).astype(int)
+    return pd.merge(difflib_df, ncd_df, how="outer")
 
 
 @cache
 def dmat_and_order(study, notation, distance):
-    df = distances_df.query(filter_prefix)
+    df = load_distances().query(filter_prefix)
     dmat = df.pivot_table(index="from_slug", columns="to_slug", values=distance).fillna(0)
     order = list(dmat.index)
     dmat = dmat.values
@@ -24,4 +33,33 @@ def dmat_and_order(study, notation, distance):
 
 @cache
 def get_distance(study, notation, distance, from_slug, to_slug):
-    return distances_df.query(filter_prefix + " and from_slug==@from_slug and to_slug==@to_slug")[distance].values[0]
+    return load_distances().query(filter_prefix + " and from_slug==@from_slug and to_slug==@to_slug")[distance].values[0]
+
+
+@cache
+def get_mst(study, notation, distance):
+    dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
+    return coo_matrix(minimum_spanning_tree(dmat_sym))
+
+
+@cache
+def get_embedding(study, notation, distance, method):
+    dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
+    np.random.seed(123)
+    if method == "tsne":
+        embedding = TSNE(
+            n_components=2,
+            metric="precomputed",
+            square_distances=True,
+            learning_rate="auto",
+            init="random",
+        ).fit_transform(dmat_sym)
+    elif method == "umap":
+        embedding = UMAP(n_components=2).fit_transform(dmat_sym)
+    elif method == "mds":
+        embedding = MDS(n_components=2, dissimilarity="precomputed").fit_transform(dmat_sym)
+    elif method == "kk":
+        g = igraph.Graph.Weighted_Adjacency(get_mst(study, notation, distance).toarray().tolist())
+        layout = g.layout_kamada_kawai(maxiter=10000)
+        embedding = np.array(layout.coords)
+    return pd.DataFrame(embedding, index=order, columns=["x", "y"])
