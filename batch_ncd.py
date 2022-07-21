@@ -25,7 +25,7 @@ def cost(args):
     a = single_compressed_length[from_slug]
     b = single_compressed_length[to_slug]
     ab = len(compress(file_bytes[from_slug] + file_bytes[to_slug]))
-    return [study, system, from_slug, to_slug, str(int(1000 * (ab - min(a, b)) / max(a, b)))]
+    return [study, system, from_slug, to_slug, str(int(a)), str(int(b)), str(int(ab))]
 
 
 if __name__ == "__main__":

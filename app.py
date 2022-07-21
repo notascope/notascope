@@ -29,12 +29,14 @@ from scipy.spatial.distance import squareform
 
 default_study = "tiny"
 vis_types = ["network", "tsne", "umap", "dendro"]
-distance_types = ["difflib", "compression"]
+distance_types = ["difflib", "cd", "ncd"]
 
 print("start", np.random.randint(1000))  # unseeded so every launch is different
 
-difflib_df = pd.read_csv(f"results/difflib_costs.csv", names=["study", "notation", "from_slug", "to_slug", "difflib"])
-ncd_df = pd.read_csv(f"results/ncd_costs.csv", names=["study", "notation", "from_slug", "to_slug", "compression"])
+difflib_df = pd.read_csv("results/difflib_costs.csv", names=["study", "notation", "from_slug", "to_slug", "difflib"])
+ncd_df = pd.read_csv("results/ncd_costs.csv", names=["study", "notation", "from_slug", "to_slug", "a", "b", "ab"])
+ncd_df["cd"] = ncd_df["ab"] - ncd_df[["a", "b"]].min(axis=1)
+ncd_df["ncd"] = (1000 * ncd_df["cd"] / ncd_df[["a", "b"]].max(axis=1)).astype(int)
 distances_df = pd.merge(difflib_df, ncd_df, how="outer")
 tokens_df = pd.read_csv("results/tokens.tsv", names=["study", "notation", "slug", "token"], delimiter="\t")
 
