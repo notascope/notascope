@@ -43,23 +43,25 @@ def get_mst(study, notation, distance):
 
 
 @cache
-def get_embedding(study, notation, distance, method):
+def get_embedding(study, notation, distance, method, dim=2):
     dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
     np.random.seed(123)
     if method == "tsne":
         embedding = TSNE(
-            n_components=2,
+            n_components=dim,
             metric="precomputed",
             square_distances=True,
             learning_rate="auto",
             init="random",
         ).fit_transform(dmat_sym)
     elif method == "umap":
-        embedding = UMAP(n_components=2).fit_transform(dmat_sym)
+        embedding = UMAP(n_components=dim).fit_transform(dmat_sym)
     elif method == "mds":
-        embedding = MDS(n_components=2, dissimilarity="precomputed").fit_transform(dmat_sym)
+        embedding = MDS(n_components=dim, dissimilarity="precomputed").fit_transform(dmat_sym)
     elif method == "kk":
         g = igraph.Graph.Weighted_Adjacency(get_mst(study, notation, distance).toarray().tolist())
-        layout = g.layout_kamada_kawai(maxiter=10000)
+        layout = g.layout_kamada_kawai(maxiter=10000, dim=dim)
         embedding = np.array(layout.coords)
+    if dim == 3:
+        return pd.DataFrame(embedding, index=order, columns=["x", "y", "z"])
     return pd.DataFrame(embedding, index=order, columns=["x", "y"])
