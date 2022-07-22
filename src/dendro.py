@@ -49,9 +49,11 @@ def append_members(nodes, node):
 
 def make_nodes(P, order):
     nodes = dict()
+    root = (0, 0)
     for xs, ys in zip(P["dcoord"], P["icoord"]):
         x_mid = (xs[1] + xs[2]) / 2
         y_mid = (ys[1] + ys[2]) / 2
+        root = max(root, (x_mid, y_mid))
         for k, key in enumerate([(xs[1], ys[1]), (x_mid, y_mid), (xs[2], ys[2])]):
             nodes[key] = [[]]
             for i in [0, 3]:
@@ -62,7 +64,7 @@ def make_nodes(P, order):
                     nodes[(xs[i], ys[i])] = [[leaf_id], [leaf_id]]
     for n in nodes:
         append_members(nodes, n)
-    return nodes
+    return nodes, root
 
 
 def medioid(samples, dmat_sym):
@@ -74,9 +76,9 @@ def medioid(samples, dmat_sym):
 @cache
 def build_dendro(study, notation, distance):
     dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
-    Z = hierarchy.linkage(squareform(dmat_sym), "complete", optimal_ordering=True)
+    Z = hierarchy.linkage(squareform(dmat_sym), "average", optimal_ordering=True)
     P = hierarchy.dendrogram(Z, labels=order, no_plot=True)
-    nodes = make_nodes(P, order)
+    nodes, root = make_nodes(P, order)
     x = []
     y = []
     hovertext = []
@@ -84,17 +86,20 @@ def build_dendro(study, notation, distance):
     label_y = []
     label_text = []
     y_by_slug = dict()
+
+    def append_point(x_val, y_val):
+        y.append(y_val)
+        x.append(-x_val)
+        cluster_members = nodes[(x_val, y_val)][1]
+        node_slug = None
+        if len(cluster_members):
+            cluster_medioid = medioid(cluster_members, dmat_sym)
+            node_slug = order[cluster_medioid]
+        hovertext.append(node_slug)
+
     for i, (icoord, dcoord) in enumerate(zip(P["icoord"], P["dcoord"])):
         for j, (y_val, x_val) in enumerate(zip(icoord, dcoord)):
-            y.append(y_val)
-            x.append(-x_val)
-            cluster_members = nodes[(x_val, y_val)][1]
-            node_slug = None
-            if len(cluster_members):
-                cluster_medioid = medioid(cluster_members, dmat_sym)
-                node_slug = order[cluster_medioid]
-            hovertext.append(node_slug)
-
+            append_point(x_val, y_val)
             if x_val == 0:
                 slug = P["ivl"][int((y_val - 5) / 10)]
                 if slug not in y_by_slug:
@@ -105,6 +110,7 @@ def build_dendro(study, notation, distance):
         y.append(None)
         x.append(None)
         hovertext.append(None)
+    append_point(root[0], root[1])
     fig = go.Figure()
     fig.add_scatter(x=x, y=y, line_width=1, hovertext=hovertext, hoverinfo="none", mode="lines+markers", marker_size=1)
     fig.add_scatter(
