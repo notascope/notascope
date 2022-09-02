@@ -9,7 +9,6 @@ import igraph
 
 
 distance_types = ["difflib", "cd", "ncd"]
-filter_prefix = "study==@study and notation==@notation"
 
 
 @cache
@@ -23,7 +22,7 @@ def load_distances():
 
 @cache
 def dmat_and_order(study, notation, distance):
-    df = load_distances().query(filter_prefix)
+    df = load_distances().query(f"study=='{study}' and notation=='{notation}'")
     dmat = df.pivot_table(index="from_slug", columns="to_slug", values=distance).fillna(0)
     order = list(dmat.index)
     dmat = dmat.values
@@ -33,7 +32,11 @@ def dmat_and_order(study, notation, distance):
 
 @cache
 def get_distance(study, notation, distance, from_slug, to_slug):
-    return load_distances().query(filter_prefix + " and from_slug==@from_slug and to_slug==@to_slug")[distance].values[0]
+    return (
+        load_distances()
+        .query(f"study=='{study}' and notation=='{notation}' and from_slug=='{from_slug}' and to_slug=='{to_slug}")[distance]
+        .values[0]
+    )
 
 
 @cache
