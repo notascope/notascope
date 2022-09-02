@@ -34,7 +34,7 @@ def dmat_and_order(study, notation, distance):
 def get_distance(study, notation, distance, from_slug, to_slug):
     return (
         load_distances()
-        .query(f"study=='{study}' and notation=='{notation}' and from_slug=='{from_slug}' and to_slug=='{to_slug}")[distance]
+        .query(f"study=='{study}' and notation=='{notation}' and from_slug=='{from_slug}' and to_slug=='{to_slug}'")[distance]
         .values[0]
     )
 
