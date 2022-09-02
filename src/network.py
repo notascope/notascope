@@ -40,12 +40,13 @@ def get_network(study, notation, distance, from_slug, to_slug):
             source = from_slug
             to_index = top_indices[i]
             dest = order[to_index]
-            net.append(
-                {
-                    "data": {"source": source, "target": dest, "id": source + "__" + dest, "length": dmat_sym[from_index, to_index]},
-                    "classes": "neighbour",
-                }
-            )
+            if source != dest:
+                net.append(
+                    {
+                        "data": {"source": source, "target": dest, "id": source + "__" + dest + "_nnnn", "length": dmat_sym[from_index, to_index]},
+                        "classes": "neighbour",
+                    }
+                )
     for elem in net:
         if elem["data"]["id"] in [from_slug, to_slug]:
             elem["classes"] += " selected"
