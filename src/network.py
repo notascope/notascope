@@ -68,7 +68,9 @@ def find_edges(dmat):
                     if k == i or k == j:
                         continue
                     via_k = dmat[i, k] + dmat[k, j]
-                    if (via_k - direct) / direct <= 0:
+                    if via_k <= direct:
+                        # note: if via_k < direct this is a violation of the triangle inequality
+                        # this... happens unfortunately
                         has_k = True
                         break
                 if not has_k:
