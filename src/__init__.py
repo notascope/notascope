@@ -1,5 +1,5 @@
 from .utils import ext  # noqa
-from .distances import get_distance, distance_types  # noqa
+from .distances import get_distance, distance_types, merged_distances  # noqa
 
 from .scatter import get_scatter, get_scatter3d
 from .dendro import get_dendro

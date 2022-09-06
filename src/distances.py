@@ -21,6 +21,17 @@ def load_distances():
 
 
 @cache
+def merged_distances(notation, distance, notation2, distance2):
+    df = load_distances()
+    return pd.merge(
+        df.query(f"study=='basic' and notation=='{notation}'")[["from_slug", "to_slug", distance]],
+        df.query(f"study=='basic' and notation=='{notation2}'")[["from_slug", "to_slug", distance2]],
+        on=["from_slug", "to_slug"],
+        suffixes=["_" + notation, "_" + notation2],
+    )
+
+
+@cache
 def dmat_and_order(study, notation, distance):
     df = load_distances().query(f"study=='{study}' and notation=='{notation}'")
     dmat = df.pivot_table(index="from_slug", columns="to_slug", values=distance).fillna(0)

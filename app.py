@@ -12,7 +12,9 @@ from notascope_components import DashDiff
 import pandas as pd
 import numpy as np
 
-from src import vis_types, ext, get_distance, distance_types, get_vis
+from src import vis_types, ext, get_distance, distance_types, get_vis, merged_distances
+
+import plotly.express as px
 
 print("start", np.random.randint(1000))
 tokens_df = pd.read_csv("results/tokens.tsv", names=["study", "notation", "slug", "token"], delimiter="\t")
@@ -134,29 +136,47 @@ def sanitize_state(study="", notation="", distance="", vis="", notation2="", dis
     Input("network2", "tapNodeData"),
     Input("network2", "tapEdgeData"),
     Input("figure2", "clickData"),
+    Input("crossfig", "clickData"),
     State("event_listener", "event"),
 )
 def update_hashpath(
-    selection, study, notation, notation2, distance, distance2, vis, vis2, node_data, edge_data, fig_data, node_data2, edge_data2, fig_data2, event
+    selection,
+    study,
+    notation,
+    notation2,
+    distance,
+    distance2,
+    vis,
+    vis2,
+    node_data,
+    edge_data,
+    fig_data,
+    node_data2,
+    edge_data2,
+    fig_data2,
+    crossfig_data,
+    event,
 ):
     shift_down = bool((dict(shiftKey=False) if not event else event)["shiftKey"])
     ctx = callback_context
     from_slug, to_slug = selection
     if ctx.triggered:
-        click_notation = ctx.triggered[0]["prop_id"].split(".")[0]
-        click_type = ctx.triggered[0]["prop_id"].split(".")[1]
+        trig_id, trig_type = ctx.triggered[0]["prop_id"].split(".")
 
-        if click_type == "clickData":
+        if trig_type == "clickData":
             for id, data in [["figure", fig_data], ["figure2", fig_data2]]:
-                if click_notation == id:
+                if trig_id == id:
                     to_slug = data["points"][0]["hovertext"]
                     if from_slug == to_slug:
                         from_slug = to_slug = ""
                     elif not shift_down:
                         from_slug = to_slug
-        if click_type == "tapNodeData":
+            if trig_id == "crossfig":
+                from_slug, to_slug = crossfig_data["points"][0]["hovertext"].split("__")
+
+        if trig_type == "tapNodeData":
             for id, data in [["network", node_data], ["network2", node_data2]]:
-                if click_notation == id:
+                if trig_id == id:
                     to_slug = data["id"]
                     if from_slug == to_slug:
                         from_slug = to_slug = ""
@@ -164,9 +184,9 @@ def update_hashpath(
                         from_slug = to_slug
             edge_data = None
             edge_data2 = None
-        if click_type == "tapEdgeData":
+        if trig_type == "tapEdgeData":
             for id, data in [["network", edge_data], ["network2", edge_data2]]:
-                if click_notation == id:
+                if trig_id == id:
                     from_slug = data["source"]
                     to_slug = data["target"]
             node_data = None
@@ -182,6 +202,8 @@ def update_hashpath(
 def update_content(hashpath):
     study, notation, distance, vis, notation2, distance2, vis2, from_slug, to_slug = parse_hashpath(hashpath)
     cmp, net, fig = details_view(study, notation, distance, vis, from_slug, to_slug)
+    cross_fig = {}
+    cross_style = dict(display="none")
     if notation2:
         style = dict()
         style2 = dict(gridColumnStart=2, display="block")
@@ -189,11 +211,17 @@ def update_content(hashpath):
     else:
         style = dict(gridRowStart=2)
         style2 = dict(display="none", gridRowStart=3)
-        cmp2, net2, fig2 = None, [], {}
+        cross_style = dict(display="none")
+        cmp2, net2, fig2, cross_fig = None, [], {}, {}
+
+    if distance == distance2:
+        if notation == notation2:
+            cmp2 = None
+        elif notation2:
+            cross_style = dict(gridColumn="1/3")
+            cross_fig = cross_notation_figure(notation, distance, notation2, distance2, from_slug, to_slug)
 
     vis2_style = dict(width="100px")
-    if notation == notation2 and distance == distance2:
-        cmp2 = None
     if not notation2:
         vis2_style["display"] = "none"
 
@@ -240,6 +268,7 @@ def update_content(hashpath):
                 ],
                 style=dict(margin="0 auto"),
             ),
+            html.Div(dcc.Graph(id="crossfig", figure=cross_fig, style=dict(width="600px", margin="0 auto")), style=cross_style),
             html.Div(network_or_figure(net, fig, ""), style=style),
             html.Div(network_or_figure(net2, fig2, "2"), style=style2),
             html.Div(cmp, className="comparison"),
@@ -249,8 +278,31 @@ def update_content(hashpath):
     )
 
 
+def cross_notation_figure(notation, distance, notation2, distance2, from_slug, to_slug):
+
+    merged = merged_distances(notation, distance, notation2, distance2)
+    merged["selected"] = (merged["from_slug"] == from_slug) & (merged["to_slug"] == to_slug)
+    merged["edge"] = merged[["from_slug", "to_slug"]].agg("__".join, axis=1)
+
+    x = distance + "_" + notation
+    y = distance2 + "_" + notation2
+    fig = px.scatter(merged, x=x, y=y, color="selected", hover_name="edge", width=600, height=600)
+    fig.update_layout(showlegend=False)
+    if len(fig.data) > 1:
+        fig.data[1].marker.size = 10
+
+    if distance == distance2:
+        the_min = min(merged[x].min(), merged[y].min())
+        the_max = max(merged[x].max(), merged[y].max())
+        stretch = 0.1 * (the_max - the_min)
+        fig.add_shape(
+            type="line", line=dict(color="white", width=1), x0=the_min - stretch, y0=the_min - stretch, x1=the_max + stretch, y1=the_max + stretch
+        )
+    return fig
+
+
 def hide_if_none(thing):
-    return dict() if thing else dict(display="none")
+    return dict(border="1px solid lightgrey") if thing else dict(display="none")
 
 
 def network_or_figure(net, fig, suffix):
@@ -364,7 +416,7 @@ def diff_view(study, notation, from_slug, to_slug):
 
 
 def get_token_info(study, notation, slug):
-    df = tokens_df.query("study==@study and notation==@notation and slug==@slug")["token"]
+    df = tokens_df.query(f"study=='{study}' and notation=='{notation}' and slug=='{slug}'")["token"]
     return df.values, len(df), df.nunique()
 
 
