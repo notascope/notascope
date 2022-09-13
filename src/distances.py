@@ -21,11 +21,11 @@ def load_distances():
 
 
 @cache
-def merged_distances(notation, distance, notation2, distance2):
+def merged_distances(study, notation, distance, notation2, distance2):
     df = load_distances()
     return pd.merge(
-        df.query(f"study=='basic' and notation=='{notation}'")[["from_slug", "to_slug", distance]],
-        df.query(f"study=='basic' and notation=='{notation2}'")[["from_slug", "to_slug", distance2]],
+        df.query(f"study=='{study}' and notation=='{notation}'")[["from_slug", "to_slug", distance]],
+        df.query(f"study=='{study}' and notation=='{notation2}'")[["from_slug", "to_slug", distance2]],
         on=["from_slug", "to_slug"],
         suffixes=["_" + notation, "_" + notation2],
     )

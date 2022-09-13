@@ -208,6 +208,9 @@ def update_content(hashpath):
         style = dict()
         style2 = dict(gridColumnStart=2, display="block")
         cmp2, net2, fig2 = details_view(study, notation2, distance2, vis2, from_slug, to_slug)
+        if (notation != notation2 and distance == distance2) or (notation == notation2 and distance != distance2):
+            cross_style = dict(gridColumn="1/3")
+            cross_fig = cross_notation_figure(study, notation, distance, notation2, distance2, from_slug, to_slug)
     else:
         style = dict(gridRowStart=2)
         style2 = dict(display="none", gridRowStart=3)
@@ -217,9 +220,6 @@ def update_content(hashpath):
     if distance == distance2:
         if notation == notation2:
             cmp2 = None
-        elif notation2:
-            cross_style = dict(gridColumn="1/3")
-            cross_fig = cross_notation_figure(notation, distance, notation2, distance2, from_slug, to_slug)
 
     vis2_style = dict(width="100px")
     if not notation2:
@@ -268,7 +268,7 @@ def update_content(hashpath):
                 ],
                 style=dict(margin="0 auto"),
             ),
-            html.Div(dcc.Graph(id="crossfig", figure=cross_fig, style=dict(width="600px", margin="0 auto")), style=cross_style),
+            html.Div(dcc.Graph(id="crossfig", figure=cross_fig, style=dict(width="400px", margin="0 auto")), style=cross_style),
             html.Div(network_or_figure(net, fig, ""), style=style),
             html.Div(network_or_figure(net2, fig2, "2"), style=style2),
             html.Div(cmp, className="comparison"),
@@ -278,15 +278,18 @@ def update_content(hashpath):
     )
 
 
-def cross_notation_figure(notation, distance, notation2, distance2, from_slug, to_slug):
+def cross_notation_figure(study, notation, distance, notation2, distance2, from_slug, to_slug):
 
-    merged = merged_distances(notation, distance, notation2, distance2)
+    merged = merged_distances(study, notation, distance, notation2, distance2)
     merged["selected"] = (merged["from_slug"] == from_slug) & (merged["to_slug"] == to_slug)
     merged["edge"] = merged[["from_slug", "to_slug"]].agg("__".join, axis=1)
 
-    x = distance + "_" + notation
-    y = distance2 + "_" + notation2
-    fig = px.scatter(merged, x=x, y=y, color="selected", hover_name="edge", width=600, height=600)
+    x = distance
+    y = distance2
+    if notation != notation2:
+        x += "_" + notation
+        y += "_" + notation2
+    fig = px.scatter(merged, x=x, y=y, color="selected", hover_name="edge", width=400, height=400)
     fig.update_layout(showlegend=False)
     if len(fig.data) > 1:
         fig.data[1].marker.size = 10
