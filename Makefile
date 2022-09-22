@@ -33,7 +33,7 @@ results/$(1)/$(2)/difflib_costs.csv results/$(1)/$(2)/ncd_costs.csv: results/$(1
 endef
 
 define SYSTEM_rule # study, system
-$(foreach example, $(shell ls studies/$(1)/$(2) | grep -F .), $(eval $(call EXAMPLE_rule,$(1),$(2),$(example))))
+$(foreach example, $(shell find studies/$(1)/$(2) -maxdepth 1 -type f ! -size 0 | sed -e 's,^.*/,,'), $(eval $(call EXAMPLE_rule,$(1),$(2),$(example))))
 
 results/$(1)/$(2)/difflib_costs.csv:
 	@echo "[difflib]  $(1)/$(2)"
@@ -78,4 +78,5 @@ clean:
 	rm -rf results
 
 base: app.py
+	python make_html.py
 	touch app.py
