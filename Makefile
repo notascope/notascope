@@ -77,6 +77,6 @@ base: results/tokens.tsv
 clean:
 	rm -rf results
 
-base: app.py
+base ncd difflib: app.py
 	python make_html.py
 	touch app.py
