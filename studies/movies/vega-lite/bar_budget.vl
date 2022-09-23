@@ -3,15 +3,15 @@
   "data": {
     "url": "data/movies.csv"
   },
-  "mark": "point",
+  "mark": "bar",
   "encoding": {
     "x": {
-      "field": "Production Budget",
-      "type": "quantitative"
+      "field": "Major Genre",
+      "type": "nominal"
     },
     "y": {
-      "field": "Worldwide Gross",
-      "type": "quantitative"
+      "aggregate": "sum",
+      "field": "Production Budget"
     }
   }
 }
