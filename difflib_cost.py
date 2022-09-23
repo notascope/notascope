@@ -6,7 +6,7 @@ _, f1, f2 = sys.argv
 
 pieces = f1.split("/")
 from_slug = pieces[-1].split(".")[0]
-system = pieces[-2]
+notation = pieces[-2]
 study = pieces[-3]
 to_slug = f2.split("/")[-1].split(".")[0]
 
@@ -21,4 +21,4 @@ for tag, i1, i2, j1, j2 in s.get_opcodes():
         total_cost += cost
         print("{:2} {:7} {!r} --> {!r}".format(cost, tag, t1[i1:i2], t2[j1:j2]))
 
-print(",".join([study, system, from_slug, to_slug, str(total_cost)]))
+print(",".join([study, notation, from_slug, to_slug, str(total_cost)]))

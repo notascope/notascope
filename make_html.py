@@ -21,7 +21,7 @@ for study in results:
     notations = results[study]["notations"]
     ext = results[study]["ext"]
     rows = []
-    for slug in slugs:
+    for slug in sorted(slugs):
         row = f"<tr><th align=right>{slug}</th>"
         for notation in notations:
             slug_path = Path(f"studies/{study}/{notation}/{slug}{ext[notation]}")

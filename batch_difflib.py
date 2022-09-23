@@ -10,7 +10,7 @@ from utils import slug_from_path
 inpath = sys.argv[1]
 pieces = inpath.split("/")
 study = pieces[1]
-system = pieces[2]
+notation = pieces[2]
 tokens = dict()
 for fpath in glob(os.path.join(inpath, "*.*")):
     tokens[slug_from_path(fpath)] = get_tokens_for_file(fpath)
@@ -25,6 +25,6 @@ def cost(from_slug, to_slug):
     return total_cost
 
 
-with open(f"results/{study}/{system}/difflib_costs.csv", "w") as f:
+with open(f"results/{study}/{notation}/difflib_costs.csv", "w") as f:
     for (from_slug, to_slug) in permutations(tokens, 2):
-        print(",".join([study, system, from_slug, to_slug, str(cost(from_slug, to_slug))]), file=f)
+        print(",".join([study, notation, from_slug, to_slug, str(cost(from_slug, to_slug))]), file=f)

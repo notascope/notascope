@@ -1,7 +1,7 @@
 PATH:=$(PATH):/Users/nicolas/ets/tree-sitter-parser
 
 
-define EXAMPLE_rule # study, system, example
+define spec_rule # study, notation, spec
 
 results/$(1)/$(2)/source/$(basename $(3)): studies/$(1)/$(2)/$(3)
 	@echo "[source]   $(1)/$(2): $(3)"
@@ -32,8 +32,8 @@ results/$(1)/$(2)/difflib_costs.csv results/$(1)/$(2)/ncd_costs.csv: results/$(1
 
 endef
 
-define SYSTEM_rule # study, system
-$(foreach example, $(shell find studies/$(1)/$(2) -maxdepth 1 -type f ! -size 0 | sed -e 's,^.*/,,'), $(eval $(call EXAMPLE_rule,$(1),$(2),$(example))))
+define notation_rule # study, notation
+$(foreach spec, $(shell find studies/$(1)/$(2) -maxdepth 1 -type f ! -size 0 | sed -e 's,^.*/,,'), $(eval $(call spec_rule,$(1),$(2),$(spec))))
 
 results/$(1)/$(2)/difflib_costs.csv:
 	@echo "[difflib]  $(1)/$(2)"
@@ -50,7 +50,7 @@ results/ncd_costs.csv: results/$(1)/$(2)/ncd_costs.csv
 endef
 
 define STUDY_rule # study
-$(foreach system,$(shell ls studies/$(1)),$(eval $(call SYSTEM_rule,$(1),$(system))))
+$(foreach notation,$(shell ls studies/$(1)),$(eval $(call notation_rule,$(1),$(notation))))
 endef
 
 $(foreach study,$(shell ls studies),$(eval $(call STUDY_rule,$(study))))
