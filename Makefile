@@ -22,6 +22,7 @@ results/$(1)/$(2)/img/$(basename $(3)): studies/$(1)/$(2)/$(3)
 	@savers/$(2).sh $$< $$@
 	@touch $$@
 base: results/$(1)/$(2)/img/$(basename $(3))
+results/$(1)/summary.html: results/$(1)/$(2)/img/$(basename $(3))
 
 results/$(1)/$(2)/preproc/$(3): studies/$(1)/$(2)/$(3)
 	@echo "[preproc]  $(1)/$(2): $(3)"
@@ -51,6 +52,14 @@ endef
 
 define STUDY_rule # study
 $(foreach notation,$(shell ls studies/$(1)),$(eval $(call notation_rule,$(1),$(notation))))
+
+
+results/$(1)/summary.html:
+	@echo "[summary]  $(1)"
+	@mkdir -p $$(dir $$@)
+	@python make_html.py $(1)
+base: results/$(1)/summary.html
+
 endef
 
 $(foreach study,$(shell ls studies),$(eval $(call STUDY_rule,$(study))))
@@ -78,5 +87,4 @@ clean:
 	rm -rf results
 
 base ncd difflib: app.py
-	python make_html.py
 	touch app.py
