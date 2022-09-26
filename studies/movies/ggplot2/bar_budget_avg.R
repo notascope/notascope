@@ -1,0 +1,7 @@
+library(tidyverse)
+
+df <- read_csv("data/movies.csv")
+ggplot(df) +
+  geom_bar(aes(x = `Major Genre`, y = `Production Budget`),
+    stat = "summary", fun = "mean"
+  )

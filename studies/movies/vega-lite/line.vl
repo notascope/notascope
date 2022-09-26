@@ -1,0 +1,19 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "data": {
+    "url": "data/movies.csv"
+  },
+  "mark": "line",
+  "encoding": {
+    "x": {
+      "field": "Release Date",
+      "type": "temporal",
+      "timeUnit": "year"
+    },
+    "y": {
+      "field": "Worldwide Gross",
+      "aggregate": "sum",
+      "type": "quantitative"
+    }
+  }
+}

@@ -5,4 +5,4 @@ ggplot(df) +
   geom_bar(aes(
     x = `Major Genre`,
     fill = `MPAA Rating`
-  ))
+  ), position = "fill")

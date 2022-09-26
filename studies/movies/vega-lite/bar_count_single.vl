@@ -1,0 +1,16 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "data": {
+    "url": "data/movies.csv"
+  },
+  "mark": "bar",
+  "encoding": {
+    "color": {
+      "field": "MPAA Rating",
+      "type": "nominal"
+    },
+    "x": {
+      "aggregate": "count"
+    }
+  }
+}

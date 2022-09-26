@@ -1,0 +1,21 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "data": {
+    "url": "data/movies.csv"
+  },
+  "mark": "point",
+  "encoding": {
+    "x": {
+      "field": "Production Budget",
+      "type": "quantitative"
+    },
+    "y": {
+      "field": "Worldwide Gross",
+      "type": "quantitative"
+    },
+    "color": {
+      "field": "MPAA Rating",
+      "type": "nominal"
+    }
+  }
+}
