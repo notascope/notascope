@@ -24,7 +24,7 @@ for slug in sorted(slugs):
         row += f"""
           <td>
             <a href="vscode://file/{str(slug_path.resolve())}">
-              <img src='{notation}/img/{slug}.svg' />
+              <img src='{notation}/img/{slug}.svg' style="max-height:300px; max-width: 300px" />
             </a>
           </td>
           """

@@ -268,7 +268,7 @@ def update_content(hashpath):
                 ],
                 style=dict(margin="0 auto"),
             ),
-            html.Div(dcc.Graph(id="crossfig", figure=cross_fig, style=dict(width="400px", margin="0 auto")), style=cross_style),
+            html.Div(dcc.Graph(id="crossfig", figure=cross_fig, style=dict(width="500px", margin="0 auto")), style=cross_style),
             html.Div(network_or_figure(net, fig, ""), style=style),
             html.Div(network_or_figure(net2, fig2, "2"), style=style2),
             html.Div(cmp, className="comparison"),
@@ -289,7 +289,7 @@ def cross_notation_figure(study, notation, distance, notation2, distance2, from_
     if notation != notation2:
         x += "_" + notation
         y += "_" + notation2
-    fig = px.scatter(merged, x=x, y=y, color="selected", hover_name="edge", width=400, height=400)
+    fig = px.scatter(merged, x=x, y=y, color="selected", hover_name="edge", width=500, height=500)
     fig.update_layout(showlegend=False)
     if len(fig.data) > 1:
         fig.data[1].marker.size = 10

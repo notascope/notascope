@@ -123,7 +123,12 @@ def build_network(study, notation, distance):
 
     emb_span = emb_df.values.max() - emb_df.values.min()
 
-    scale = 1000 if n < 20 else 10000
+    if n > 500:
+        scale = 10000
+    elif n > 15:
+        scale = 2000
+    else:
+        scale = 1000
     imgext = ext(study, notation, "img")
     for i, row in emb_df.iterrows():
         network_elements.append(
