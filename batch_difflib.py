@@ -4,7 +4,7 @@ from difflib import SequenceMatcher
 from glob import glob
 import os
 import sys
-from utils import slug_from_path
+from src import slug_from_path
 
 
 inpath = sys.argv[1]

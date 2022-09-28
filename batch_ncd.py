@@ -2,7 +2,7 @@ from itertools import permutations
 from glob import glob
 import os
 import sys
-from utils import slug_from_path
+from src import slug_from_path
 from lzma import compress
 from multiprocessing import Pool
 

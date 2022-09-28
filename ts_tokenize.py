@@ -2,7 +2,7 @@
 
 from tree_sitter import Language, Parser
 import sys
-from utils import slug_from_path
+from src import slug_from_path
 
 basedir = "/Users/nicolas/ets/tree-sitter-parser"
 

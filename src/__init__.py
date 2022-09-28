@@ -1,4 +1,4 @@
-from .utils import ext  # noqa
+from .utils import ext, slug_from_path  # noqa
 from .distances import get_distance, distance_types, merged_distances  # noqa
 
 from .scatter import get_scatter, get_scatter3d
