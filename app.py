@@ -14,6 +14,7 @@ import numpy as np
 
 from src import vis_types, ext, get_distance, distance_types, get_vis, merged_distances
 
+import plotly.graph_objects as go
 import plotly.express as px
 
 print("start", np.random.randint(1000))
@@ -300,22 +301,56 @@ def cross_notation_figure(study, notation, distance, notation2, distance2, from_
     merged = merged.groupby("from_slug").mean([x, y]).reset_index()
     merged["selected"] = (merged["from_slug"] == from_slug) | (merged["from_slug"] == to_slug)
 
-    fig = px.scatter(merged, x=x, y=y, hover_name="from_slug", color="selected", width=500, height=500)
-    fig.update_layout(showlegend=False)
-    if len(fig.data) > 1:
-        fig.data[1].marker.size = 10
-
-    if distance == distance2:
-        the_min = min(merged[x].min(), merged[y].min())
-        the_max = max(merged[x].max(), merged[y].max())
-        stretch = 0.1 * (the_max - the_min)
-        fig.add_shape(
-            type="line", line=dict(color="white", width=1), x0=the_min - stretch, y0=the_min - stretch, x1=the_max + stretch, y1=the_max + stretch
+    if distance != distance2:
+        fig = px.scatter(
+            merged, x=x, y=y, hover_name="from_slug", color="selected", hover_data={x: False, y: False, "selected": False}, width=500, height=500
         )
-    return fig.update_traces(hoverinfo="none", hovertemplate=None)
+        fig.update_layout(showlegend=False)
+        if len(fig.data) > 1:
+            fig.data[1].marker.size = 10
+    else:
+        mn = min(merged[x].min(), merged[y].min())
+        mx = max(merged[x].max(), merged[y].max())
+        s = 0.1 * (mx - mn)
+        mx += s
+        mn -= s
+        md = (mn + mx) / 2
+        md = round(md)
+        mx = round(mx)
+        mn = round(mn)
 
+        fig = go.Figure(
+            [
+                go.Scattercarpet(
+                    mode="markers", a=merged[x], b=merged[y], hovertext=merged["from_slug"], hoverinfo="none", hovertemplate="<extra></extra>"
+                ),
+                go.Carpet(
+                    a=[mn, md, mx, mn, md, mx, mn, md, mx],
+                    b=[mn, mn, mn, md, md, md, mx, mx, mx],
+                    x=[0, -5, -10, 5, 0, -5, 10, 5, 0],
+                    y=[0, 5, 10, 5, 10, 15, 10, 15, 20],
+                    aaxis=dict(title=x, gridcolor="lightgrey"),
+                    baxis=dict(title=y, gridcolor="lightgrey"),
+                ),
+            ]
+        )
+        if from_slug != "":
+            fig.add_scattercarpet(
+                mode="markers",
+                a=merged.query("selected")[x],
+                b=merged.query("selected")[y],
+                hovertext=merged.query("selected")["from_slug"],
+                marker_color="red",
+                marker_size=10,
+                hoverinfo="none",
+                hovertemplate="<extra></extra>",
+            )
+        fig.add_shape(line_color="lightgrey", line_width=1, x0=0, x1=0, y0=0.1, y1=19.9)
+        fig.update_xaxes(visible=False, range=[-11, 11])
+        fig.update_yaxes(visible=False, range=[-1, 21])
+        fig.update_layout(plot_bgcolor="white", margin=dict(b=0, t=0, l=0, r=0), width=500, height=500, showlegend=False)
 
-cross_notation_figure("movies", "vega-lite", "nmi", "plotly_express", "nmi", "bar_count", "bubble_agg")
+    return fig
 
 
 def hide_if_none(thing):
