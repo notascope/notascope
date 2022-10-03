@@ -8,13 +8,14 @@ from functools import cache
 import igraph
 
 
-distance_types = ["difflib", "cd", "ncd"]
+distance_types = ["difflib", "nmi", "cd", "ncd"]
 
 
 @cache
 def load_distances():
     difflib_df = pd.read_csv("results/difflib_costs.csv", names=["study", "notation", "from_slug", "to_slug", "difflib"])
     ncd_df = pd.read_csv("results/ncd_costs.csv", names=["study", "notation", "from_slug", "to_slug", "a", "b", "ab"])
+    ncd_df["nmi"] = 2 * ncd_df["ab"] - ncd_df["a"] - ncd_df["b"]
     ncd_df["cd"] = ncd_df["ab"] - ncd_df[["a", "b"]].min(axis=1)
     ncd_df["ncd"] = (1000 * ncd_df["cd"] / ncd_df[["a", "b"]].max(axis=1)).astype(int)
     return pd.merge(difflib_df, ncd_df, how="outer")

@@ -79,13 +79,13 @@ def sanitize_state(study="", notation="", distance="", vis="", notation2="", dis
         vis = vis_types[0]
 
     if vis2 not in vis_types:
-        vis2 = vis_types[0]
+        vis2 = ""
 
     if distance not in distance_types:
         distance = distance_types[0]
 
     if distance2 not in distance_types:
-        distance2 = distance_types[0]
+        distance2 = ""
 
     if study not in results:
         study = "tiny"
@@ -164,15 +164,13 @@ def update_hashpath(
         trig_id, trig_type = ctx.triggered[0]["prop_id"].split(".")
 
         if trig_type == "clickData":
-            for id, data in [["figure", fig_data], ["figure2", fig_data2]]:
+            for id, data in [["figure", fig_data], ["figure2", fig_data2], ["crossfig", crossfig_data]]:
                 if trig_id == id:
                     to_slug = data["points"][0]["hovertext"]
                     if from_slug == to_slug:
                         from_slug = to_slug = ""
                     elif not shift_down:
                         from_slug = to_slug
-            if trig_id == "crossfig":
-                from_slug, to_slug = crossfig_data["points"][0]["hovertext"].split("__")
 
         if trig_type == "tapNodeData":
             for id, data in [["network", node_data], ["network2", node_data2]]:
@@ -200,7 +198,9 @@ def update_hashpath(
     Input("location", "hash"),
 )
 def update_content(hashpath):
-    study, notation, distance, vis, notation2, distance2, vis2, from_slug, to_slug = parse_hashpath(hashpath)
+    study, notation, distance, vis, notation2, distance2_in, vis2_in, from_slug, to_slug = parse_hashpath(hashpath)
+    distance2 = distance2_in or distance
+    vis2 = vis2_in or vis
     cmp, net, fig = details_view(study, notation, distance, vis, from_slug, to_slug)
     cross_fig = {}
     cross_style = dict(display="none")
@@ -258,19 +258,28 @@ def update_content(hashpath):
                         style=dict(display="inline-block"),
                     ),
                     html.Div(
-                        dcc.Dropdown(id="vis2", value=vis2, options=vis_types, clearable=False, style=vis2_style),
+                        dcc.Dropdown(id="vis2", value=vis2_in, options=vis_types, clearable=True, style=vis2_style),
                         style=dict(display="inline-block"),
                     ),
                     html.Div(
-                        dcc.Dropdown(id="distance2", value=distance2, options=distance_types, clearable=False, style=vis2_style),
+                        dcc.Dropdown(id="distance2", value=distance2_in, options=distance_types, clearable=True, style=vis2_style),
                         style=dict(display="inline-block"),
                     ),
                 ],
                 style=dict(margin="0 auto"),
             ),
-            html.Div(dcc.Graph(id="crossfig", figure=cross_fig, style=dict(width="500px", margin="0 auto")), style=cross_style),
-            html.Div(network_or_figure(net, fig, ""), style=style),
-            html.Div(network_or_figure(net2, fig2, "2"), style=style2),
+            html.Div(
+                html.Details(
+                    [
+                        html.Summary("Cross-Notation"),
+                        dcc.Graph(id="crossfig", figure=cross_fig, style=dict(width="500px", margin="0 auto"), clear_on_unhover=True),
+                    ],
+                    open=True,
+                ),
+                style=cross_style,
+            ),
+            html.Div(html.Details([html.Summary(notation + " " + vis), *network_or_figure(net, fig, "")], open=True), style=style),
+            html.Div(html.Details([html.Summary(notation2 + " " + vis2), *network_or_figure(net2, fig2, "2")], open=True), style=style2),
             html.Div(cmp, className="comparison"),
             html.Div(cmp2, className="comparison"),
             dcc.Store(id="selection", data=[from_slug, to_slug]),
@@ -281,15 +290,17 @@ def update_content(hashpath):
 def cross_notation_figure(study, notation, distance, notation2, distance2, from_slug, to_slug):
 
     merged = merged_distances(study, notation, distance, notation2, distance2)
-    merged["selected"] = (merged["from_slug"] == from_slug) & (merged["to_slug"] == to_slug)
-    merged["edge"] = merged[["from_slug", "to_slug"]].agg("__".join, axis=1)
 
     x = distance
     y = distance2
     if notation != notation2:
         x += "_" + notation
         y += "_" + notation2
-    fig = px.scatter(merged, x=x, y=y, color="selected", hover_name="edge", width=500, height=500)
+
+    merged = merged.groupby("from_slug").mean([x, y]).reset_index()
+    merged["selected"] = (merged["from_slug"] == from_slug) | (merged["from_slug"] == to_slug)
+
+    fig = px.scatter(merged, x=x, y=y, hover_name="from_slug", color="selected", width=500, height=500)
     fig.update_layout(showlegend=False)
     if len(fig.data) > 1:
         fig.data[1].marker.size = 10
@@ -301,7 +312,10 @@ def cross_notation_figure(study, notation, distance, notation2, distance2, from_
         fig.add_shape(
             type="line", line=dict(color="white", width=1), x0=the_min - stretch, y0=the_min - stretch, x1=the_max + stretch, y1=the_max + stretch
         )
-    return fig
+    return fig.update_traces(hoverinfo="none", hovertemplate=None)
+
+
+cross_notation_figure("movies", "vega-lite", "nmi", "plotly_express", "nmi", "bar_count", "bubble_agg")
 
 
 def hide_if_none(thing):
@@ -469,17 +483,21 @@ def details_view(study, notation, distance, vis, from_slug, to_slug):
 # if/when there is a PNG notation, just inline the imgext dict in the string
 app.clientside_callback(
     """
-    function(hoverData, hoverData2) {
+    function(hoverData, hoverData2, hoverDataCross) {
+        if(!hoverData && !hoverData2 && !hoverDataCross) {
+            return [false, null, null, null];
+        }
         pieces = window.location.hash.split("/");
         study=pieces[1];
-        if(!hoverData){
-            if(!hoverData2){
-                return [false, null, null, null];
-            }
+        if(hoverData) {
+            notation=pieces[2]
+        }
+        if(hoverData2) {
             hoverData = hoverData2;
             notation=pieces[5];
         }
-        else {
+        if(hoverDataCross) {
+            hoverData = hoverDataCross;
             notation=pieces[2];
         }
         pt = hoverData["points"][0];
@@ -494,6 +512,7 @@ app.clientside_callback(
     Output("tt_name", "children"),
     Input("figure", "hoverData"),
     Input("figure2", "hoverData"),
+    Input("crossfig", "hoverData"),
     prevent_initial_call=True,
 )
 
