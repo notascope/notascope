@@ -16,6 +16,9 @@ from src import vis_types, ext, get_distance, distance_types, get_vis, merged_di
 
 import plotly.graph_objects as go
 import plotly.express as px
+from dash_dangerously_set_inner_html import DangerouslySetInnerHTML
+import spectra
+import math
 
 print("start", np.random.randint(1000))
 tokens_df = pd.read_csv("results/tokens.tsv", names=["study", "notation", "slug", "token"], delimiter="\t")
@@ -467,6 +470,45 @@ def diff_view(study, notation, from_slug, to_slug):
     )
 
 
+def single_view(study, notation, slug):
+    srcext = ext(study, notation, "source")
+    filtered = tokens_df.query(f"study=='{study}' and notation=='{notation}'").groupby("token").nunique("slug")
+    max_count = filtered["slug"].max()
+    trie = dict()
+    for token, count in filtered["slug"].items():
+        pointer = trie
+        for c in token:
+            if c not in pointer:
+                pointer[c] = dict()
+            pointer = pointer[c]
+        pointer["count"] = count
+    with open(f"results/{study}/{notation}/source/{slug}.{srcext}", "r") as f:
+        text = f.read()
+
+    scale = spectra.scale([spectra.html("#FF2"), spectra.html("#FFF")]).domain([math.log(1), math.log(max_count - 1)])
+
+    out_text = ""
+
+    pointer = trie
+    buffer = ""
+    for c in text:
+        if c not in pointer:
+            out_text += "<span"
+            if "count" in pointer and pointer["count"] < max_count:
+                color = scale(math.log(pointer["count"])).hexcode
+                out_text += f" style='background: {color}'"
+                out_text += f" title='{pointer['count']}/{max_count}'"
+            out_text += ">" + buffer + "</span>"
+
+            buffer = ""
+            pointer = trie
+            out_text += c
+        else:
+            buffer += c
+            pointer = pointer[c]
+    return DangerouslySetInnerHTML("<pre align='left' style='overflow-x: scroll; width: 45vw'>" + out_text + "</pre>")
+
+
 def get_token_info(study, notation, slug):
     df = tokens_df.query(f"study=='{study}' and notation=='{notation}' and slug=='{slug}'")["token"]
     return df.values, len(df), df.nunique()
@@ -502,12 +544,11 @@ def details_view(study, notation, distance, vis, from_slug, to_slug):
                 style=dict(verticalAlign="top"),
             )
             cmp = [html.Table([html.Tr([td1, td2, td3])], style=dict(width="100%", height="300px"))]
+            cmp += [diff_view(study, notation, from_slug, to_slug)]
         elif from_slug != "":
             _, from_tokens_n, from_tokens_nunique = get_token_info(study, notation, from_slug)
             cmp = header_and_image(study, notation, from_slug, from_tokens_n, from_tokens_nunique)
-
-        if from_slug != "":
-            cmp += [diff_view(study, notation, from_slug, to_slug)]
+            cmp += [single_view(study, notation, from_slug)]
 
     except Exception as e:
         print(repr(e))
