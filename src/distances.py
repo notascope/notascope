@@ -8,7 +8,7 @@ from functools import cache
 import igraph
 
 
-distance_types = ["difflib", "nmi", "cd", "ncd"]
+distance_types = ["nmi", "cd", "ncd", "difflib"]
 
 
 @cache

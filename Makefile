@@ -10,7 +10,7 @@ results/$(1)/$(2)/source/$(basename $(3)): studies/$(1)/$(2)/$(3)
 	@touch $$@
 base: results/$(1)/$(2)/source/$(basename $(3))
 
-results/$(1)/$(2)/tokens/$(basename $(3)).tsv: studies/$(1)/$(2)/$(3)
+results/$(1)/$(2)/tokens/$(basename $(3)).tsv: results/$(1)/$(2)/preproc/$(3)
 	@echo "[tokens]   $(1)/$(2): $(3)"
 	@mkdir -p $$(dir $$@)
 	@python ts_tokenize.py $$< > $$@

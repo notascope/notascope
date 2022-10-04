@@ -39,6 +39,6 @@ def get_tokens_for_file(infilepath):
 
 if __name__ == "__main__":
     full_path = sys.argv[1]
-    _, study, notation, spec = full_path.split("/")
+    _, study, notation, _, spec = full_path.split("/")
     for token in get_tokens_for_file(full_path):
         print("\t".join([study, notation, slug_from_path(spec), token[1]]))

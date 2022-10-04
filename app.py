@@ -1,4 +1,5 @@
 # builtins
+from functools import cache
 import re
 from collections import Counter
 
@@ -275,7 +276,7 @@ def update_content(hashpath):
             html.Div(
                 html.Details(
                     [
-                        html.Summary("Cross-Notation"),
+                        html.Summary("cross-notation"),
                         dcc.Graph(id="crossfig", figure=cross_fig, style=dict(width="500px", margin="0 auto"), clear_on_unhover=True),
                     ],
                     open=True,
@@ -283,7 +284,10 @@ def update_content(hashpath):
                 style=cross_style,
             ),
             html.Div(html.Details([html.Summary(notation + " " + vis), *network_or_figure(net, fig, "")], open=True), style=style),
-            html.Div(html.Details([html.Summary(notation2 + " " + vis2), *network_or_figure(net2, fig2, "2")], open=True), style=style2),
+            html.Div(
+                html.Details([html.Summary(notation2 + " " + vis2, style=dict(textAlign="right")), *network_or_figure(net2, fig2, "2")], open=True),
+                style=style2,
+            ),
             html.Div(cmp, className="comparison"),
             html.Div(cmp2, className="comparison"),
             dcc.Store(id="selection", data=[from_slug, to_slug]),
@@ -457,12 +461,12 @@ def header_and_image(study, notation, slug, tokens_n, tokens_nunique):
 
 def diff_view(study, notation, from_slug, to_slug):
     srcext = ext(study, notation, "source")
-    with open(f"results/{study}/{notation}/source/{from_slug}.{srcext}", "r") as f:
+    with open(f"results/{study}/{notation}/preproc/{from_slug}.{srcext}", "r") as f:
         from_code = f.read()
     if from_slug == to_slug:
         to_code = from_code
     else:
-        with open(f"results/{study}/{notation}/source/{to_slug}.{srcext}", "r") as f:
+        with open(f"results/{study}/{notation}/preproc/{to_slug}.{srcext}", "r") as f:
             to_code = f.read()
     return html.Div(
         [html.Div([DashDiff(oldCode=from_code, newCode=to_code)], style=dict(border="none"))],
@@ -470,8 +474,8 @@ def diff_view(study, notation, from_slug, to_slug):
     )
 
 
-def single_view(study, notation, slug):
-    srcext = ext(study, notation, "source")
+@cache
+def build_trie(study, notation):
     filtered = tokens_df.query(f"study=='{study}' and notation=='{notation}'").groupby("token").nunique("slug")
     max_count = filtered["slug"].max()
     trie = dict()
@@ -482,7 +486,13 @@ def single_view(study, notation, slug):
                 pointer[c] = dict()
             pointer = pointer[c]
         pointer["count"] = count
-    with open(f"results/{study}/{notation}/source/{slug}.{srcext}", "r") as f:
+    return trie, max_count
+
+
+def single_view(study, notation, slug):
+    srcext = ext(study, notation, "source")
+    trie, max_count = build_trie(study, notation)
+    with open(f"results/{study}/{notation}/preproc/{slug}.{srcext}", "r") as f:
         text = f.read()
 
     scale = spectra.scale([spectra.html("#FF2"), spectra.html("#FFF")]).domain([math.log(1), math.log(max_count - 1)])
