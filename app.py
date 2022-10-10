@@ -305,7 +305,7 @@ def cross_notation_figure(study, notation, distance, notation2, distance2, from_
         x += "_" + notation
         y += "_" + notation2
 
-    merged = merged.groupby("from_slug").mean([x, y]).reset_index()
+    merged = merged.groupby("from_slug").median([x, y]).reset_index()
     merged["selected"] = (merged["from_slug"] == from_slug) | (merged["from_slug"] == to_slug)
 
     if distance != distance2:
@@ -495,7 +495,7 @@ def single_view(study, notation, slug):
     with open(f"results/{study}/{notation}/preproc/{slug}.{srcext}", "r") as f:
         text = f.read()
 
-    scale = spectra.scale([spectra.html("#FF2"), spectra.html("#FFF")]).domain([math.log(1), math.log(max_count - 1)])
+    scale = spectra.scale([spectra.html("#2FF"), spectra.html("#FFF")]).domain([math.log(1), math.log(max_count - 1)])
 
     out_text = ""
 
