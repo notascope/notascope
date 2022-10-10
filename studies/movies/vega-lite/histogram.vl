@@ -6,7 +6,8 @@
   "mark": "bar",
   "encoding": {
     "x": {
-      "field": "Major Genre"
+      "bin": true,
+      "field": "Production Budget"
     },
     "y": {
       "aggregate": "count"

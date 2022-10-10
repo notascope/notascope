@@ -6,7 +6,8 @@
   "mark": "bar",
   "encoding": {
     "x": {
-      "field": "Major Genre"
+      "field": "Major Genre",
+      "sort": "-y"
     },
     "y": {
       "aggregate": "count"
