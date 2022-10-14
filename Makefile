@@ -31,6 +31,13 @@ results/$(1)/$(2)/preproc/$(3): studies/$(1)/$(2)/$(3)
 	@touch $$@
 results/$(1)/$(2)/difflib_costs.csv results/$(1)/$(2)/ncd_costs.csv: results/$(1)/$(2)/preproc/$(3)
 
+results/$(1)/$(2)/pretty/$(3): studies/$(1)/$(2)/$(3)
+	@echo "[pretty]   $(1)/$(2): $(3)"
+	@mkdir -p $$(dir $$@)
+	@prettyprinters/$(2).sh $$< $$@
+	@touch $$@
+base: results/$(1)/$(2)/pretty/$(3)
+
 endef
 
 define notation_rule # study, notation

@@ -461,12 +461,12 @@ def header_and_image(study, notation, slug, tokens_n, tokens_nunique):
 
 def diff_view(study, notation, from_slug, to_slug):
     srcext = ext(study, notation, "source")
-    with open(f"results/{study}/{notation}/preproc/{from_slug}.{srcext}", "r") as f:
+    with open(f"results/{study}/{notation}/pretty/{from_slug}.{srcext}", "r") as f:
         from_code = f.read()
     if from_slug == to_slug:
         to_code = from_code
     else:
-        with open(f"results/{study}/{notation}/preproc/{to_slug}.{srcext}", "r") as f:
+        with open(f"results/{study}/{notation}/pretty/{to_slug}.{srcext}", "r") as f:
             to_code = f.read()
     return html.Div(
         [html.Div([DashDiff(oldCode=from_code, newCode=to_code)], style=dict(border="none"))],
@@ -492,7 +492,7 @@ def build_trie(study, notation):
 def single_view(study, notation, slug):
     srcext = ext(study, notation, "source")
     trie, max_count = build_trie(study, notation)
-    with open(f"results/{study}/{notation}/preproc/{slug}.{srcext}", "r") as f:
+    with open(f"results/{study}/{notation}/pretty/{slug}.{srcext}", "r") as f:
         text = f.read()
 
     scale = spectra.scale([spectra.html("#2FF"), spectra.html("#FFF")]).domain([math.log(1), math.log(max_count - 1)])
