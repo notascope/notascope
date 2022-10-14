@@ -236,7 +236,10 @@ def update_content(hashpath):
         className="wrapper",
         children=[
             html.Div(
-                [dcc.Dropdown(id="study", value=study, options=[s for s in results], clearable=False, style=dict(width="100px"))],
+                [
+                    dcc.Dropdown(id="study", value=study, options=[s for s in results], clearable=False, style=dict(width="100px")),
+                    html.A("table", href=f"/assets/results/{study}/summary.html", target="_blank"),
+                ],
                 style=dict(position="absolute", left=10, top=10),
             ),
             html.Div(
