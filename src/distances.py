@@ -8,6 +8,7 @@ from functools import cache
 import igraph
 
 
+np.random.seed(123)
 distance_types = ["nmi", "cd", "ncd", "difflib"]
 
 
@@ -60,7 +61,6 @@ def get_mst(study, notation, distance):
 @cache
 def get_embedding(study, notation, distance, method, dim=2):
     dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
-    np.random.seed(123)
     if method == "tsne":
         embedding = TSNE(
             n_components=dim,

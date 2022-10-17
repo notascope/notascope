@@ -2,6 +2,7 @@
 from functools import cache
 import re
 from collections import Counter
+from datetime import datetime
 
 # plotly
 from dash import Dash, html, dcc, Input, Output, State, callback_context
@@ -11,7 +12,6 @@ from notascope_components import DashDiff
 
 # data science
 import pandas as pd
-import numpy as np
 
 from src import vis_types, ext, get_distance, distance_types, get_vis, merged_distances
 
@@ -21,7 +21,7 @@ from dash_dangerously_set_inner_html import DangerouslySetInnerHTML
 import spectra
 import math
 
-print("start", np.random.randint(1000))
+print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 tokens_df = pd.read_csv("results/tokens.tsv", names=["study", "notation", "slug", "token"], delimiter="\t")
 
 
@@ -226,9 +226,9 @@ def update_content(hashpath):
         if notation == notation2:
             cmp2 = None
 
-    vis2_style = dict(width="100px")
+    style_mod = dict()
     if not notation2:
-        vis2_style["display"] = "none"
+        style_mod["display"] = "none"
 
     notations = [dict(label=f"{s} ({results[study][s]['tokens']})", value=s) for s in results[study]]
 
@@ -249,7 +249,7 @@ def update_content(hashpath):
                         style=dict(display="inline-block"),
                     ),
                     html.Div(
-                        dcc.Dropdown(id="vis", value=vis, options=vis_types, clearable=False, style=dict(width="100px")),
+                        dcc.Dropdown(id="vis", value=vis, options=vis_types, clearable=False, style=dict(width="150px")),
                         style=dict(display="inline-block"),
                     ),
                     html.Div(
@@ -262,15 +262,26 @@ def update_content(hashpath):
             html.Div(
                 [
                     html.Div(
-                        dcc.Dropdown(id="notation2", value=notation2, options=notations, clearable=True, className="dropdown"),
+                        dcc.Dropdown(
+                            id="notation2", value=notation2, options=notations, clearable=True, className="dropdown", placeholder="Compare..."
+                        ),
                         style=dict(display="inline-block"),
                     ),
                     html.Div(
-                        dcc.Dropdown(id="vis2", value=vis2_in, options=vis_types, clearable=True, style=vis2_style),
+                        dcc.Dropdown(
+                            id="vis2", value=vis2_in, options=vis_types, clearable=True, style=dict(width="150px", **style_mod), placeholder=vis2
+                        ),
                         style=dict(display="inline-block"),
                     ),
                     html.Div(
-                        dcc.Dropdown(id="distance2", value=distance2_in, options=distance_types, clearable=True, style=vis2_style),
+                        dcc.Dropdown(
+                            id="distance2",
+                            value=distance2_in,
+                            options=distance_types,
+                            clearable=True,
+                            style=dict(width="100px", **style_mod),
+                            placeholder=distance2,
+                        ),
                         style=dict(display="inline-block"),
                     ),
                 ],

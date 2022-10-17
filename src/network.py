@@ -1,13 +1,13 @@
 import json
 from functools import cache
-from numba import njit
+from scipy.sparse.csgraph import dijkstra
 import numpy as np
 from .utils import ext
 from .distances import dmat_and_order, get_distance, get_embedding, get_mst
 
 
-def get_network(study, notation, distance, from_slug, to_slug):
-    net = json.loads(build_network(study, notation, distance))
+def get_network(study, notation, distance, from_slug, to_slug, method):
+    net = json.loads(build_network(study, notation, distance, method))
 
     if from_slug != to_slug:
         from_to_distance = get_distance(study, notation, distance, from_slug, to_slug)
@@ -53,39 +53,27 @@ def get_network(study, notation, distance, from_slug, to_slug):
     return net
 
 
-@njit
-def find_edges(dmat):
-    n = len(dmat)
-    result = np.zeros((n, n))
-    for i in range(n):
-        for j in range(n):
-            if i == j:
-                continue
-            has_k = False
-            direct = dmat[i, j]
-            if direct != 0:
-                for k in range(n):
-                    if k == i or k == j:
-                        continue
-                    via_k = dmat[i, k] + dmat[k, j]
-                    if via_k <= direct:
-                        # note: if via_k < direct this is a violation of the triangle inequality
-                        # this... happens unfortunately
-                        has_k = True
-                        break
-                if not has_k:
-                    result[i, j] = direct
-    return result
+def spanner_adj(distances, t):
+    ind = np.unravel_index(np.argsort(distances, axis=None), distances.shape)
+    adj = np.zeros(distances.shape)
+    for i, j in zip(ind[0], ind[1]):
+        if i < j:
+            continue
+        d = distances[i, j]
+        if dijkstra(adj, indices=i, min_only=True, limit=t * d)[j] <= t * d:
+            continue
+        adj[i, j] = adj[j, i] = d
+    return adj
 
 
 @cache
-def build_network(study, notation, distance):
+def build_network(study, notation, distance, method):
     dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
     network_elements = []
     n = len(dmat)
-    if n < 20:
+    if method.startswith("spanner") and n < 50:
         emb_df = get_embedding(study, notation, distance, "mds")
-        edges = find_edges(dmat)
+        edges = spanner_adj(dmat, t=float(method.split("-")[1]))
         for i in range(n):
             for j in range(n):
                 if edges[i, j] == 0:  # no zero or self-edges

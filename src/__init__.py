@@ -5,14 +5,16 @@ from .scatter import get_scatter, get_scatter3d
 from .dendro import get_dendro
 from .network import get_network
 
-vis_types = ["network", "tsne", "umap", "umap_3d", "dendro"]
+vis_types = ["mst", "spanner-1", "spanner-1.1", "spanner-1.2", "spanner-1.5", "tsne", "umap", "umap_3d", "dendro"]
 
 
 def get_vis(study, notation, distance, vis, from_slug, to_slug):
     net = []
     fig = {}
-    if vis == "network":
-        net = get_network(study, notation, distance, from_slug, to_slug)
+    if vis.startswith("spanner"):
+        net = get_network(study, notation, distance, from_slug, to_slug, method=vis)
+    elif vis == "mst":
+        net = get_network(study, notation, distance, from_slug, to_slug, method="mst")
     elif vis == "tsne":
         fig = get_scatter(study, notation, distance, from_slug, to_slug, method="tsne")
     elif vis == "umap":
