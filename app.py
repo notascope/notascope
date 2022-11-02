@@ -330,11 +330,11 @@ def cross_notation_figure(study, notation, distance, notation2, distance2, from_
         if len(fig.data) > 1:
             fig.data[1].marker.size = 10
     else:
-        mn = min(merged[x].min(), merged[y].min())
+        mn = 0  # min(merged[x].min(), merged[y].min())
         mx = max(merged[x].max(), merged[y].max())
         s = 0.1 * (mx - mn)
         mx += s
-        mn -= s
+        # mn -= s
         md = (mn + mx) / 2
         md = round(md)
         mx = round(mx)
@@ -343,15 +343,20 @@ def cross_notation_figure(study, notation, distance, notation2, distance2, from_
         fig = go.Figure(
             [
                 go.Scattercarpet(
-                    mode="markers", a=merged[x], b=merged[y], hovertext=merged["from_slug"], hoverinfo="none", hovertemplate="<extra></extra>"
+                    mode="markers",
+                    a=merged[x],
+                    b=merged[y],
+                    hovertext=merged["from_slug"],
+                    hoverinfo="none",
+                    hovertemplate="<extra></extra>",
                 ),
                 go.Carpet(
                     a=[mn, md, mx, mn, md, mx, mn, md, mx],
                     b=[mn, mn, mn, md, md, md, mx, mx, mx],
                     x=[0, -5, -10, 5, 0, -5, 10, 5, 0],
                     y=[0, 5, 10, 5, 10, 15, 10, 15, 20],
-                    aaxis=dict(title=x, gridcolor="lightgrey"),
-                    baxis=dict(title=y, gridcolor="lightgrey"),
+                    aaxis=dict(title=f"median {notation} {distance}", gridcolor="lightgrey"),
+                    baxis=dict(title=f"median {notation2} {distance2}", gridcolor="lightgrey"),
                 ),
             ]
         )
