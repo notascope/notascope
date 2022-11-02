@@ -1,10 +1,42 @@
 from itertools import permutations
-from ts_tokenize import get_tokens_for_file
 from difflib import SequenceMatcher
 from glob import glob
 import os
 import sys
 from src import slug_from_path
+from tree_sitter import Language, Parser
+
+basedir = "/Users/nicolas/ets/tree-sitter-parser"
+
+Language.build_library(
+    basedir + "/build/languages.so",
+    [basedir + "/tree-sitter-%s" % x for x in ["python", "javascript", "r"]],
+)
+langmap = dict(py="python", vl="javascript", json="javascript", js="javascript", R="r")
+
+
+def get_tokens_for_file(infilepath):
+    langname = langmap[infilepath.split(".")[-1]]
+    lang = Language(basedir + "/build/languages.so", langname)
+    parser = Parser()
+    parser.set_language(lang)
+    with open(infilepath, "r") as f:
+        tree = parser.parse(bytes(f.read(), "utf8"))
+
+    result = []
+
+    def recurse(c, level=0):
+        if c.node.type not in ["string", "identifier"] and c.goto_first_child():
+            recurse(c, level + 1)
+            while c.goto_next_sibling():
+                recurse(c, level + 1)
+            c.goto_parent()
+        else:
+            if c.node.type.strip() != "":
+                result.append((c.node.type, c.node.text.decode("utf-8")))
+
+    recurse(tree.walk())
+    return result
 
 
 inpath = sys.argv[1]
