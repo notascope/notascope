@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 
 from tree_sitter import Language, Parser
-import sys
-from src import slug_from_path
 
 basedir = "/Users/nicolas/ets/tree-sitter-parser"
 
 Language.build_library(
     basedir + "/build/languages.so",
-    [basedir + "/tree-sitter-%s" % l for l in ["python", "javascript", "r"]],
+    [basedir + "/tree-sitter-%s" % x for x in ["python", "javascript", "r"]],
 )
 langmap = dict(py="python", vl="javascript", json="javascript", js="javascript", R="r")
 
@@ -35,10 +33,3 @@ def get_tokens_for_file(infilepath):
 
     recurse(tree.walk())
     return result
-
-
-if __name__ == "__main__":
-    full_path = sys.argv[1]
-    _, study, notation, _, spec = full_path.split("/")
-    for token in get_tokens_for_file(full_path):
-        print("\t".join([study, notation, slug_from_path(spec), token[1]]))

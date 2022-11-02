@@ -25,6 +25,11 @@ def cost(from_slug, to_slug):
     return total_cost
 
 
+with open(f"results/{study}/{notation}/tokens.tsv", "w") as f:
+    for slug, tokens_list in tokens.items():
+        for token in tokens_list:
+            print("\t".join([study, notation, slug, token[1]]), file=f)
+
 with open(f"results/{study}/{notation}/difflib_costs.csv", "w") as f:
     for (from_slug, to_slug) in permutations(tokens, 2):
         print(",".join([study, notation, from_slug, to_slug, str(cost(from_slug, to_slug))]), file=f)

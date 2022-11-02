@@ -10,12 +10,6 @@ results/$(1)/$(2)/source/$(basename $(3)): studies/$(1)/$(2)/$(3)
 	@touch $$@
 base: results/$(1)/$(2)/source/$(basename $(3))
 
-results/$(1)/$(2)/tokens/$(basename $(3)).tsv: results/$(1)/$(2)/preproc/$(3)
-	@echo "[tokens]   $(1)/$(2): $(3)"
-	@mkdir -p $$(dir $$@)
-	@python ts_tokenize.py $$< > $$@
-results/tokens.tsv: results/$(1)/$(2)/tokens/$(basename $(3)).tsv
-
 results/$(1)/$(2)/img/$(basename $(3)): studies/$(1)/$(2)/$(3)
 	@echo "[img]      $(1)/$(2): $(3)"
 	@mkdir -p $$(dir $$@)
@@ -29,7 +23,7 @@ results/$(1)/$(2)/preproc/$(3): studies/$(1)/$(2)/$(3)
 	@mkdir -p $$(dir $$@)
 	@preprocessors/$(2).sh $$< $$@
 	@touch $$@
-results/$(1)/$(2)/difflib_costs.csv results/$(1)/$(2)/ncd_costs.csv: results/$(1)/$(2)/preproc/$(3)
+results/$(1)/$(2)/difflib_costs.csv results/$(1)/$(2)/ncd_costs.csv results/$(1)/$(2)/tokens.tsv: results/$(1)/$(2)/preproc/$(3)
 
 results/$(1)/$(2)/pretty/$(3): studies/$(1)/$(2)/$(3)
 	@echo "[pretty]   $(1)/$(2): $(3)"
@@ -43,11 +37,13 @@ endef
 define notation_rule # study, notation
 $(foreach spec, $(shell find studies/$(1)/$(2) -maxdepth 1 -type f ! -size 0 | sed -e 's,^.*/,,'), $(eval $(call spec_rule,$(1),$(2),$(spec))))
 
-results/$(1)/$(2)/difflib_costs.csv:
+results/$(1)/$(2)/difflib_costs.csv results/$(1)/$(2)/tokens.tsv:
 	@echo "[difflib]  $(1)/$(2)"
 	@mkdir -p $$(dir $$@)
 	@python batch_difflib.py results/$(1)/$(2)/preproc
+results/$(1)/$(2)/difflib_costs.csv: results/$(1)/$(2)/tokens.tsv
 results/difflib_costs.csv: results/$(1)/$(2)/difflib_costs.csv
+results/tokens.tsv: results/$(1)/$(2)/tokens.tsv
 
 
 results/$(1)/$(2)/ncd_costs.csv:
@@ -76,7 +72,7 @@ results/difflib_costs.csv:
 	@echo "[difflib]  global"
 	@mkdir -p $(dir $@)
 	@cat $+ > $@
-difflib: results/difflib_costs.csv
+base: results/difflib_costs.csv
 
 results/ncd_costs.csv:
 	@echo "[ncd]      global"
@@ -93,5 +89,5 @@ base: results/tokens.tsv
 clean:
 	rm -rf results
 
-base ncd difflib: app.py
+base ncd: app.py
 	touch app.py
