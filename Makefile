@@ -37,11 +37,11 @@ endef
 define notation_rule # study, notation
 $(foreach spec, $(shell find studies/$(1)/$(2) -maxdepth 1 -type f ! -size 0 | sed -e 's,^.*/,,'), $(eval $(call spec_rule,$(1),$(2),$(spec))))
 
-results/$(1)/$(2)/difflib_costs.csv results/$(1)/$(2)/tokens.tsv:
+results/$(1)/$(2)/difflib_costs.csv:
 	@echo "[difflib]  $(1)/$(2)"
 	@mkdir -p $$(dir $$@)
 	@python batch_difflib.py results/$(1)/$(2)/preproc
-results/$(1)/$(2)/difflib_costs.csv: results/$(1)/$(2)/tokens.tsv
+results/$(1)/$(2)/tokens.tsv: results/$(1)/$(2)/difflib_costs.csv
 results/difflib_costs.csv: results/$(1)/$(2)/difflib_costs.csv
 results/tokens.tsv: results/$(1)/$(2)/tokens.tsv
 

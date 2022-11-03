@@ -3,32 +3,25 @@
   "data": {
     "url": "data/movies.csv"
   },
-  "mark": "line",
-  "transform": [
-    {
-      "regression": "Worldwide Gross",
-      "on": "Production Budget",
-      "extent": [
-        0,
-        300000000
-      ],
-      "groupby": [
-        "MPAA Rating"
-      ]
-    }
-  ],
+  "mark": {
+    "type": "line",
+    "point": true
+  },
   "encoding": {
     "x": {
       "field": "Production Budget",
+      "aggregate": "sum",
       "type": "quantitative"
     },
     "y": {
       "field": "Worldwide Gross",
+      "aggregate": "sum",
       "type": "quantitative"
     },
-    "color": {
-      "field": "MPAA Rating",
-      "type": "nominal"
+    "order": {
+      "field": "Release Date",
+      "type": "temporal",
+      "timeUnit": "year"
     }
   }
 }

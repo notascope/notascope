@@ -1,0 +1,16 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "data": {
+    "url": "data/movies.csv"
+  },
+  "mark": "line",
+  "encoding": {
+    "x": {
+      "bin": true,
+      "field": "Production Budget"
+    },
+    "y": {
+      "aggregate": "count"
+    }
+  }
+}

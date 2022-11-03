@@ -1,0 +1,25 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "data": {
+    "url": "data/movies.csv"
+  },
+  "mark": "bar",
+  "encoding": {
+    "x": {
+      "bin": true,
+      "field": "Production Budget"
+    },
+    "y": {
+      "aggregate": "count"
+    },
+    "color": {
+      "field": "MPAA Rating",
+      "type": "nominal"
+    },
+    "facet": {
+      "field": "Major Genre",
+      "type": "nominal",
+      "columns": 5
+    }
+  }
+}

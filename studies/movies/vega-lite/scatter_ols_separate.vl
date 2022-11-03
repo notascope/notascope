@@ -3,29 +3,26 @@
   "data": {
     "url": "data/movies.csv"
   },
+  "encoding": {
+    "x": {
+      "field": "Production Budget",
+      "type": "quantitative"
+    },
+    "y": {
+      "field": "Worldwide Gross",
+      "type": "quantitative"
+    },
+    "color": {
+      "field": "MPAA Rating",
+      "type": "nominal"
+    }
+  },
   "layer": [
     {
-      "mark": "point",
-      "encoding": {
-        "x": {
-          "field": "Production Budget",
-          "type": "quantitative"
-        },
-        "y": {
-          "field": "Worldwide Gross",
-          "type": "quantitative"
-        },
-        "color": {
-          "field": "MPAA Rating",
-          "type": "nominal"
-        }
-      }
+      "mark": "point"
     },
     {
-      "mark": {
-        "type": "line",
-        "color": "firebrick"
-      },
+      "mark": "line",
       "transform": [
         {
           "regression": "Worldwide Gross",
@@ -38,21 +35,7 @@
             "MPAA Rating"
           ]
         }
-      ],
-      "encoding": {
-        "x": {
-          "field": "Production Budget",
-          "type": "quantitative"
-        },
-        "y": {
-          "field": "Worldwide Gross",
-          "type": "quantitative"
-        },
-        "color": {
-          "field": "MPAA Rating",
-          "type": "nominal"
-        }
-      }
+      ]
     }
   ]
 }

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "data": {
+    "url": "data/movies.csv"
+  },
+  "mark": "point",
+  "encoding": {
+    "y": {
+      "field": "Major Genre"
+    },
+    "x": {
+      "aggregate": "count"
+    }
+  }
+}

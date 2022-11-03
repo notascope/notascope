@@ -319,7 +319,7 @@ def cross_notation_figure(study, notation, distance, notation2, distance2, from_
         x += "_" + notation
         y += "_" + notation2
 
-    merged = merged.groupby("from_slug").median([x, y]).reset_index()
+    merged = merged.groupby("from_slug").mean([x, y]).reset_index()
     merged["selected"] = (merged["from_slug"] == from_slug) | (merged["from_slug"] == to_slug)
 
     if distance != distance2:
@@ -355,8 +355,8 @@ def cross_notation_figure(study, notation, distance, notation2, distance2, from_
                     b=[mn, mn, mn, md, md, md, mx, mx, mx],
                     x=[0, -5, -10, 5, 0, -5, 10, 5, 0],
                     y=[0, 5, 10, 5, 10, 15, 10, 15, 20],
-                    aaxis=dict(title=f"median {notation} {distance}", gridcolor="lightgrey"),
-                    baxis=dict(title=f"median {notation2} {distance2}", gridcolor="lightgrey"),
+                    aaxis=dict(title=f"mean {notation} {distance}", gridcolor="lightgrey"),
+                    baxis=dict(title=f"mean {notation2} {distance2}", gridcolor="lightgrey"),
                 ),
             ]
         )
