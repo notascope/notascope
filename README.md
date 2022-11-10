@@ -1,6 +1,6 @@
 ## NotaScope
 
-TODO update me
+TODO update me some more
 
 ### Installation
 
