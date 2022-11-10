@@ -1,5 +1,7 @@
 ## NotaScope
 
+TODO update me
+
 ### Installation
 
 - Python 3.9+
