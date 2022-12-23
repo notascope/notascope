@@ -177,10 +177,6 @@ def update_content(hashpath):
     study, notation, distance, vis, notation2, distance2_in, vis2_in, from_slug, to_slug = parse_hashpath(hashpath)
     distance2 = distance2_in or distance
     vis2 = vis2_in or vis
-    cmp, net, fig = details_view(study, notation, distance, vis, from_slug, to_slug)
-    cmp2, net2, fig2 = None, [], {}
-    if notation2:
-        cmp2, net2, fig2 = details_view(study, notation2, distance2, vis2, from_slug, to_slug)
 
     notations = [dict(label=f"{s} ({results[study][s]['tokens']})", value=s) for s in results[study]]
 
@@ -263,20 +259,34 @@ def update_content(hashpath):
         )
 
     blocks.append(
-        html.Div(html.Details([html.Summary(notation + " " + vis), network_or_figure(net, fig, "1")], open=True)),
+        html.Div(
+            html.Details(
+                [
+                    html.Summary(notation + " " + vis),
+                    network_or_figure(study, notation, distance, vis, from_slug, to_slug, "1"),
+                ],
+                open=True,
+            )
+        ),
     )
 
-    if net2 or fig2:
+    if notation2:
         blocks.append(
             html.Div(
-                html.Details([html.Summary(notation2 + " " + vis2, style=dict(textAlign="right")), network_or_figure(net2, fig2, "2")], open=True)
+                html.Details(
+                    [
+                        html.Summary(notation2 + " " + vis2, style=dict(textAlign="right")),
+                        network_or_figure(study, notation2, distance2, vis2, from_slug, to_slug, "2"),
+                    ],
+                    open=True,
+                )
             )
         )
 
-    blocks.append(html.Div(cmp, className="comparison"))
+    blocks.append(details_view(study, notation, distance, from_slug, to_slug))
 
-    if cmp2 and (distance != distance2 or notation != notation2):
-        blocks.append(html.Div(cmp2, className="comparison"))
+    if notation2 and (distance != distance2 or notation != notation2):
+        blocks.append(details_view(study, notation2, distance2, from_slug, to_slug))
 
     return html.Div(className="wrapper", children=blocks)
 
@@ -351,11 +361,12 @@ def cross_notation_figure(study, notation, distance, notation2, distance2, from_
     return fig
 
 
-def network_or_figure(net, fig, suffix):
+def network_or_figure(study, notation, distance, vis, from_slug, to_slug, suffix):
+    net, fig = get_vis(study, notation, distance, vis, from_slug, to_slug)
     if net:
-        return html.Div(cytoscape(dict(type="network", suffix=suffix), net))
+        return cytoscape(dict(type="network", suffix=suffix), net)
     if fig:
-        return html.Div(figure(dict(type="figure", suffix=suffix), fig))
+        return figure(dict(type="figure", suffix=suffix), fig)
 
 
 def figure(id, fig):
@@ -511,10 +522,8 @@ def get_token_info(study, notation, slug):
     return df.values, len(df), df.nunique()
 
 
-def details_view(study, notation, distance, vis, from_slug, to_slug):
+def details_view(study, notation, distance, from_slug, to_slug):
     cmp = None
-    net, fig = get_vis(study, notation, distance, vis, from_slug, to_slug)
-
     try:
         from_tokens, from_tokens_n, from_tokens_nunique = get_token_info(study, notation, from_slug)
         if from_slug != to_slug:
@@ -543,14 +552,13 @@ def details_view(study, notation, distance, vis, from_slug, to_slug):
             cmp = [html.Table([html.Tr([td1, td2, td3])], style=dict(width="100%", height="300px"))]
             cmp += [diff_view(study, notation, from_slug, to_slug)]
         elif from_slug != "":
-            _, from_tokens_n, from_tokens_nunique = get_token_info(study, notation, from_slug)
             cmp = header_and_image(study, notation, from_slug, from_tokens_n, from_tokens_nunique)
             cmp += [single_view(study, notation, from_slug)]
 
     except Exception as e:
         print(repr(e))
 
-    return (cmp, net, fig)
+    return html.Div(cmp, className="comparison")
 
 
 # if/when there is a PNG notation, just inline the imgext dict in the string or in the ID dict
@@ -566,7 +574,7 @@ app.clientside_callback(
         study=pieces[1];
         notation=pieces[2]
         if(trig[0].prop_id.includes('2')) {
-            notation=pieces[5]
+            notation=pieces[5] // pack this into the id?
         }
         slug = pt["hovertext"]
         return [true,
