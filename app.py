@@ -5,7 +5,7 @@ from collections import Counter
 from datetime import datetime
 
 # plotly
-from dash import Dash, html, dcc, Input, Output, State, callback_context
+from dash import Dash, html, dcc, Input, Output, State, callback_context, ALL
 from dash_extensions import EventListener
 import dash_cytoscape as cyto
 from notascope_components import DashDiff
@@ -123,10 +123,8 @@ def sanitize_state(study="", notation="", distance="", vis="", notation2="", dis
 
 @app.callback(
     Output("location", "hash"),
-    Output("network", "tapNodeData"),
-    Output("network", "tapEdgeData"),
-    Output("network2", "tapNodeData"),
-    Output("network2", "tapEdgeData"),
+    Output(dict(type="network", suffix=ALL), "tapNodeData"),
+    Output(dict(type="network", suffix=ALL), "tapEdgeData"),
     Input("selection", "data"),
     Input("study", "value"),
     Input("notation", "value"),
@@ -135,67 +133,40 @@ def sanitize_state(study="", notation="", distance="", vis="", notation2="", dis
     Input("distance2", "value"),
     Input("vis", "value"),
     Input("vis2", "value"),
-    Input("network", "tapNodeData"),
-    Input("network", "tapEdgeData"),
-    Input("figure", "clickData"),
-    Input("network2", "tapNodeData"),
-    Input("network2", "tapEdgeData"),
-    Input("figure2", "clickData"),
-    Input("crossfig", "clickData"),
+    Input(dict(type="network", suffix=ALL), "tapNodeData"),
+    Input(dict(type="network", suffix=ALL), "tapEdgeData"),
+    Input(dict(type="figure", suffix=ALL), "clickData"),
     State("event_listener", "event"),
 )
-def update_hashpath(
-    selection,
-    study,
-    notation,
-    notation2,
-    distance,
-    distance2,
-    vis,
-    vis2,
-    node_data,
-    edge_data,
-    fig_data,
-    node_data2,
-    edge_data2,
-    fig_data2,
-    crossfig_data,
-    event,
-):
+def update_hashpath(selection, study, notation, notation2, distance, distance2, vis, vis2, node_data, edge_data, _, event):
     shift_down = bool((dict(shiftKey=False) if not event else event)["shiftKey"])
-    ctx = callback_context
     from_slug, to_slug = selection
-    if ctx.triggered:
-        trig_id, trig_type = ctx.triggered[0]["prop_id"].split(".")
+    if callback_context.triggered:
+        trig_prop = callback_context.triggered[0]["prop_id"]
+        data = callback_context.triggered[0]["value"]
 
-        if trig_type == "clickData":
-            for id, data in [["figure", fig_data], ["figure2", fig_data2], ["crossfig", crossfig_data]]:
-                if trig_id == id:
-                    to_slug = data["points"][0]["hovertext"]
-                    if from_slug == to_slug:
-                        from_slug = to_slug = ""
-                    elif not shift_down:
-                        from_slug = to_slug
+        if trig_prop.endswith("tapEdgeData"):
+            from_slug = data["source"]
+            to_slug = data["target"]
+            node_data = [None] * len(node_data)
 
-        if trig_type == "tapNodeData":
-            for id, data in [["network", node_data], ["network2", node_data2]]:
-                if trig_id == id:
-                    to_slug = data["id"]
-                    if from_slug == to_slug:
-                        from_slug = to_slug = ""
-                    elif not shift_down:
-                        from_slug = to_slug
-            edge_data = None
-            edge_data2 = None
-        if trig_type == "tapEdgeData":
-            for id, data in [["network", edge_data], ["network2", edge_data2]]:
-                if trig_id == id:
-                    from_slug = data["source"]
-                    to_slug = data["target"]
-            node_data = None
-            node_data2 = None
+        if trig_prop.endswith("clickData"):
+            to_slug = data["points"][0]["hovertext"]
+            if from_slug == to_slug:
+                from_slug = to_slug = ""
+            elif not shift_down:
+                from_slug = to_slug
+
+        if trig_prop.endswith("tapNodeData"):
+            to_slug = data["id"]
+            edge_data = [None] * len(edge_data)
+            if from_slug == to_slug:
+                from_slug = to_slug = ""
+            elif not shift_down:
+                from_slug = to_slug
+
     hashpath = "#/" + "/".join(sanitize_state(study, notation, distance, vis, notation2, distance2, vis2, from_slug, to_slug))
-    return hashpath, node_data, edge_data, node_data2, edge_data2
+    return hashpath, node_data, edge_data
 
 
 @app.callback(
@@ -208,27 +179,16 @@ def update_content(hashpath):
     vis2 = vis2_in or vis
     cmp, net, fig = details_view(study, notation, distance, vis, from_slug, to_slug)
     cross_fig = {}
-    cross_style = dict(display="none")
     if notation2:
         style = dict()
         style2 = dict(gridColumnStart=2, display="block")
         cmp2, net2, fig2 = details_view(study, notation2, distance2, vis2, from_slug, to_slug)
         if (notation != notation2 and distance == distance2) or (notation == notation2 and distance != distance2):
-            cross_style = dict(gridColumn="1/3")
             cross_fig = cross_notation_figure(study, notation, distance, notation2, distance2, from_slug, to_slug)
     else:
         style = dict(gridRowStart=2)
         style2 = dict(display="none", gridRowStart=3)
-        cross_style = dict(display="none")
-        cmp2, net2, fig2, cross_fig = None, [], {}, {}
-
-    if distance == distance2:
-        if notation == notation2:
-            cmp2 = None
-
-    style_mod = dict()
-    if not notation2:
-        style_mod["display"] = "none"
+        cmp2, net2, fig2 = None, [], {}
 
     notations = [dict(label=f"{s} ({results[study][s]['tokens']})", value=s) for s in results[study]]
 
@@ -269,7 +229,12 @@ def update_content(hashpath):
                     ),
                     html.Div(
                         dcc.Dropdown(
-                            id="vis2", value=vis2_in, options=vis_types, clearable=True, style=dict(width="150px", **style_mod), placeholder=vis2
+                            id="vis2",
+                            value=vis2_in,
+                            options=vis_types,
+                            clearable=True,
+                            style=dict(width="150px", **({} if notation2 else {"display": "none"})),
+                            placeholder=vis2,
                         ),
                         style=dict(display="inline-block"),
                     ),
@@ -279,7 +244,7 @@ def update_content(hashpath):
                             value=distance2_in,
                             options=distance_types,
                             clearable=True,
-                            style=dict(width="100px", **style_mod),
+                            style=dict(width="100px", **({} if notation2 else {"display": "none"})),
                             placeholder=distance2,
                         ),
                         style=dict(display="inline-block"),
@@ -291,19 +256,26 @@ def update_content(hashpath):
                 html.Details(
                     [
                         html.Summary("cross-notation"),
-                        dcc.Graph(id="crossfig", figure=cross_fig, style=dict(width="500px", margin="0 auto"), clear_on_unhover=True),
+                        dcc.Graph(
+                            id=dict(type="figure", suffix="cross"),
+                            figure=cross_fig,
+                            style=dict(width="500px", margin="0 auto"),
+                            clear_on_unhover=True,
+                        ),
                     ],
                     open=True,
                 ),
-                style=cross_style,
-            ),
-            html.Div(html.Details([html.Summary(notation + " " + vis), *network_or_figure(net, fig, "")], open=True), style=style),
+                style=dict(gridColumn="1/3"),
+            )
+            if cross_fig
+            else None,
+            html.Div(html.Details([html.Summary(notation + " " + vis), network_or_figure(net, fig, "1")], open=True), style=style),
             html.Div(
-                html.Details([html.Summary(notation2 + " " + vis2, style=dict(textAlign="right")), *network_or_figure(net2, fig2, "2")], open=True),
+                html.Details([html.Summary(notation2 + " " + vis2, style=dict(textAlign="right")), network_or_figure(net2, fig2, "2")], open=True),
                 style=style2,
             ),
             html.Div(cmp, className="comparison"),
-            html.Div(cmp2, className="comparison"),
+            html.Div(cmp2, className="comparison") if distance != distance2 or notation != notation2 else None,
             dcc.Store(id="selection", data=[from_slug, to_slug]),
         ],
     )
@@ -355,8 +327,8 @@ def cross_notation_figure(study, notation, distance, notation2, distance2, from_
                     b=[mn, mn, mn, md, md, md, mx, mx, mx],
                     x=[0, -5, -10, 5, 0, -5, 10, 5, 0],
                     y=[0, 5, 10, 5, 10, 15, 10, 15, 20],
-                    aaxis=dict(title=f"mean {notation} {distance}", gridcolor="lightgrey"),
-                    baxis=dict(title=f"mean {notation2} {distance2}", gridcolor="lightgrey"),
+                    aaxis=dict(title=f"{notation} {distance} eccentricity", gridcolor="lightgrey"),
+                    baxis=dict(title=f"{notation2} {distance2} eccentricity", gridcolor="lightgrey"),
                 ),
             ]
         )
@@ -379,15 +351,11 @@ def cross_notation_figure(study, notation, distance, notation2, distance2, from_
     return fig
 
 
-def hide_if_none(thing):
-    return dict(border="1px solid lightgrey") if thing else dict(display="none")
-
-
 def network_or_figure(net, fig, suffix):
-    return [
-        html.Div(cytoscape("network" + suffix, net), style=hide_if_none(net)),
-        html.Div(figure("figure" + suffix, fig), style=hide_if_none(fig)),
-    ]
+    if net:
+        return html.Div(cytoscape(dict(type="network", suffix=suffix), net))
+    if fig:
+        return html.Div(figure(dict(type="figure", suffix=suffix), fig))
 
 
 def figure(id, fig):
@@ -585,40 +553,33 @@ def details_view(study, notation, distance, vis, from_slug, to_slug):
     return (cmp, net, fig)
 
 
-# if/when there is a PNG notation, just inline the imgext dict in the string
+# if/when there is a PNG notation, just inline the imgext dict in the string or in the ID dict
 app.clientside_callback(
     """
-    function(hoverData, hoverData2, hoverDataCross) {
-        if(!hoverData && !hoverData2 && !hoverDataCross) {
+    function(ignore) {
+        trig = window.dash_clientside.callback_context.triggered
+        pt = trig.length > 0 && trig[0].value &&  trig[0].value["points"][0]
+        if(!pt){
             return [false, null, null, null];
         }
         pieces = window.location.hash.split("/");
         study=pieces[1];
-        if(hoverData) {
-            notation=pieces[2]
+        notation=pieces[2]
+        if(trig[0].prop_id.includes('2')) {
+            notation=pieces[5]
         }
-        if(hoverData2) {
-            hoverData = hoverData2;
-            notation=pieces[5];
-        }
-        if(hoverDataCross) {
-            hoverData = hoverDataCross;
-            notation=pieces[2];
-        }
-        pt = hoverData["points"][0];
-        bbox = pt["bbox"]
         slug = pt["hovertext"]
-        return [true, bbox, "/assets/results/"+study+"/"+notation+"/img/"+slug+".svg", slug]
+        return [true,
+                pt["bbox"],
+                "/assets/results/"+study+"/"+notation+"/img/"+slug+".svg",
+                slug]
     }
     """,
     Output("tooltip", "show"),
     Output("tooltip", "bbox"),
     Output("tt_img", "src"),
     Output("tt_name", "children"),
-    Input("figure", "hoverData"),
-    Input("figure2", "hoverData"),
-    Input("crossfig", "hoverData"),
-    prevent_initial_call=True,
+    Input(dict(type="figure", suffix=ALL), "hoverData"),
 )
 
 
