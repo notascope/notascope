@@ -178,87 +178,80 @@ def update_content(hashpath):
     distance2 = distance2_in or distance
     vis2 = vis2_in or vis
     cmp, net, fig = details_view(study, notation, distance, vis, from_slug, to_slug)
-    cross_fig = {}
+    cmp2, net2, fig2 = None, [], {}
     if notation2:
-        style = dict()
-        style2 = dict(gridColumnStart=2, display="block")
         cmp2, net2, fig2 = details_view(study, notation2, distance2, vis2, from_slug, to_slug)
-        if (notation != notation2 and distance == distance2) or (notation == notation2 and distance != distance2):
-            cross_fig = cross_notation_figure(study, notation, distance, notation2, distance2, from_slug, to_slug)
-    else:
-        style = dict(gridRowStart=2)
-        style2 = dict(display="none", gridRowStart=3)
-        cmp2, net2, fig2 = None, [], {}
 
     notations = [dict(label=f"{s} ({results[study][s]['tokens']})", value=s) for s in results[study]]
 
-    return html.Div(
-        className="wrapper",
-        children=[
-            html.Div(
-                [
-                    dcc.Dropdown(id="study", value=study, options=[s for s in results], clearable=False, style=dict(width="100px")),
-                    html.A("table", href=f"/assets/results/{study}/summary.html", target="_blank"),
-                ],
-                style=dict(position="absolute", left=10, top=10),
-            ),
-            html.Div(
-                [
-                    html.Div(
-                        dcc.Dropdown(id="notation", value=notation, options=notations, clearable=False, className="dropdown"),
-                        style=dict(display="inline-block"),
+    blocks = [
+        html.Div(
+            [
+                dcc.Dropdown(id="study", value=study, options=[s for s in results], clearable=False, style=dict(width="100px")),
+                html.A("table", href=f"/assets/results/{study}/summary.html", target="_blank"),
+            ],
+            style=dict(position="absolute", left=10, top=10),
+        ),
+        html.Div(
+            [
+                html.Div(
+                    dcc.Dropdown(id="notation", value=notation, options=notations, clearable=False, className="dropdown"),
+                    style=dict(display="inline-block"),
+                ),
+                html.Div(
+                    dcc.Dropdown(id="vis", value=vis, options=vis_types, clearable=False, style=dict(width="150px")),
+                    style=dict(display="inline-block"),
+                ),
+                html.Div(
+                    dcc.Dropdown(id="distance", value=distance, options=distance_types, clearable=False, style=dict(width="100px")),
+                    style=dict(display="inline-block"),
+                ),
+            ],
+            style=dict(margin="0 auto"),
+        ),
+        html.Div(
+            [
+                html.Div(
+                    dcc.Dropdown(id="notation2", value=notation2, options=notations, clearable=True, className="dropdown", placeholder="Compare..."),
+                    style=dict(display="inline-block"),
+                ),
+                html.Div(
+                    dcc.Dropdown(
+                        id="vis2",
+                        value=vis2_in,
+                        options=vis_types,
+                        clearable=True,
+                        style=dict(width="150px", **({} if notation2 else {"display": "none"})),
+                        placeholder=vis2,
                     ),
-                    html.Div(
-                        dcc.Dropdown(id="vis", value=vis, options=vis_types, clearable=False, style=dict(width="150px")),
-                        style=dict(display="inline-block"),
+                    style=dict(display="inline-block"),
+                ),
+                html.Div(
+                    dcc.Dropdown(
+                        id="distance2",
+                        value=distance2_in,
+                        options=distance_types,
+                        clearable=True,
+                        style=dict(width="100px", **({} if notation2 else {"display": "none"})),
+                        placeholder=distance2,
                     ),
-                    html.Div(
-                        dcc.Dropdown(id="distance", value=distance, options=distance_types, clearable=False, style=dict(width="100px")),
-                        style=dict(display="inline-block"),
-                    ),
-                ],
-                style=dict(margin="0 auto"),
-            ),
-            html.Div(
-                [
-                    html.Div(
-                        dcc.Dropdown(
-                            id="notation2", value=notation2, options=notations, clearable=True, className="dropdown", placeholder="Compare..."
-                        ),
-                        style=dict(display="inline-block"),
-                    ),
-                    html.Div(
-                        dcc.Dropdown(
-                            id="vis2",
-                            value=vis2_in,
-                            options=vis_types,
-                            clearable=True,
-                            style=dict(width="150px", **({} if notation2 else {"display": "none"})),
-                            placeholder=vis2,
-                        ),
-                        style=dict(display="inline-block"),
-                    ),
-                    html.Div(
-                        dcc.Dropdown(
-                            id="distance2",
-                            value=distance2_in,
-                            options=distance_types,
-                            clearable=True,
-                            style=dict(width="100px", **({} if notation2 else {"display": "none"})),
-                            placeholder=distance2,
-                        ),
-                        style=dict(display="inline-block"),
-                    ),
-                ],
-                style=dict(margin="0 auto"),
-            ),
+                    style=dict(display="inline-block"),
+                ),
+            ],
+            style=dict(margin="0 auto"),
+        ),
+        dcc.Store(id="selection", data=[from_slug, to_slug]),
+    ]
+
+    if notation2 and ((notation != notation2 and distance == distance2) or (notation == notation2 and distance != distance2)):
+        blocks.append(
             html.Div(
                 html.Details(
                     [
                         html.Summary("cross-notation"),
                         dcc.Graph(
                             id=dict(type="figure", suffix="cross"),
-                            figure=cross_fig,
+                            figure=cross_notation_figure(study, notation, distance, notation2, distance2, from_slug, to_slug),
                             style=dict(width="500px", margin="0 auto"),
                             clear_on_unhover=True,
                         ),
@@ -267,18 +260,25 @@ def update_content(hashpath):
                 ),
                 style=dict(gridColumn="1/3"),
             )
-            if cross_fig
-            else None,
-            html.Div(html.Details([html.Summary(notation + " " + vis), network_or_figure(net, fig, "1")], open=True), style=style),
-            html.Div(
-                html.Details([html.Summary(notation2 + " " + vis2, style=dict(textAlign="right")), network_or_figure(net2, fig2, "2")], open=True),
-                style=style2,
-            ),
-            html.Div(cmp, className="comparison"),
-            html.Div(cmp2, className="comparison") if distance != distance2 or notation != notation2 else None,
-            dcc.Store(id="selection", data=[from_slug, to_slug]),
-        ],
+        )
+
+    blocks.append(
+        html.Div(html.Details([html.Summary(notation + " " + vis), network_or_figure(net, fig, "1")], open=True)),
     )
+
+    if net2 or fig2:
+        blocks.append(
+            html.Div(
+                html.Details([html.Summary(notation2 + " " + vis2, style=dict(textAlign="right")), network_or_figure(net2, fig2, "2")], open=True)
+            )
+        )
+
+    blocks.append(html.Div(cmp, className="comparison"))
+
+    if cmp2 and (distance != distance2 or notation != notation2):
+        blocks.append(html.Div(cmp2, className="comparison"))
+
+    return html.Div(className="wrapper", children=blocks)
 
 
 def cross_notation_figure(study, notation, distance, notation2, distance2, from_slug, to_slug):
