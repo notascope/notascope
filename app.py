@@ -183,23 +183,32 @@ def update_content(hashpath):
     blocks = [
         html.Div(
             [
-                dcc.Dropdown(id="study", value=study, options=[s for s in results], clearable=False, style=dict(width="100px")),
-                html.A("table", href=f"/assets/results/{study}/summary.html", target="_blank"),
-            ],
-            style=dict(position="absolute", left=10, top=10),
-        ),
-        html.Div(
-            [
                 html.Div(
-                    dcc.Dropdown(id="notation", value=notation, options=notations, clearable=False, className="dropdown"),
+                    [
+                        html.Span("gallery"),
+                        dcc.Dropdown(id="study", value=study, options=[s for s in results], clearable=False, style=dict(width="100px")),
+                    ],
                     style=dict(display="inline-block"),
                 ),
                 html.Div(
-                    dcc.Dropdown(id="vis", value=vis, options=vis_types, clearable=False, style=dict(width="150px")),
+                    [
+                        html.Span("notation"),
+                        dcc.Dropdown(id="notation", value=notation, options=notations, clearable=False, className="dropdown"),
+                    ],
                     style=dict(display="inline-block"),
                 ),
                 html.Div(
-                    dcc.Dropdown(id="distance", value=distance, options=distance_types, clearable=False, style=dict(width="100px")),
+                    [
+                        html.Span("visualization"),
+                        dcc.Dropdown(id="vis", value=vis, options=vis_types, clearable=False, style=dict(width="150px")),
+                    ],
+                    style=dict(display="inline-block"),
+                ),
+                html.Div(
+                    [
+                        html.Span("distance"),
+                        dcc.Dropdown(id="distance", value=distance, options=distance_types, clearable=False, style=dict(width="100px")),
+                    ],
                     style=dict(display="inline-block"),
                 ),
             ],
@@ -208,30 +217,41 @@ def update_content(hashpath):
         html.Div(
             [
                 html.Div(
-                    dcc.Dropdown(id="notation2", value=notation2, options=notations, clearable=True, className="dropdown", placeholder="Compare..."),
+                    [
+                        html.Span("notation"),
+                        dcc.Dropdown(
+                            id="notation2", value=notation2, options=notations, clearable=True, className="dropdown", placeholder="Compare..."
+                        ),
+                    ],
                     style=dict(display="inline-block"),
                 ),
                 html.Div(
-                    dcc.Dropdown(
-                        id="vis2",
-                        value=vis2_in,
-                        options=vis_types,
-                        clearable=True,
-                        style=dict(width="150px", **({} if notation2 else {"display": "none"})),
-                        placeholder=vis2,
-                    ),
-                    style=dict(display="inline-block"),
+                    [
+                        html.Span("visualization"),
+                        dcc.Dropdown(
+                            id="vis2",
+                            value=vis2_in,
+                            options=vis_types,
+                            clearable=True,
+                            style=dict(width="150px"),
+                            placeholder=vis2,
+                        ),
+                    ],
+                    style=dict(display="inline-block" if notation2 else "none"),
                 ),
                 html.Div(
-                    dcc.Dropdown(
-                        id="distance2",
-                        value=distance2_in,
-                        options=distance_types,
-                        clearable=True,
-                        style=dict(width="100px", **({} if notation2 else {"display": "none"})),
-                        placeholder=distance2,
-                    ),
-                    style=dict(display="inline-block"),
+                    [
+                        html.Span("distance"),
+                        dcc.Dropdown(
+                            id="distance2",
+                            value=distance2_in,
+                            options=distance_types,
+                            clearable=True,
+                            style=dict(width="100px"),
+                            placeholder=distance2,
+                        ),
+                    ],
+                    style=dict(display="inline-block" if notation2 else "none"),
                 ),
             ],
             style=dict(margin="0 auto"),
@@ -468,7 +488,7 @@ def diff_view(study, notation, from_slug, to_slug):
             to_code = f.read()
     return html.Div(
         [html.Div([DashDiff(oldCode=from_code, newCode=to_code)], style=dict(border="none"))],
-        style=dict(marginTop="20px", textAlign="left", height="300px", maxWidth="48vw", overflow="scroll", border="1px solid grey"),
+        style=dict(marginTop="20px", textAlign="left", height="300px", maxWidth="48vw", border="1px solid grey"),
     )
 
 
@@ -514,7 +534,7 @@ def single_view(study, notation, slug):
         else:
             buffer += c
             pointer = pointer[c]
-    return DangerouslySetInnerHTML("<pre align='left' style='overflow-x: scroll; width: 45vw'>" + out_text + "</pre>")
+    return DangerouslySetInnerHTML("<pre align='left' style='width: 45vw'>" + out_text + "</pre>")
 
 
 def get_token_info(study, notation, slug):
