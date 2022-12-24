@@ -9,20 +9,19 @@ vis_types = ["mst", "spanner-1", "spanner-1.1", "spanner-1.2", "spanner-1.5", "t
 
 
 def get_vis(study, notation, distance, vis, from_slug, to_slug):
-    net = []
-    fig = {}
+    vis_list = []
     if vis.startswith("spanner"):
-        net = get_network(study, notation, distance, from_slug, to_slug, method=vis)
+        vis_list.append(get_network(study, notation, distance, from_slug, to_slug, method=vis))
     elif vis == "mst":
-        net = get_network(study, notation, distance, from_slug, to_slug, method="mst")
+        vis_list.append(get_network(study, notation, distance, from_slug, to_slug, method="mst"))
     elif vis == "tsne":
-        fig = get_scatter(study, notation, distance, from_slug, to_slug, method="tsne")
+        vis_list.append(get_scatter(study, notation, distance, from_slug, to_slug, method="tsne"))
     elif vis == "umap":
-        fig = get_scatter(study, notation, distance, from_slug, to_slug, method="umap")
+        vis_list.append(get_scatter(study, notation, distance, from_slug, to_slug, method="umap"))
     elif vis == "umap_3d":
-        fig = get_scatter3d(study, notation, distance, from_slug, to_slug, method="umap")
+        vis_list.append(get_scatter3d(study, notation, distance, from_slug, to_slug, method="umap"))
     elif vis == "dendro":
-        fig = get_dendro(study, notation, distance, from_slug, to_slug)
+        vis_list.append(get_dendro(study, notation, distance, from_slug, to_slug))
     else:
         raise Exception("invalid vis")
-    return net, fig
+    return vis_list

@@ -123,8 +123,8 @@ def sanitize_state(study="", notation="", distance="", vis="", notation2="", dis
 
 @app.callback(
     Output("location", "hash"),
-    Output(dict(type="network", suffix=ALL), "tapNodeData"),
-    Output(dict(type="network", suffix=ALL), "tapEdgeData"),
+    Output(dict(type="network", suffix=ALL, seq=ALL), "tapNodeData"),
+    Output(dict(type="network", suffix=ALL, seq=ALL), "tapEdgeData"),
     Input("selection", "data"),
     Input("study", "value"),
     Input("notation", "value"),
@@ -133,9 +133,9 @@ def sanitize_state(study="", notation="", distance="", vis="", notation2="", dis
     Input("distance2", "value"),
     Input("vis", "value"),
     Input("vis2", "value"),
-    Input(dict(type="network", suffix=ALL), "tapNodeData"),
-    Input(dict(type="network", suffix=ALL), "tapEdgeData"),
-    Input(dict(type="figure", suffix=ALL), "clickData"),
+    Input(dict(type="network", suffix=ALL, seq=ALL), "tapNodeData"),
+    Input(dict(type="network", suffix=ALL, seq=ALL), "tapEdgeData"),
+    Input(dict(type="figure", suffix=ALL, seq=ALL), "clickData"),
     State("event_listener", "event"),
 )
 def update_hashpath(selection, study, notation, notation2, distance, distance2, vis, vis2, node_data, edge_data, _, event):
@@ -193,7 +193,7 @@ def update_content(hashpath):
                 html.Div(
                     [
                         html.Span("notation"),
-                        dcc.Dropdown(id="notation", value=notation, options=notations, clearable=False, className="dropdown"),
+                        dcc.Dropdown(id="notation", value=notation, options=notations, clearable=False, style=dict(width="175px")),
                     ],
                     style=dict(display="inline-block"),
                 ),
@@ -220,7 +220,7 @@ def update_content(hashpath):
                     [
                         html.Span("notation"),
                         dcc.Dropdown(
-                            id="notation2", value=notation2, options=notations, clearable=True, className="dropdown", placeholder="Compare..."
+                            id="notation2", value=notation2, options=notations, clearable=True, style=dict(width="175px"), placeholder="Compare..."
                         ),
                     ],
                     style=dict(display="inline-block"),
@@ -266,13 +266,14 @@ def update_content(hashpath):
                     [
                         html.Summary("cross-notation"),
                         dcc.Graph(
-                            id=dict(type="figure", suffix="cross"),
+                            id=dict(type="figure", suffix="cross", seq="1"),
                             figure=cross_notation_figure(study, notation, distance, notation2, distance2, from_slug, to_slug),
                             style=dict(width="500px", margin="0 auto"),
                             clear_on_unhover=True,
                         ),
                     ],
                     open=True,
+                    style=dict(width="800px", margin="0 auto"),
                 ),
                 style=dict(gridColumn="1/3"),
             )
@@ -281,10 +282,7 @@ def update_content(hashpath):
     blocks.append(
         html.Div(
             html.Details(
-                [
-                    html.Summary(notation + " " + vis),
-                    network_or_figure(study, notation, distance, vis, from_slug, to_slug, "1"),
-                ],
+                [html.Summary(notation + " " + vis)] + wrap_vis(study, notation, distance, vis, from_slug, to_slug, "1"),
                 open=True,
             )
         ),
@@ -294,10 +292,7 @@ def update_content(hashpath):
         blocks.append(
             html.Div(
                 html.Details(
-                    [
-                        html.Summary(notation2 + " " + vis2, style=dict(textAlign="right")),
-                        network_or_figure(study, notation2, distance2, vis2, from_slug, to_slug, "2"),
-                    ],
+                    [html.Summary(notation2 + " " + vis2)] + wrap_vis(study, notation2, distance2, vis2, from_slug, to_slug, "2"),
                     open=True,
                 )
             )
@@ -381,12 +376,14 @@ def cross_notation_figure(study, notation, distance, notation2, distance2, from_
     return fig
 
 
-def network_or_figure(study, notation, distance, vis, from_slug, to_slug, suffix):
-    net, fig = get_vis(study, notation, distance, vis, from_slug, to_slug)
-    if net:
-        return cytoscape(dict(type="network", suffix=suffix), net)
-    if fig:
-        return figure(dict(type="figure", suffix=suffix), fig)
+def wrap_vis(study, notation, distance, vis, from_slug, to_slug, suffix):
+    vis_list = []
+    for i, vis in enumerate(get_vis(study, notation, distance, vis, from_slug, to_slug)):
+        if isinstance(vis, go.Figure):
+            vis_list.append(figure(dict(type="figure", suffix=suffix, seq=str(i)), vis))
+        else:
+            vis_list.append(cytoscape(dict(type="network", suffix=suffix, seq=str(i)), vis))
+    return vis_list
 
 
 def figure(id, fig):
@@ -607,7 +604,7 @@ app.clientside_callback(
     Output("tooltip", "bbox"),
     Output("tt_img", "src"),
     Output("tt_name", "children"),
-    Input(dict(type="figure", suffix=ALL), "hoverData"),
+    Input(dict(type="figure", suffix=ALL, seq=ALL), "hoverData"),
 )
 
 

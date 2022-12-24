@@ -14,16 +14,17 @@ body {
   margin: 0 20px;
 }
 
-.crossNotation {
-  grid-column: 1/3;
-}
-
-.dropdown {
-  width: 175px;
-}
-
 pre {
   font-size: 11px;
   font-family: Menlo, Monaco, Consolas;
   line-height: 1.5 !important;
+}
+
+details {
+  border: 1px solid lightgrey;
+  border-radius: 5px;
+}
+
+summary {
+  text-align: center;
 }
