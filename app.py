@@ -1,8 +1,8 @@
 # builtins
 from functools import cache
-import re
-from collections import Counter
+from collections import defaultdict, Counter
 from datetime import datetime
+from operator import itemgetter
 
 # plotly
 from dash import Dash, html, dcc, Input, Output, State, callback_context, ALL
@@ -72,53 +72,55 @@ app.layout = html.Div(
 
 
 def parse_hashpath(hashpath):
-    m = re.match("#" + "/(.*)" * 9, hashpath)
-    if m:
-        return sanitize_state(*m.groups())
-    else:
-        return sanitize_state()
+    return sanitize_state({k: v for k, v in [x.split(":") for x in hashpath[2:].split("/") if ":" in x]})
 
 
-def sanitize_state(study="", notation="", distance="", vis="", notation2="", distance2="", vis2="", from_slug="", to_slug=""):
-    if vis not in vis_types:
-        vis = vis_types[0]
+def make_hashpath(values):
+    return "#/" + "/".join([f"{k}:{v}" for k, v in sanitize_state(values).items()])
 
-    if vis2 not in vis_types:
-        vis2 = ""
 
-    if distance not in distance_types:
-        distance = distance_types[0]
+def sanitize_state(hashpath_values):
+    state = defaultdict(str, hashpath_values)
 
-    if distance2 not in distance_types:
-        distance2 = ""
+    if state["vis"] not in vis_types:
+        state["vis"] = vis_types[0]
 
-    if study not in results:
-        study = "tiny"
+    if state["vis2"] not in vis_types:
+        state["vis2"] = ""
 
-    study_res = results[study]
+    if state["distance"] not in distance_types:
+        state["distance"] = distance_types[0]
+
+    if state["distance2"] not in distance_types:
+        state["distance2"] = ""
+
+    if state["study"] not in results:
+        state["study"] = "tiny"
+
+    study_res = results[state["study"]]
     slugs = set()
-    if notation in study_res:
-        for s in study_res[notation]["slugs"]:
+    if state["notation"] in study_res:
+        for s in study_res[state["notation"]]["slugs"]:
             slugs.add(s)
     else:
-        notation = list(results[study].keys())[0]
+        state["notation"] = list(results[state["study"]].keys())[0]
 
-    if notation2 in study_res:
-        for s in study_res[notation2]["slugs"]:
+    if state["notation2"] in study_res:
+        for s in study_res[state["notation2"]]["slugs"]:
             slugs.add(s)
     else:
-        notation2 = ""
+        state["notation2"] = ""
 
-    if notation2 == "":
-        vis2 = ""
-        distance2 = ""
+    if state["notation2"] == "":
+        state["vis2"] = ""
+        state["distance2"] = ""
 
-    if from_slug not in slugs:
-        from_slug = to_slug = ""
-    elif to_slug not in slugs:
-        to_slug = from_slug
+    if state["from_slug"] not in slugs:
+        state["from_slug"] = state["to_slug"] = ""
+    elif state["to_slug"] not in slugs:
+        state["to_slug"] = state["from_slug"]
 
-    return study, notation, distance, vis, notation2, distance2, vis2, from_slug, to_slug
+    return state
 
 
 @app.callback(
@@ -126,19 +128,13 @@ def sanitize_state(study="", notation="", distance="", vis="", notation2="", dis
     Output(dict(type="network", suffix=ALL, seq=ALL), "tapNodeData"),
     Output(dict(type="network", suffix=ALL, seq=ALL), "tapEdgeData"),
     Input("selection", "data"),
-    Input("study", "value"),
-    Input("notation", "value"),
-    Input("notation2", "value"),
-    Input("distance", "value"),
-    Input("distance2", "value"),
-    Input("vis", "value"),
-    Input("vis2", "value"),
+    Input(dict(type="dropdown", id=ALL), "value"),
     Input(dict(type="network", suffix=ALL, seq=ALL), "tapNodeData"),
     Input(dict(type="network", suffix=ALL, seq=ALL), "tapEdgeData"),
     Input(dict(type="figure", suffix=ALL, seq=ALL), "clickData"),
     State("event_listener", "event"),
 )
-def update_hashpath(selection, study, notation, notation2, distance, distance2, vis, vis2, node_data, edge_data, _, event):
+def update_hashpath(selection, dropdowns, node_data, edge_data, _, event):
     shift_down = bool((dict(shiftKey=False) if not event else event)["shiftKey"])
     from_slug, to_slug = selection
     if callback_context.triggered:
@@ -165,7 +161,13 @@ def update_hashpath(selection, study, notation, notation2, distance, distance2, 
             elif not shift_down:
                 from_slug = to_slug
 
-    hashpath = "#/" + "/".join(sanitize_state(study, notation, distance, vis, notation2, distance2, vis2, from_slug, to_slug))
+    hashpath_values = {"from_slug": from_slug, "to_slug": to_slug}
+    for input in callback_context.inputs_list[1]:
+        try:
+            hashpath_values[input["id"]["id"]] = input["value"]
+        except Exception as e:
+            print(repr(e))
+    hashpath = make_hashpath(hashpath_values)
     return hashpath, node_data, edge_data
 
 
@@ -174,7 +176,9 @@ def update_hashpath(selection, study, notation, notation2, distance, distance2, 
     Input("location", "hash"),
 )
 def update_content(hashpath):
-    study, notation, distance, vis, notation2, distance2_in, vis2_in, from_slug, to_slug = parse_hashpath(hashpath)
+    study, notation, distance, vis, notation2, distance2_in, vis2_in, from_slug, to_slug = itemgetter(
+        "study", "notation", "distance", "vis", "notation2", "distance2", "vis2", "from_slug", "to_slug"
+    )(parse_hashpath(hashpath))
     distance2 = distance2_in or distance
     vis2 = vis2_in or vis
 
@@ -186,28 +190,42 @@ def update_content(hashpath):
                 html.Div(
                     [
                         html.Span("gallery"),
-                        dcc.Dropdown(id="study", value=study, options=[s for s in results], clearable=False, style=dict(width="100px")),
+                        dcc.Dropdown(
+                            id=dict(id="study", type="dropdown"),
+                            value=study,
+                            options=[s for s in results],
+                            clearable=False,
+                            style=dict(width="100px"),
+                        ),
                     ],
                     style=dict(display="inline-block"),
                 ),
                 html.Div(
                     [
                         html.Span("notation"),
-                        dcc.Dropdown(id="notation", value=notation, options=notations, clearable=False, style=dict(width="175px")),
+                        dcc.Dropdown(
+                            id=dict(id="notation", type="dropdown"), value=notation, options=notations, clearable=False, style=dict(width="175px")
+                        ),
                     ],
                     style=dict(display="inline-block"),
                 ),
                 html.Div(
                     [
                         html.Span("visualization"),
-                        dcc.Dropdown(id="vis", value=vis, options=vis_types, clearable=False, style=dict(width="150px")),
+                        dcc.Dropdown(id=dict(id="vis", type="dropdown"), value=vis, options=vis_types, clearable=False, style=dict(width="150px")),
                     ],
                     style=dict(display="inline-block"),
                 ),
                 html.Div(
                     [
                         html.Span("distance"),
-                        dcc.Dropdown(id="distance", value=distance, options=distance_types, clearable=False, style=dict(width="100px")),
+                        dcc.Dropdown(
+                            id=dict(id="distance", type="dropdown"),
+                            value=distance,
+                            options=distance_types,
+                            clearable=False,
+                            style=dict(width="100px"),
+                        ),
                     ],
                     style=dict(display="inline-block"),
                 ),
@@ -220,7 +238,12 @@ def update_content(hashpath):
                     [
                         html.Span("notation"),
                         dcc.Dropdown(
-                            id="notation2", value=notation2, options=notations, clearable=True, style=dict(width="175px"), placeholder="Compare..."
+                            id=dict(id="notation2", type="dropdown"),
+                            value=notation2,
+                            options=notations,
+                            clearable=True,
+                            style=dict(width="175px"),
+                            placeholder="Compare...",
                         ),
                     ],
                     style=dict(display="inline-block"),
@@ -229,7 +252,7 @@ def update_content(hashpath):
                     [
                         html.Span("visualization"),
                         dcc.Dropdown(
-                            id="vis2",
+                            id=dict(id="vis2", type="dropdown"),
                             value=vis2_in,
                             options=vis_types,
                             clearable=True,
@@ -243,7 +266,7 @@ def update_content(hashpath):
                     [
                         html.Span("distance"),
                         dcc.Dropdown(
-                            id="distance2",
+                            id=dict(id="distance2", type="dropdown"),
                             value=distance2_in,
                             options=distance_types,
                             clearable=True,
@@ -587,11 +610,12 @@ app.clientside_callback(
         if(!pt){
             return [false, null, null, null];
         }
-        pieces = window.location.hash.split("/");
-        study=pieces[1];
-        notation=pieces[2]
+        hashpath = {}
+        window.location.hash.split("/").map(function(x){ hashpath[x.split(":")[0]] = x.split(":")[1] });
+        study=hashpath.study;
+        notation=hashpath.notation
         if(trig[0].prop_id.includes('2')) {
-            notation=pieces[5] // pack this into the id?
+            notation=hashpath.notation2 // pack this into the id?
         }
         slug = pt["hovertext"]
         return [true,
