@@ -3,6 +3,8 @@ from functools import cache
 from collections import defaultdict, Counter
 from datetime import datetime
 from operator import itemgetter
+from urllib.parse import urlencode, parse_qsl
+
 
 # plotly
 from dash import Dash, html, dcc, Input, Output, State, callback_context, ALL
@@ -72,11 +74,11 @@ app.layout = html.Div(
 
 
 def parse_hashpath(hashpath):
-    return sanitize_state({k: v for k, v in [x.split(":") for x in hashpath[2:].split("/") if ":" in x]})
+    return sanitize_state(parse_qsl(hashpath.lstrip("#")))
 
 
 def make_hashpath(values):
-    return "#/" + "/".join([f"{k}:{v}" for k, v in sanitize_state(values).items()])
+    return "#" + urlencode(sanitize_state(values))
 
 
 def sanitize_state(hashpath_values):
@@ -610,12 +612,11 @@ app.clientside_callback(
         if(!pt){
             return [false, null, null, null];
         }
-        hashpath = {}
-        window.location.hash.split("/").map(function(x){ hashpath[x.split(":")[0]] = x.split(":")[1] });
-        study=hashpath.study;
-        notation=hashpath.notation
+        qs = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        study=qs.get('study');
+        notation=qs.get('notation')
         if(trig[0].prop_id.includes('2')) {
-            notation=hashpath.notation2 // pack this into the id?
+            notation=qs.get('notation2') // pack this into the id?
         }
         slug = pt["hovertext"]
         return [true,
