@@ -5,17 +5,13 @@ from datetime import datetime
 from operator import itemgetter
 from urllib.parse import urlencode, parse_qsl
 
-
 # plotly
 from dash import Dash, html, dcc, Input, Output, State, callback_context, ALL
 from dash_extensions import EventListener
 import dash_cytoscape as cyto
 from notascope_components import DashDiff
 
-# data science
-import pandas as pd
-
-from src import vis_types, ext, get_distance, distance_types, get_vis, merged_distances
+from src import vis_types, ext, get_distance, distance_types, get_vis, merged_distances, load_tokens, load_registry
 
 import plotly.graph_objects as go
 import plotly.express as px
@@ -24,22 +20,7 @@ import spectra
 import math
 
 print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-tokens_df = pd.read_csv("results/tokens.tsv", names=["study", "notation", "slug", "token"], delimiter="\t")
-
-
-def load_results():
-    results = dict()
-    for (study, notation), df in tokens_df.groupby(["study", "notation"]):
-        if study not in results:
-            results[study] = dict()
-        results[study][notation] = dict(
-            slugs=df["slug"].unique(),
-            tokens=df["token"].nunique(),
-        )
-    return results
-
-
-results = load_results()
+registry = load_registry()
 print("ready")
 
 app = Dash(__name__, title="NotaScope", suppress_callback_exceptions=True)
@@ -96,16 +77,16 @@ def sanitize_state(hashpath_values):
     if state["distance2"] not in distance_types:
         state["distance2"] = ""
 
-    if state["study"] not in results:
+    if state["study"] not in registry:
         state["study"] = "tiny"
 
-    study_res = results[state["study"]]
+    study_res = registry[state["study"]]
     slugs = set()
     if state["notation"] in study_res:
         for s in study_res[state["notation"]]["slugs"]:
             slugs.add(s)
     else:
-        state["notation"] = list(results[state["study"]].keys())[0]
+        state["notation"] = list(registry[state["study"]].keys())[0]
 
     if state["notation2"] in study_res:
         for s in study_res[state["notation2"]]["slugs"]:
@@ -184,7 +165,7 @@ def update_content(hashpath):
     distance2 = distance2_in or distance
     vis2 = vis2_in or vis
 
-    notations = [dict(label=f"{s} ({results[study][s]['tokens']})", value=s) for s in results[study]]
+    notations = [dict(label=f"{s} ({registry[study][s]['tokens']})", value=s) for s in registry[study]]
 
     blocks = [
         html.Div(
@@ -195,7 +176,7 @@ def update_content(hashpath):
                         dcc.Dropdown(
                             id=dict(id="study", type="dropdown"),
                             value=study,
-                            options=[s for s in results],
+                            options=[s for s in registry],
                             clearable=False,
                             style=dict(width="100px"),
                         ),
@@ -516,6 +497,7 @@ def diff_view(study, notation, from_slug, to_slug):
 
 @cache
 def build_trie(study, notation):
+    tokens_df = load_tokens()
     filtered = tokens_df.query(f"study=='{study}' and notation=='{notation}'").groupby("token").nunique("slug")
     max_count = filtered["slug"].max()
     trie = dict()
@@ -560,6 +542,7 @@ def single_view(study, notation, slug):
 
 
 def get_token_info(study, notation, slug):
+    tokens_df = load_tokens()
     df = tokens_df.query(f"study=='{study}' and notation=='{notation}' and slug=='{slug}'")["token"]
     return df.values, len(df), df.nunique()
 

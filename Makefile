@@ -84,7 +84,12 @@ results/tokens.tsv:
 	@echo "[tokens]   global"
 	@mkdir -p $(dir $@)
 	@cat $+ > $@
-base: results/tokens.tsv
+
+results/registry.json: results/tokens.tsv
+	@echo "[registry] global"
+	@python make_registry.py
+base: results/registry.json
+
 
 clean:
 	rm -rf results

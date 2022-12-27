@@ -1,11 +1,13 @@
-from .utils import ext, slug_from_path  # noqa
-from .distances import get_distance, distance_types, merged_distances  # noqa
+from .utils import *  # noqa
+from .distances import *  # noqa
+from .tokens import *  # noqa
 
 from .scatter import get_scatter, get_scatter3d
 from .dendro import get_dendro
 from .network import get_network
+from .distributions import token_ecdf, token_bars
 
-vis_types = ["mst", "spanner-1", "spanner-1.1", "spanner-1.2", "spanner-1.5", "tsne", "umap", "umap_3d", "dendro"]
+vis_types = ["mst", "spanner-1", "spanner-1.1", "spanner-1.2", "spanner-1.5", "tsne", "umap", "umap_3d", "dendro", "token_ecf", "token_bars"]
 
 
 def get_vis(study, notation, distance, vis, from_slug, to_slug):
@@ -22,6 +24,10 @@ def get_vis(study, notation, distance, vis, from_slug, to_slug):
         vis_list.append(get_scatter3d(study, notation, distance, from_slug, to_slug, method="umap"))
     elif vis == "dendro":
         vis_list.append(get_dendro(study, notation, distance, from_slug, to_slug))
+    elif vis == "token_ecf":
+        vis_list.append(token_ecdf(study, notation))
+    elif vis == "token_bars":
+        vis_list.append(token_bars(study, notation))
     else:
         raise Exception("invalid vis")
     return vis_list
