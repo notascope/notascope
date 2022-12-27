@@ -165,7 +165,7 @@ def update_content(hashpath):
     distance2 = distance2_in or distance
     vis2 = vis2_in or vis
 
-    notations = [dict(label=f"{s} ({registry[study][s]['tokens']})", value=s) for s in registry[study]]
+    notations = [s for s in registry[study]]
 
     blocks = [
         html.Div(
@@ -187,7 +187,7 @@ def update_content(hashpath):
                     [
                         html.Span("notation"),
                         dcc.Dropdown(
-                            id=dict(id="notation", type="dropdown"), value=notation, options=notations, clearable=False, style=dict(width="175px")
+                            id=dict(id="notation", type="dropdown"), value=notation, options=notations, clearable=False, style=dict(width="150px")
                         ),
                     ],
                     style=dict(display="inline-block"),
@@ -225,7 +225,7 @@ def update_content(hashpath):
                             value=notation2,
                             options=notations,
                             clearable=True,
-                            style=dict(width="175px"),
+                            style=dict(width="150px"),
                             placeholder="Compare...",
                         ),
                     ],
@@ -592,7 +592,7 @@ app.clientside_callback(
     function(ignore) {
         trig = window.dash_clientside.callback_context.triggered
         pt = trig.length > 0 && trig[0].value &&  trig[0].value["points"][0]
-        if(!pt){
+        if(!pt || !pt["customdata"]){
             return [false, null, null, null];
         }
         qs = new URLSearchParams(window.location.hash.replace(/^#/, ""));
@@ -601,7 +601,7 @@ app.clientside_callback(
         if(trig[0].prop_id.includes('2')) {
             notation=qs.get('notation2') // pack this into the id?
         }
-        slug = pt["hovertext"]
+        slug = pt["customdata"][0]
         return [true,
                 pt["bbox"],
                 "/assets/results/"+study+"/"+notation+"/img/"+slug+".svg",

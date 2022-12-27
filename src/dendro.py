@@ -95,7 +95,7 @@ def build_dendro(study, notation, distance):
         if len(cluster_members):
             cluster_medioid = medioid(cluster_members, dmat_sym)
             node_slug = order[cluster_medioid]
-        hovertext.append(node_slug)
+        hovertext.append([node_slug])
 
     for i, (icoord, dcoord) in enumerate(zip(P["icoord"], P["dcoord"])):
         for j, (y_val, x_val) in enumerate(zip(icoord, dcoord)):
@@ -112,7 +112,7 @@ def build_dendro(study, notation, distance):
         hovertext.append(None)
     append_point(root[0], root[1])
     fig = go.Figure()
-    fig.add_scatter(x=x, y=y, line_width=1, hovertext=hovertext, hoverinfo="none", mode="lines+markers", marker_size=1)
+    fig.add_scatter(x=x, y=y, line_width=1, customdata=hovertext, hoverinfo="none", mode="lines+markers", marker_size=1)
     fig.add_scatter(
         x=np.array(label_x)[np.argsort(label_y)],
         y=np.array(label_y)[np.argsort(label_y)],

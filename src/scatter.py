@@ -26,7 +26,7 @@ def get_scatter(study, notation, distance, from_slug, to_slug, method):
 @cache
 def build_scatter(study, notation, distance, method):
     emb_df = get_embedding(study, notation, distance, method)
-    fig = px.scatter(emb_df, x="x", y="y", hover_name=emb_df.index)
+    fig = px.scatter(emb_df, x="x", y="y", hover_data=dict(slug=emb_df.index))
     fig.update_layout(height=800, dragmode="pan", plot_bgcolor="white")
     fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), uirevision="yes")
     fig.update_yaxes(visible=False)
@@ -57,7 +57,7 @@ def get_scatter3d(study, notation, distance, from_slug, to_slug, method):
 @cache
 def build_scatter3d(study, notation, distance, method):
     emb_df = get_embedding(study, notation, distance, method, dim=3)
-    fig = px.scatter_3d(emb_df, x="x", y="y", z="z", hover_name=emb_df.index)
+    fig = px.scatter_3d(emb_df, x="x", y="y", z="z", hover_name=dict(slug=emb_df.index))
     fig.update_layout(height=800, dragmode="pan", plot_bgcolor="white")
     fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), uirevision="yes")
     fig.update_yaxes(visible=False)

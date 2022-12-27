@@ -7,7 +7,7 @@ def token_bars(study, notation):
 
     df = tokens_df.query(f"study == '{study}' and notation== '{notation}'").groupby(["token", "notation"])["slug"].nunique().reset_index()
     return px.bar(
-        df, x="slug", y=px.Constant(1), facet_col="notation", hover_name="token"
+        df, x="slug", y=px.Constant(1), facet_col="notation", hover_name="token", height=600
     )  # .add_shape(type="line", x0=0,y0=0, x1=30, y1=30, row="all", col="all")
 
 
