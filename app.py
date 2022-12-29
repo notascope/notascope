@@ -130,7 +130,9 @@ def update_hashpath(selection, dropdowns, node_data, edge_data, _, event):
             node_data = [None] * len(node_data)
 
         if trig_prop.endswith("clickData"):
-            to_slug = data["points"][0]["hovertext"]
+            to_slug = data["points"][0]["customdata"]
+            if len(to_slug) == 1:
+                to_slug = to_slug[0]
             if from_slug == to_slug:
                 from_slug = to_slug = ""
             elif not shift_down:
@@ -349,7 +351,7 @@ def cross_notation_figure(study, notation, distance, notation2, distance2, from_
                     mode="markers",
                     a=merged[x],
                     b=merged[y],
-                    hovertext=merged["from_slug"],
+                    customdata=merged["from_slug"],
                     hoverinfo="none",
                     hovertemplate="<extra></extra>",
                 ),
@@ -368,7 +370,7 @@ def cross_notation_figure(study, notation, distance, notation2, distance2, from_
                 mode="markers",
                 a=merged.query("selected")[x],
                 b=merged.query("selected")[y],
-                hovertext=merged.query("selected")["from_slug"],
+                customdata=merged.query("selected")["from_slug"],
                 marker_color="red",
                 marker_size=10,
                 hoverinfo="none",
@@ -601,7 +603,10 @@ app.clientside_callback(
         if(trig[0].prop_id.includes('2')) {
             notation=qs.get('notation2') // pack this into the id?
         }
-        slug = pt["customdata"][0]
+        slug = pt["customdata"]
+        if(slug.length == 1) {
+            slug = slug[0]
+        }
         return [true,
                 pt["bbox"],
                 "/assets/results/"+study+"/"+notation+"/img/"+slug+".svg",
