@@ -19,10 +19,19 @@ def token_rank(study, notation, distance, from_slug, to_slug, vis):
     tokens_df = load_tokens()
 
     df = tokens_df.query(f"study == '{study}' and notation== '{notation}'").groupby(["token", "notation"])["slug"].nunique().reset_index()
-    fig = px.ecdf(df, x="slug", hover_name="token", ecdfnorm=None, height=600, markers=True, lines=False, ecdfmode="complementary")
+    fig = px.ecdf(
+        df,
+        x="slug",
+        hover_name="token",
+        ecdfnorm=None,
+        height=600,
+        markers=True,
+        lines=False,
+        ecdfmode="complementary",
+        labels=dict(slug="token frequency"),
+    )
     fig.data[0].y += 1
-    fig.layout.xaxis.title.text = "token frequency"
-    fig.layout.yaxis.title.text = "token frequency rank"
+    fig.update_yaxes(title_text="token frequency rank")
     return fig
 
 
@@ -32,14 +41,22 @@ def farness(study, notation, distance, from_slug, to_slug, vis):
 
     df = pd.DataFrame(dict(slug=order, farness=np.mean(dmat, axis=1)))
 
-    df["bin_centres"] = pd.cut(df["farness"], bins=50).apply(lambda x: float(x.mid)).astype(float)
-
-    return px.bar(
+    df["bin_center"] = pd.cut(df["farness"], bins=50).apply(lambda x: float(x.mid)).astype(float)
+    df["y"] = 1
+    fig = px.bar(
         df,
-        x="bin_centres",
-        y=px.Constant(1),
+        x="bin_center",
+        y="y",
+        color="bin_center",
         hover_data=["slug"],
-        color="farness",
-        range_color=[df["bin_centres"].min(), df["bin_centres"].median() * 2],
+        labels=dict(bin_center="farness"),
+        range_color=[df["bin_center"].min(), df["bin_center"].median() * 2],
         height=600,
-    ).update_traces(hoverinfo="none", hovertemplate="<extra></extra>")
+    )
+    for s in [from_slug, to_slug]:
+        if s:
+            fig.add_vline(df["farness"][order.index(s)], line_color="red")
+    fig.update_traces(hoverinfo="none", hovertemplate="<extra></extra>")
+    fig.update_xaxes(title_text="farness (binned)")
+    fig.update_yaxes(title_text="count")
+    return fig

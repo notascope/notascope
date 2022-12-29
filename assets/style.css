@@ -20,13 +20,20 @@ pre {
   line-height: 1.5 !important;
 }
 
-details {
+details[open] {
   border: 1px solid lightgrey;
   border-radius: 5px;
   padding-bottom: 3px;
+  padding-top: 3px;
+}
+
+details {
+  padding-bottom: 5px;
+  padding-top: 4px;
 }
 
 summary {
   text-align: center;
   cursor: pointer;
+  user-select: none;
 }
