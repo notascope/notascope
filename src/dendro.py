@@ -9,7 +9,7 @@ from scipy.cluster import hierarchy
 from scipy.spatial.distance import squareform
 
 
-def get_dendro(study, notation, distance, from_slug, to_slug):
+def get_dendro(study, notation, distance, from_slug, to_slug, vis):
     dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
     fig_json, y_by_slug, leaves = build_dendro(study, notation, distance)
     fig = go.Figure(json.loads(fig_json))

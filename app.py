@@ -130,13 +130,14 @@ def update_hashpath(selection, dropdowns, node_data, edge_data, _, event):
             node_data = [None] * len(node_data)
 
         if trig_prop.endswith("clickData"):
-            to_slug = data["points"][0]["customdata"]
-            if len(to_slug) == 1:
-                to_slug = to_slug[0]
-            if from_slug == to_slug:
-                from_slug = to_slug = ""
-            elif not shift_down:
-                from_slug = to_slug
+            if "customdata" in data["points"][0]:
+                to_slug = data["points"][0]["customdata"]
+                if len(to_slug) == 1:
+                    to_slug = to_slug[0]
+                if from_slug == to_slug:
+                    from_slug = to_slug = ""
+                elif not shift_down:
+                    from_slug = to_slug
 
         if trig_prop.endswith("tapNodeData"):
             to_slug = data["id"]

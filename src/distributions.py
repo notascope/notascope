@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 
 
-def token_bars(study, notation):
+def token_bars(study, notation, distance, from_slug, to_slug, vis):
     tokens_df = load_tokens()
 
     df = tokens_df.query(f"study == '{study}' and notation== '{notation}'").groupby(["token", "notation"])["slug"].nunique().reset_index()
@@ -14,7 +14,7 @@ def token_bars(study, notation):
     return fig
 
 
-def token_rank(study, notation):
+def token_rank(study, notation, distance, from_slug, to_slug, vis):
 
     tokens_df = load_tokens()
 
@@ -26,7 +26,7 @@ def token_rank(study, notation):
     return fig
 
 
-def farness(study, notation, distance):
+def farness(study, notation, distance, from_slug, to_slug, vis):
 
     dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
 

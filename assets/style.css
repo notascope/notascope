@@ -23,6 +23,7 @@ pre {
 details {
   border: 1px solid lightgrey;
   border-radius: 5px;
+  padding-bottom: 3px;
 }
 
 summary {
