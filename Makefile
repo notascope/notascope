@@ -1,16 +1,16 @@
 PATH:=$(PATH):/Users/nicolas/ets/tree-sitter-parser
 
 
-define spec_rule # study, notation, spec
+define spec_rule # gallery, notation, spec
 
-results/$(1)/$(2)/source/$(basename $(3)): studies/$(1)/$(2)/$(3)
+results/$(1)/$(2)/source/$(basename $(3)): galleries/$(1)/$(2)/$(3)
 	@echo "[source]   $(1)/$(2): $(3)"
 	@mkdir -p $$(dir $$@)
 	@cp $$< $$(dir $$@)
 	@touch $$@
 base: results/$(1)/$(2)/source/$(basename $(3))
 
-results/$(1)/$(2)/img/$(basename $(3)): studies/$(1)/$(2)/$(3)
+results/$(1)/$(2)/img/$(basename $(3)): galleries/$(1)/$(2)/$(3)
 	@echo "[img]      $(1)/$(2): $(3)"
 	@mkdir -p $$(dir $$@)
 	@savers/$(2).sh $$< $$@
@@ -18,14 +18,14 @@ results/$(1)/$(2)/img/$(basename $(3)): studies/$(1)/$(2)/$(3)
 base: results/$(1)/$(2)/img/$(basename $(3))
 results/$(1)/summary.html: results/$(1)/$(2)/img/$(basename $(3))
 
-results/$(1)/$(2)/preproc/$(3): studies/$(1)/$(2)/$(3)
+results/$(1)/$(2)/preproc/$(3): galleries/$(1)/$(2)/$(3)
 	@echo "[preproc]  $(1)/$(2): $(3)"
 	@mkdir -p $$(dir $$@)
 	@preprocessors/$(2).sh $$< $$@
 	@touch $$@
 results/$(1)/$(2)/difflib_costs.csv results/$(1)/$(2)/ncd_costs.csv results/$(1)/$(2)/tokens.tsv: results/$(1)/$(2)/preproc/$(3)
 
-results/$(1)/$(2)/pretty/$(3): studies/$(1)/$(2)/$(3)
+results/$(1)/$(2)/pretty/$(3): galleries/$(1)/$(2)/$(3)
 	@echo "[pretty]   $(1)/$(2): $(3)"
 	@mkdir -p $$(dir $$@)
 	@prettyprinters/$(2).sh $$< $$@
@@ -34,8 +34,8 @@ base: results/$(1)/$(2)/pretty/$(3)
 
 endef
 
-define notation_rule # study, notation
-$(foreach spec, $(shell find studies/$(1)/$(2) -maxdepth 1 -type f ! -size 0 | sed -e 's,^.*/,,'), $(eval $(call spec_rule,$(1),$(2),$(spec))))
+define notation_rule # gallery, notation
+$(foreach spec, $(shell find galleries/$(1)/$(2) -maxdepth 1 -type f ! -size 0 | sed -e 's,^.*/,,'), $(eval $(call spec_rule,$(1),$(2),$(spec))))
 
 results/$(1)/$(2)/difflib_costs.csv:
 	@echo "[difflib]  $(1)/$(2)"
@@ -53,8 +53,8 @@ results/$(1)/$(2)/ncd_costs.csv:
 results/ncd_costs.csv: results/$(1)/$(2)/ncd_costs.csv
 endef
 
-define STUDY_rule # study
-$(foreach notation,$(shell ls studies/$(1)),$(eval $(call notation_rule,$(1),$(notation))))
+define GALLERY_rule # gallery
+$(foreach notation,$(shell ls galleries/$(1)),$(eval $(call notation_rule,$(1),$(notation))))
 
 
 results/$(1)/summary.html:
@@ -65,7 +65,7 @@ base: results/$(1)/summary.html
 
 endef
 
-$(foreach study,$(shell ls studies),$(eval $(call STUDY_rule,$(study))))
+$(foreach gallery,$(shell ls galleries),$(eval $(call GALLERY_rule,$(gallery))))
 
 
 results/difflib_costs.csv:

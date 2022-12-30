@@ -101,19 +101,19 @@ def sanitize_state(hashpath_values):
     if state["distance2"] not in distance_types:
         state["distance2"] = ""
 
-    if state["study"] not in registry:
-        state["study"] = "tiny"
+    if state["gallery"] not in registry:
+        state["gallery"] = "tiny"
 
-    study_res = registry[state["study"]]
+    gallery_res = registry[state["gallery"]]
     slugs = set()
-    if state["notation"] in study_res:
-        for s in study_res[state["notation"]]["slugs"]:
+    if state["notation"] in gallery_res:
+        for s in gallery_res[state["notation"]]["slugs"]:
             slugs.add(s)
     else:
-        state["notation"] = list(registry[state["study"]].keys())[0]
+        state["notation"] = list(registry[state["gallery"]].keys())[0]
 
-    if state["notation2"] in study_res:
-        for s in study_res[state["notation2"]]["slugs"]:
+    if state["notation2"] in gallery_res:
+        for s in gallery_res[state["notation2"]]["slugs"]:
             slugs.add(s)
     else:
         state["notation2"] = ""
@@ -187,7 +187,7 @@ def update_hashpath(selection, dropdowns, node_data, edge_data, _, event):
 )
 def update_content(hashpath):
     (
-        study,
+        gallery,
         notation,
         distance,
         vis,
@@ -197,7 +197,7 @@ def update_content(hashpath):
         from_slug,
         to_slug,
     ) = itemgetter(
-        "study",
+        "gallery",
         "notation",
         "distance",
         "vis",
@@ -212,7 +212,7 @@ def update_content(hashpath):
     distance2 = distance2_in or distance
     vis2 = vis2_in or vis
 
-    notations = [s for s in registry[study]]
+    notations = [s for s in registry[gallery]]
 
     blocks = [
         html.Div(
@@ -221,8 +221,8 @@ def update_content(hashpath):
                     [
                         html.Span("gallery"),
                         dcc.Dropdown(
-                            id=dict(id="study", type="dropdown"),
-                            value=study,
+                            id=dict(id="gallery", type="dropdown"),
+                            value=gallery,
                             options=[s for s in registry],
                             clearable=False,
                             style=dict(width="100px"),
@@ -334,7 +334,7 @@ def update_content(hashpath):
                         dcc.Graph(
                             id=dict(type="figure", suffix="cross", seq="1"),
                             figure=cross_notation_figure(
-                                study,
+                                gallery,
                                 notation,
                                 distance,
                                 notation2,
@@ -357,7 +357,7 @@ def update_content(hashpath):
         html.Div(
             html.Details(
                 [html.Summary(notation + " " + vis)]
-                + wrap_vis(study, notation, distance, vis, from_slug, to_slug, "1"),
+                + wrap_vis(gallery, notation, distance, vis, from_slug, to_slug, "1"),
                 open=True,
             )
         ),
@@ -369,26 +369,26 @@ def update_content(hashpath):
                 html.Details(
                     [html.Summary(notation2 + " " + vis2)]
                     + wrap_vis(
-                        study, notation2, distance2, vis2, from_slug, to_slug, "2"
+                        gallery, notation2, distance2, vis2, from_slug, to_slug, "2"
                     ),
                     open=True,
                 )
             )
         )
 
-    blocks.append(details_view(study, notation, distance, from_slug, to_slug))
+    blocks.append(details_view(gallery, notation, distance, from_slug, to_slug))
 
     if notation2 and (distance != distance2 or notation != notation2):
-        blocks.append(details_view(study, notation2, distance2, from_slug, to_slug))
+        blocks.append(details_view(gallery, notation2, distance2, from_slug, to_slug))
 
     return html.Div(className="wrapper", children=blocks)
 
 
 def cross_notation_figure(
-    study, notation, distance, notation2, distance2, from_slug, to_slug
+    gallery, notation, distance, notation2, distance2, from_slug, to_slug
 ):
 
-    merged = merged_distances(study, notation, distance, notation2, distance2)
+    merged = merged_distances(gallery, notation, distance, notation2, distance2)
 
     x = distance
     y = distance2
@@ -477,10 +477,10 @@ def cross_notation_figure(
     return fig
 
 
-def wrap_vis(study, notation, distance, vis, from_slug, to_slug, suffix):
+def wrap_vis(gallery, notation, distance, vis, from_slug, to_slug, suffix):
     vis_list = []
     for i, vis in enumerate(
-        get_vis(study, notation, distance, vis, from_slug, to_slug)
+        get_vis(gallery, notation, distance, vis, from_slug, to_slug)
     ):
         if isinstance(vis, go.Figure):
             vis_list.append(figure(dict(type="figure", suffix=suffix, seq=str(i)), vis))
@@ -568,27 +568,27 @@ def cytoscape(id, elements):
     )
 
 
-def header_and_image(study, notation, slug, tokens_n, tokens_nunique):
-    imgext = ext(study, notation, "img")
+def header_and_image(gallery, notation, slug, tokens_n, tokens_nunique):
+    imgext = ext(gallery, notation, "img")
 
     return [
         html.H3(slug),
         html.P(f"{tokens_n} tokens, {tokens_nunique} uniques"),
         html.Img(
-            src=f"/assets/results/{study}/{notation}/img/{slug}.{imgext}",
+            src=f"/assets/results/{gallery}/{notation}/img/{slug}.{imgext}",
             style=dict(verticalAlign="middle", maxHeight="200px", maxWidth="20vw"),
         ),
     ]
 
 
-def diff_view(study, notation, from_slug, to_slug):
-    srcext = ext(study, notation, "source")
-    with open(f"results/{study}/{notation}/pretty/{from_slug}.{srcext}", "r") as f:
+def diff_view(gallery, notation, from_slug, to_slug):
+    srcext = ext(gallery, notation, "source")
+    with open(f"results/{gallery}/{notation}/pretty/{from_slug}.{srcext}", "r") as f:
         from_code = f.read()
     if from_slug == to_slug:
         to_code = from_code
     else:
-        with open(f"results/{study}/{notation}/pretty/{to_slug}.{srcext}", "r") as f:
+        with open(f"results/{gallery}/{notation}/pretty/{to_slug}.{srcext}", "r") as f:
             to_code = f.read()
     return html.Div(
         [
@@ -608,10 +608,10 @@ def diff_view(study, notation, from_slug, to_slug):
 
 
 @cache
-def build_trie(study, notation):
+def build_trie(gallery, notation):
     tokens_df = load_tokens()
     filtered = (
-        tokens_df.query(f"study=='{study}' and notation=='{notation}'")
+        tokens_df.query(f"gallery=='{gallery}' and notation=='{notation}'")
         .groupby("token")
         .nunique("slug")
     )
@@ -627,10 +627,10 @@ def build_trie(study, notation):
     return trie, max_count
 
 
-def single_view(study, notation, slug):
-    srcext = ext(study, notation, "source")
-    trie, max_count = build_trie(study, notation)
-    with open(f"results/{study}/{notation}/pretty/{slug}.{srcext}", "r") as f:
+def single_view(gallery, notation, slug):
+    srcext = ext(gallery, notation, "source")
+    trie, max_count = build_trie(gallery, notation)
+    with open(f"results/{gallery}/{notation}/pretty/{slug}.{srcext}", "r") as f:
         text = f.read()
 
     scale = spectra.scale([spectra.html("#2FF"), spectra.html("#FFF")]).domain(
@@ -661,37 +661,37 @@ def single_view(study, notation, slug):
     )
 
 
-def get_token_info(study, notation, slug):
+def get_token_info(gallery, notation, slug):
     tokens_df = load_tokens()
     df = tokens_df.query(
-        f"study=='{study}' and notation=='{notation}' and slug=='{slug}'"
+        f"gallery=='{gallery}' and notation=='{notation}' and slug=='{slug}'"
     )["token"]
     return df.values, len(df), df.nunique()
 
 
-def details_view(study, notation, distance, from_slug, to_slug):
+def details_view(gallery, notation, distance, from_slug, to_slug):
     cmp = None
     try:
         from_tokens, from_tokens_n, from_tokens_nunique = get_token_info(
-            study, notation, from_slug
+            gallery, notation, from_slug
         )
         if from_slug != to_slug:
 
             to_tokens, to_tokens_n, to_tokens_nunique = get_token_info(
-                study, notation, to_slug
+                gallery, notation, to_slug
             )
             from_to_distance = get_distance(
-                study, notation, distance, from_slug, to_slug
+                gallery, notation, distance, from_slug, to_slug
             )
             to_from_distance = get_distance(
-                study, notation, distance, to_slug, from_slug
+                gallery, notation, distance, to_slug, from_slug
             )
 
             shared_tokens = list((Counter(from_tokens) & Counter(to_tokens)).elements())
             shared_uniques = set(from_tokens) & set(to_tokens)
             td1 = html.Td(
                 header_and_image(
-                    study, notation, from_slug, from_tokens_n, from_tokens_nunique
+                    gallery, notation, from_slug, from_tokens_n, from_tokens_nunique
                 ),
                 style=dict(verticalAlign="top"),
             )
@@ -714,7 +714,7 @@ def details_view(study, notation, distance, from_slug, to_slug):
             )
             td3 = html.Td(
                 header_and_image(
-                    study, notation, to_slug, to_tokens_n, to_tokens_nunique
+                    gallery, notation, to_slug, to_tokens_n, to_tokens_nunique
                 ),
                 style=dict(verticalAlign="top"),
             )
@@ -723,12 +723,12 @@ def details_view(study, notation, distance, from_slug, to_slug):
                     [html.Tr([td1, td2, td3])], style=dict(width="100%", height="300px")
                 )
             ]
-            cmp += [diff_view(study, notation, from_slug, to_slug)]
+            cmp += [diff_view(gallery, notation, from_slug, to_slug)]
         elif from_slug != "":
             cmp = header_and_image(
-                study, notation, from_slug, from_tokens_n, from_tokens_nunique
+                gallery, notation, from_slug, from_tokens_n, from_tokens_nunique
             )
-            cmp += [single_view(study, notation, from_slug)]
+            cmp += [single_view(gallery, notation, from_slug)]
 
     except Exception as e:
         print(repr(e))
@@ -746,7 +746,7 @@ app.clientside_callback(
             return [false, null, null, null];
         }
         qs = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-        study=qs.get('study');
+        gallery=qs.get('gallery');
         notation=qs.get('notation')
         if(trig[0].prop_id.includes('2')) {
             notation=qs.get('notation2') // pack this into the id?
@@ -757,7 +757,7 @@ app.clientside_callback(
         }
         return [true,
                 pt["bbox"],
-                "/assets/results/"+study+"/"+notation+"/img/"+slug+".svg",
+                "/assets/results/"+gallery+"/"+notation+"/img/"+slug+".svg",
                 slug]
     }
     """,

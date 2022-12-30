@@ -3,25 +3,25 @@ import json
 from glob import glob
 
 tokens_df = pd.read_csv(
-    "results/tokens.tsv", names=["study", "notation", "slug", "token"], delimiter="\t"
+    "results/tokens.tsv", names=["gallery", "notation", "slug", "token"], delimiter="\t"
 )
 
 
-def ext(study, notation, obj):
-    return sorted(glob(f"results/{study}/{notation}/{obj}/*"), key=len)[-1].split(".")[
-        -1
-    ]
+def ext(gallery, notation, obj):
+    return sorted(glob(f"results/{gallery}/{notation}/{obj}/*"), key=len)[-1].split(
+        "."
+    )[-1]
 
 
 results = dict()
-for (study, notation), df in tokens_df.groupby(["study", "notation"]):
-    if study not in results:
-        results[study] = dict()
-    results[study][notation] = dict(
+for (gallery, notation), df in tokens_df.groupby(["gallery", "notation"]):
+    if gallery not in results:
+        results[gallery] = dict()
+    results[gallery][notation] = dict(
         slugs=list(df["slug"].unique()),
         tokens=df["token"].nunique(),
         ext=dict(
-            img=ext(study, notation, "img"), source=ext(study, notation, "source")
+            img=ext(gallery, notation, "img"), source=ext(gallery, notation, "source")
         ),
     )
 

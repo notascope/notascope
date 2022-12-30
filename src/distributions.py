@@ -5,11 +5,11 @@ import pandas as pd
 import numpy as np
 
 
-def token_bars(study, notation, distance, from_slug, to_slug, vis):
+def token_bars(gallery, notation, distance, from_slug, to_slug, vis):
     tokens_df = load_tokens()
 
     df = (
-        tokens_df.query(f"study == '{study}' and notation== '{notation}'")
+        tokens_df.query(f"gallery == '{gallery}' and notation== '{notation}'")
         .groupby(["token", "notation"])["slug"]
         .nunique()
         .reset_index()
@@ -27,12 +27,12 @@ def token_bars(study, notation, distance, from_slug, to_slug, vis):
     return fig
 
 
-def token_rank(study, notation, distance, from_slug, to_slug, vis):
+def token_rank(gallery, notation, distance, from_slug, to_slug, vis):
 
     tokens_df = load_tokens()
 
     df = (
-        tokens_df.query(f"study == '{study}' and notation== '{notation}'")
+        tokens_df.query(f"gallery == '{gallery}' and notation== '{notation}'")
         .groupby(["token", "notation"])["slug"]
         .nunique()
         .reset_index()
@@ -53,9 +53,9 @@ def token_rank(study, notation, distance, from_slug, to_slug, vis):
     return fig
 
 
-def farness(study, notation, distance, from_slug, to_slug, vis):
+def farness(gallery, notation, distance, from_slug, to_slug, vis):
 
-    dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
+    dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
 
     df = pd.DataFrame(dict(slug=order, farness=np.mean(dmat, axis=1)))
 

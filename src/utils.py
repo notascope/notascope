@@ -9,8 +9,8 @@ def load_registry():
 
 
 @cache
-def ext(study, notation, obj):
-    return load_registry()[study][notation]["ext"][obj]
+def ext(gallery, notation, obj):
+    return load_registry()[gallery][notation]["ext"][obj]
 
 
 def slug_from_path(path):

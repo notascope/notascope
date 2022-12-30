@@ -9,9 +9,9 @@ from scipy.cluster import hierarchy
 from scipy.spatial.distance import squareform
 
 
-def get_dendro(study, notation, distance, from_slug, to_slug, vis):
-    dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
-    fig_json, y_by_slug, leaves = build_dendro(study, notation, distance)
+def get_dendro(gallery, notation, distance, from_slug, to_slug, vis):
+    dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
+    fig_json, y_by_slug, leaves = build_dendro(gallery, notation, distance)
     fig = go.Figure(json.loads(fig_json))
     if from_slug:
         from_y = y_by_slug[from_slug]
@@ -78,8 +78,8 @@ def medioid(samples, dmat_sym):
 
 
 @cache
-def build_dendro(study, notation, distance):
-    dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
+def build_dendro(gallery, notation, distance):
+    dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
     Z = hierarchy.linkage(squareform(dmat_sym), "average", optimal_ordering=True)
     P = hierarchy.dendrogram(Z, labels=order, no_plot=True)
     nodes, root = make_nodes(P, order)

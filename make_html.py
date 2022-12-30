@@ -1,12 +1,12 @@
 from pathlib import Path
 import sys
 
-study = sys.argv[1]
+gallery = sys.argv[1]
 
 slugs = set()
 notations = []
 ext = dict()
-for notation in Path("studies", study).iterdir():
+for notation in Path("galleries", gallery).iterdir():
     if notation.is_dir():
         notations.append(notation.stem)
         for spec in notation.iterdir():
@@ -18,7 +18,7 @@ rows = []
 for slug in sorted(slugs):
     row = f"<tr><th align=right>{slug}</th>"
     for notation in notations:
-        slug_path = Path(f"studies/{study}/{notation}/{slug}{ext[notation]}")
+        slug_path = Path(f"galleries/{gallery}/{notation}/{slug}{ext[notation]}")
         if not slug_path.exists():
             slug_path.write_text("")
         row += f"""
@@ -31,12 +31,12 @@ for slug in sorted(slugs):
     row += "</tr>"
     rows.append(row)
 
-Path(f"results/{study}/summary.html").write_text(
+Path(f"results/{gallery}/summary.html").write_text(
     f"""
     <html>
-      <head><title>{study}</title></head>
+      <head><title>{gallery}</title></head>
       <body>
-      <h1>{study}</h1>
+      <h1>{gallery}</h1>
       <table>
         <tr><th></th>{"".join(f'<th>{n}</th>' for n in notations)}</tr>
         {"".join(rows)}

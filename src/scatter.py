@@ -6,11 +6,11 @@ import numpy as np
 from .distances import dmat_and_order, get_embedding
 
 
-def get_scatter(study, notation, distance, from_slug, to_slug, method):
-    fig_json, fig_df = build_scatter(study, notation, distance, method)
+def get_scatter(gallery, notation, distance, from_slug, to_slug, method):
+    fig_json, fig_df = build_scatter(gallery, notation, distance, method)
     fig = go.Figure(json.loads(fig_json))
 
-    dmat, dmat_sym, order = dmat_and_order(study, notation, distance)
+    dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
     if from_slug:
         from_row = fig_df.loc[from_slug]
         to_row = fig_df.loc[to_slug]
@@ -33,8 +33,8 @@ def get_scatter(study, notation, distance, from_slug, to_slug, method):
 
 
 @cache
-def build_scatter(study, notation, distance, method):
-    emb_df = get_embedding(study, notation, distance, method)
+def build_scatter(gallery, notation, distance, method):
+    emb_df = get_embedding(gallery, notation, distance, method)
     fig = px.scatter(emb_df, x="x", y="y", hover_data=dict(slug=emb_df.index))
     fig.update_layout(height=800, dragmode="pan", plot_bgcolor="white")
     fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), uirevision="yes")

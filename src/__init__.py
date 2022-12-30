@@ -23,5 +23,5 @@ vis_map = {
 vis_types = list(vis_map.keys())
 
 
-def get_vis(study, notation, distance, vis, from_slug, to_slug):
-    return [vis_map[vis](study, notation, distance, from_slug, to_slug, vis)]
+def get_vis(gallery, notation, distance, vis, from_slug, to_slug):
+    return [vis_map[vis](gallery, notation, distance, from_slug, to_slug, vis)]

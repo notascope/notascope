@@ -6,7 +6,7 @@ df = px.data.tips()
 fig = px.{fn}(df, x="{x}", y="{y}", color="{color}")
 fig
 """
-    with open(f"studies/autogen/px/{fn}_{x}_{y}_{color}.py", "w") as f:
+    with open(f"galleries/autogen/px/{fn}_{x}_{y}_{color}.py", "w") as f:
         f.write(spec)
 
 
