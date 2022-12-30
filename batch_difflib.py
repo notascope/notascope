@@ -64,4 +64,9 @@ with open(f"results/{study}/{notation}/tokens.tsv", "w") as f:
 
 with open(f"results/{study}/{notation}/difflib_costs.csv", "w") as f:
     for (from_slug, to_slug) in permutations(tokens, 2):
-        print(",".join([study, notation, from_slug, to_slug, str(cost(from_slug, to_slug))]), file=f)
+        print(
+            ",".join(
+                [study, notation, from_slug, to_slug, str(cost(from_slug, to_slug))]
+            ),
+            file=f,
+        )

@@ -14,9 +14,18 @@ def get_scatter(study, notation, distance, from_slug, to_slug, method):
     if from_slug:
         from_row = fig_df.loc[from_slug]
         to_row = fig_df.loc[to_slug]
-        fig.add_scatter(x=[from_row.x, to_row.x], y=[from_row.y, to_row.y], hoverinfo="skip", showlegend=False)
+        fig.add_scatter(
+            x=[from_row.x, to_row.x],
+            y=[from_row.y, to_row.y],
+            hoverinfo="skip",
+            showlegend=False,
+        )
         if from_slug == to_slug:
-            fig.data[0].marker = dict(color=dmat_sym[order.index(from_slug)], cmax=np.median(dmat_sym), colorscale="Viridis")
+            fig.data[0].marker = dict(
+                color=dmat_sym[order.index(from_slug)],
+                cmax=np.median(dmat_sym),
+                colorscale="Viridis",
+            )
     else:
         fig.data[0].marker = dict(color=np.median(dmat_sym, axis=0))
 

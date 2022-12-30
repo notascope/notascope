@@ -11,7 +11,16 @@ from dash_extensions import EventListener
 import dash_cytoscape as cyto
 from notascope_components import DashDiff
 
-from src import vis_types, ext, get_distance, distance_types, get_vis, merged_distances, load_tokens, load_registry
+from src import (
+    vis_types,
+    ext,
+    get_distance,
+    distance_types,
+    get_vis,
+    merged_distances,
+    load_tokens,
+    load_registry,
+)
 
 import plotly.graph_objects as go
 import plotly.express as px
@@ -35,10 +44,25 @@ app.layout = html.Div(
             children=[
                 html.Div(
                     [
-                        html.P(id="tt_name", style=dict(textAlign="center", display="none")),
-                        html.Img(id="tt_img", style={"width": "100px", "height": "100px", "object-fit": "cover", "margin": 0}),
+                        html.P(
+                            id="tt_name", style=dict(textAlign="center", display="none")
+                        ),
+                        html.Img(
+                            id="tt_img",
+                            style={
+                                "width": "100px",
+                                "height": "100px",
+                                "object-fit": "cover",
+                                "margin": 0,
+                            },
+                        ),
                     ],
-                    style={"width": "100px", "height": "100px", "padding": 0, "margin": 0},
+                    style={
+                        "width": "100px",
+                        "height": "100px",
+                        "padding": 0,
+                        "margin": 0,
+                    },
                 )
             ],
             style={"opacity": 0.85, "padding": 0, "margin": 0},
@@ -162,9 +186,29 @@ def update_hashpath(selection, dropdowns, node_data, edge_data, _, event):
     Input("location", "hash"),
 )
 def update_content(hashpath):
-    study, notation, distance, vis, notation2, distance2_in, vis2_in, from_slug, to_slug = itemgetter(
-        "study", "notation", "distance", "vis", "notation2", "distance2", "vis2", "from_slug", "to_slug"
-    )(parse_hashpath(hashpath))
+    (
+        study,
+        notation,
+        distance,
+        vis,
+        notation2,
+        distance2_in,
+        vis2_in,
+        from_slug,
+        to_slug,
+    ) = itemgetter(
+        "study",
+        "notation",
+        "distance",
+        "vis",
+        "notation2",
+        "distance2",
+        "vis2",
+        "from_slug",
+        "to_slug",
+    )(
+        parse_hashpath(hashpath)
+    )
     distance2 = distance2_in or distance
     vis2 = vis2_in or vis
 
@@ -190,7 +234,11 @@ def update_content(hashpath):
                     [
                         html.Span("notation"),
                         dcc.Dropdown(
-                            id=dict(id="notation", type="dropdown"), value=notation, options=notations, clearable=False, style=dict(width="150px")
+                            id=dict(id="notation", type="dropdown"),
+                            value=notation,
+                            options=notations,
+                            clearable=False,
+                            style=dict(width="150px"),
                         ),
                     ],
                     style=dict(display="inline-block"),
@@ -198,7 +246,13 @@ def update_content(hashpath):
                 html.Div(
                     [
                         html.Span("visualization"),
-                        dcc.Dropdown(id=dict(id="vis", type="dropdown"), value=vis, options=vis_types, clearable=False, style=dict(width="150px")),
+                        dcc.Dropdown(
+                            id=dict(id="vis", type="dropdown"),
+                            value=vis,
+                            options=vis_types,
+                            clearable=False,
+                            style=dict(width="150px"),
+                        ),
                     ],
                     style=dict(display="inline-block"),
                 ),
@@ -268,7 +322,10 @@ def update_content(hashpath):
         dcc.Store(id="selection", data=[from_slug, to_slug]),
     ]
 
-    if notation2 and ((notation != notation2 and distance == distance2) or (notation == notation2 and distance != distance2)):
+    if notation2 and (
+        (notation != notation2 and distance == distance2)
+        or (notation == notation2 and distance != distance2)
+    ):
         blocks.append(
             html.Div(
                 html.Details(
@@ -276,7 +333,15 @@ def update_content(hashpath):
                         html.Summary("cross-notation"),
                         dcc.Graph(
                             id=dict(type="figure", suffix="cross", seq="1"),
-                            figure=cross_notation_figure(study, notation, distance, notation2, distance2, from_slug, to_slug),
+                            figure=cross_notation_figure(
+                                study,
+                                notation,
+                                distance,
+                                notation2,
+                                distance2,
+                                from_slug,
+                                to_slug,
+                            ),
                             style=dict(width="500px", margin="0 auto"),
                             clear_on_unhover=True,
                         ),
@@ -291,7 +356,8 @@ def update_content(hashpath):
     blocks.append(
         html.Div(
             html.Details(
-                [html.Summary(notation + " " + vis)] + wrap_vis(study, notation, distance, vis, from_slug, to_slug, "1"),
+                [html.Summary(notation + " " + vis)]
+                + wrap_vis(study, notation, distance, vis, from_slug, to_slug, "1"),
                 open=True,
             )
         ),
@@ -301,7 +367,10 @@ def update_content(hashpath):
         blocks.append(
             html.Div(
                 html.Details(
-                    [html.Summary(notation2 + " " + vis2)] + wrap_vis(study, notation2, distance2, vis2, from_slug, to_slug, "2"),
+                    [html.Summary(notation2 + " " + vis2)]
+                    + wrap_vis(
+                        study, notation2, distance2, vis2, from_slug, to_slug, "2"
+                    ),
                     open=True,
                 )
             )
@@ -315,7 +384,9 @@ def update_content(hashpath):
     return html.Div(className="wrapper", children=blocks)
 
 
-def cross_notation_figure(study, notation, distance, notation2, distance2, from_slug, to_slug):
+def cross_notation_figure(
+    study, notation, distance, notation2, distance2, from_slug, to_slug
+):
 
     merged = merged_distances(study, notation, distance, notation2, distance2)
 
@@ -326,11 +397,20 @@ def cross_notation_figure(study, notation, distance, notation2, distance2, from_
         y += "_" + notation2
 
     merged = merged.groupby("from_slug").mean([x, y]).reset_index()
-    merged["selected"] = (merged["from_slug"] == from_slug) | (merged["from_slug"] == to_slug)
+    merged["selected"] = (merged["from_slug"] == from_slug) | (
+        merged["from_slug"] == to_slug
+    )
 
     if distance != distance2:
         fig = px.scatter(
-            merged, x=x, y=y, hover_name="from_slug", color="selected", hover_data={x: False, y: False, "selected": False}, width=500, height=500
+            merged,
+            x=x,
+            y=y,
+            hover_name="from_slug",
+            color="selected",
+            hover_data={x: False, y: False, "selected": False},
+            width=500,
+            height=500,
         )
         fig.update_layout(showlegend=False)
         if len(fig.data) > 1:
@@ -361,8 +441,14 @@ def cross_notation_figure(study, notation, distance, notation2, distance2, from_
                     b=[mn, mn, mn, md, md, md, mx, mx, mx],
                     x=[0, -5, -10, 5, 0, -5, 10, 5, 0],
                     y=[0, 5, 10, 5, 10, 15, 10, 15, 20],
-                    aaxis=dict(title=f"{notation} {distance} eccentricity", gridcolor="lightgrey"),
-                    baxis=dict(title=f"{notation2} {distance2} eccentricity", gridcolor="lightgrey"),
+                    aaxis=dict(
+                        title=f"{notation} {distance} eccentricity",
+                        gridcolor="lightgrey",
+                    ),
+                    baxis=dict(
+                        title=f"{notation2} {distance2} eccentricity",
+                        gridcolor="lightgrey",
+                    ),
                 ),
             ]
         )
@@ -380,23 +466,35 @@ def cross_notation_figure(study, notation, distance, notation2, distance2, from_
         fig.add_shape(line_color="lightgrey", line_width=1, x0=0, x1=0, y0=0.1, y1=19.9)
         fig.update_xaxes(visible=False, range=[-11, 11])
         fig.update_yaxes(visible=False, range=[-1, 21])
-        fig.update_layout(plot_bgcolor="white", margin=dict(b=0, t=0, l=0, r=0), width=500, height=500, showlegend=False)
+        fig.update_layout(
+            plot_bgcolor="white",
+            margin=dict(b=0, t=0, l=0, r=0),
+            width=500,
+            height=500,
+            showlegend=False,
+        )
 
     return fig
 
 
 def wrap_vis(study, notation, distance, vis, from_slug, to_slug, suffix):
     vis_list = []
-    for i, vis in enumerate(get_vis(study, notation, distance, vis, from_slug, to_slug)):
+    for i, vis in enumerate(
+        get_vis(study, notation, distance, vis, from_slug, to_slug)
+    ):
         if isinstance(vis, go.Figure):
             vis_list.append(figure(dict(type="figure", suffix=suffix, seq=str(i)), vis))
         else:
-            vis_list.append(cytoscape(dict(type="network", suffix=suffix, seq=str(i)), vis))
+            vis_list.append(
+                cytoscape(dict(type="network", suffix=suffix, seq=str(i)), vis)
+            )
     return vis_list
 
 
 def figure(id, fig):
-    return dcc.Graph(id=id, figure=fig, config=dict(scrollZoom=True), clear_on_unhover=True)
+    return dcc.Graph(
+        id=id, figure=fig, config=dict(scrollZoom=True), clear_on_unhover=True
+    )
 
 
 def cytoscape(id, elements):
@@ -493,15 +591,30 @@ def diff_view(study, notation, from_slug, to_slug):
         with open(f"results/{study}/{notation}/pretty/{to_slug}.{srcext}", "r") as f:
             to_code = f.read()
     return html.Div(
-        [html.Div([DashDiff(oldCode=from_code, newCode=to_code)], style=dict(border="none"))],
-        style=dict(marginTop="20px", textAlign="left", height="300px", maxWidth="48vw", border="1px solid grey"),
+        [
+            html.Div(
+                [DashDiff(oldCode=from_code, newCode=to_code)],
+                style=dict(border="none"),
+            )
+        ],
+        style=dict(
+            marginTop="20px",
+            textAlign="left",
+            height="300px",
+            maxWidth="48vw",
+            border="1px solid grey",
+        ),
     )
 
 
 @cache
 def build_trie(study, notation):
     tokens_df = load_tokens()
-    filtered = tokens_df.query(f"study=='{study}' and notation=='{notation}'").groupby("token").nunique("slug")
+    filtered = (
+        tokens_df.query(f"study=='{study}' and notation=='{notation}'")
+        .groupby("token")
+        .nunique("slug")
+    )
     max_count = filtered["slug"].max()
     trie = dict()
     for token, count in filtered["slug"].items():
@@ -520,7 +633,9 @@ def single_view(study, notation, slug):
     with open(f"results/{study}/{notation}/pretty/{slug}.{srcext}", "r") as f:
         text = f.read()
 
-    scale = spectra.scale([spectra.html("#2FF"), spectra.html("#FFF")]).domain([math.log(1), math.log(max_count - 1)])
+    scale = spectra.scale([spectra.html("#2FF"), spectra.html("#FFF")]).domain(
+        [math.log(1), math.log(max_count - 1)]
+    )
 
     out_text = ""
 
@@ -541,46 +656,78 @@ def single_view(study, notation, slug):
         else:
             buffer += c
             pointer = pointer[c]
-    return DangerouslySetInnerHTML("<pre align='left' style='width: 45vw'>" + out_text + "</pre>")
+    return DangerouslySetInnerHTML(
+        "<pre align='left' style='width: 45vw'>" + out_text + "</pre>"
+    )
 
 
 def get_token_info(study, notation, slug):
     tokens_df = load_tokens()
-    df = tokens_df.query(f"study=='{study}' and notation=='{notation}' and slug=='{slug}'")["token"]
+    df = tokens_df.query(
+        f"study=='{study}' and notation=='{notation}' and slug=='{slug}'"
+    )["token"]
     return df.values, len(df), df.nunique()
 
 
 def details_view(study, notation, distance, from_slug, to_slug):
     cmp = None
     try:
-        from_tokens, from_tokens_n, from_tokens_nunique = get_token_info(study, notation, from_slug)
+        from_tokens, from_tokens_n, from_tokens_nunique = get_token_info(
+            study, notation, from_slug
+        )
         if from_slug != to_slug:
 
-            to_tokens, to_tokens_n, to_tokens_nunique = get_token_info(study, notation, to_slug)
-            from_to_distance = get_distance(study, notation, distance, from_slug, to_slug)
-            to_from_distance = get_distance(study, notation, distance, to_slug, from_slug)
+            to_tokens, to_tokens_n, to_tokens_nunique = get_token_info(
+                study, notation, to_slug
+            )
+            from_to_distance = get_distance(
+                study, notation, distance, from_slug, to_slug
+            )
+            to_from_distance = get_distance(
+                study, notation, distance, to_slug, from_slug
+            )
 
             shared_tokens = list((Counter(from_tokens) & Counter(to_tokens)).elements())
             shared_uniques = set(from_tokens) & set(to_tokens)
             td1 = html.Td(
-                header_and_image(study, notation, from_slug, from_tokens_n, from_tokens_nunique),
+                header_and_image(
+                    study, notation, from_slug, from_tokens_n, from_tokens_nunique
+                ),
                 style=dict(verticalAlign="top"),
             )
             td2 = html.Td(
                 ["tokens", html.Br()]
-                + [f"{from_tokens_n - len(shared_tokens)} ⬌ {to_tokens_n - len(shared_tokens)}"]
+                + [
+                    f"{from_tokens_n - len(shared_tokens)} ⬌ {to_tokens_n - len(shared_tokens)}"
+                ]
                 + [html.Br(), html.Br(), "uniques", html.Br()]
-                + [f"{from_tokens_nunique - len(shared_uniques)} ⬌ {to_tokens_nunique - len(shared_uniques)}"]
-                + [html.Br(), html.Br(), "tree edit", html.Br(), f"{to_from_distance} ⬌ {from_to_distance}"]
+                + [
+                    f"{from_tokens_nunique - len(shared_uniques)} ⬌ {to_tokens_nunique - len(shared_uniques)}"
+                ]
+                + [
+                    html.Br(),
+                    html.Br(),
+                    "tree edit",
+                    html.Br(),
+                    f"{to_from_distance} ⬌ {from_to_distance}",
+                ]
             )
             td3 = html.Td(
-                header_and_image(study, notation, to_slug, to_tokens_n, to_tokens_nunique),
+                header_and_image(
+                    study, notation, to_slug, to_tokens_n, to_tokens_nunique
+                ),
                 style=dict(verticalAlign="top"),
             )
-            cmp = [html.Table([html.Tr([td1, td2, td3])], style=dict(width="100%", height="300px"))]
+            cmp = [
+                html.Table(
+                    [html.Tr([td1, td2, td3])], style=dict(width="100%", height="300px")
+                )
+            ]
             cmp += [diff_view(study, notation, from_slug, to_slug)]
         elif from_slug != "":
-            cmp = header_and_image(study, notation, from_slug, from_tokens_n, from_tokens_nunique)
+            cmp = header_and_image(
+                study, notation, from_slug, from_tokens_n, from_tokens_nunique
+            )
             cmp += [single_view(study, notation, from_slug)]
 
     except Exception as e:

@@ -27,7 +27,11 @@ def get_dendro(study, notation, distance, from_slug, to_slug, vis):
             mode="lines+markers",
         )
         if from_slug == to_slug:
-            fig.data[1].marker = dict(color=dmat_sym[order.index(from_slug)][leaves], cmax=np.median(dmat_sym), colorscale="Viridis")
+            fig.data[1].marker = dict(
+                color=dmat_sym[order.index(from_slug)][leaves],
+                cmax=np.median(dmat_sym),
+                colorscale="Viridis",
+            )
         else:
             fig.data[1].marker.opacity = 0
     else:
@@ -112,7 +116,15 @@ def build_dendro(study, notation, distance):
         hovertext.append(None)
     append_point(root[0], root[1])
     fig = go.Figure()
-    fig.add_scatter(x=x, y=y, line_width=1, customdata=hovertext, hoverinfo="none", mode="lines+markers", marker_size=1)
+    fig.add_scatter(
+        x=x,
+        y=y,
+        line_width=1,
+        customdata=hovertext,
+        hoverinfo="none",
+        mode="lines+markers",
+        marker_size=1,
+    )
     fig.add_scatter(
         x=np.array(label_x)[np.argsort(label_y)],
         y=np.array(label_y)[np.argsort(label_y)],
@@ -122,7 +134,9 @@ def build_dendro(study, notation, distance):
         hoverinfo="skip",
         marker=dict(cmin=0, symbol="square"),
     )
-    fig.update_layout(height=800, showlegend=False, dragmode="pan", plot_bgcolor="white")
+    fig.update_layout(
+        height=800, showlegend=False, dragmode="pan", plot_bgcolor="white"
+    )
     fig.update_layout(uirevision="yes")
     fig.update_yaxes(visible=False)
     return fig.to_json(), y_by_slug, P["leaves"]

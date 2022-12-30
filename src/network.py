@@ -23,11 +23,16 @@ def get_network(study, notation, distance, from_slug, to_slug, method):
                     "source": source,
                     "target": dest,
                     "id": id,
-                    "length": from_to_distance if source == from_slug else to_from_distance,
+                    "length": from_to_distance
+                    if source == from_slug
+                    else to_from_distance,
                 },
                 "classes": "",
             }
-            if len(dropped) == 0 or (id not in [x["data"]["id"] for x in dropped] and "bidir" not in dropped[0]["classes"]):
+            if len(dropped) == 0 or (
+                id not in [x["data"]["id"] for x in dropped]
+                and "bidir" not in dropped[0]["classes"]
+            ):
                 new_elem["classes"] += " inserted"
             if source == from_slug:
                 new_elem["classes"] += " selected"
@@ -43,7 +48,12 @@ def get_network(study, notation, distance, from_slug, to_slug, method):
             if source != dest:
                 net.append(
                     {
-                        "data": {"source": source, "target": dest, "id": source + "__" + dest + "_nnnn", "length": dmat_sym[from_index, to_index]},
+                        "data": {
+                            "source": source,
+                            "target": dest,
+                            "id": source + "__" + dest + "_nnnn",
+                            "length": dmat_sym[from_index, to_index],
+                        },
                         "classes": "neighbour",
                     }
                 )

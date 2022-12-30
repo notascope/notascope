@@ -14,8 +14,14 @@ distance_types = ["nmi", "cd", "ncd", "difflib"]
 
 @cache
 def load_distances():
-    difflib_df = pd.read_csv("results/difflib_costs.csv", names=["study", "notation", "from_slug", "to_slug", "difflib"])
-    ncd_df = pd.read_csv("results/ncd_costs.csv", names=["study", "notation", "from_slug", "to_slug", "a", "b", "ab"])
+    difflib_df = pd.read_csv(
+        "results/difflib_costs.csv",
+        names=["study", "notation", "from_slug", "to_slug", "difflib"],
+    )
+    ncd_df = pd.read_csv(
+        "results/ncd_costs.csv",
+        names=["study", "notation", "from_slug", "to_slug", "a", "b", "ab"],
+    )
     ncd_df["nmi"] = 2 * ncd_df["ab"] - ncd_df["a"] - ncd_df["b"]
     ncd_df["cd"] = ncd_df["ab"] - ncd_df[["a", "b"]].min(axis=1)
     ncd_df["ncd"] = (1000 * ncd_df["cd"] / ncd_df[["a", "b"]].max(axis=1)).astype(int)
@@ -26,8 +32,12 @@ def load_distances():
 def merged_distances(study, notation, distance, notation2, distance2):
     df = load_distances()
     return pd.merge(
-        df.query(f"study=='{study}' and notation=='{notation}'")[["from_slug", "to_slug", distance]],
-        df.query(f"study=='{study}' and notation=='{notation2}'")[["from_slug", "to_slug", distance2]],
+        df.query(f"study=='{study}' and notation=='{notation}'")[
+            ["from_slug", "to_slug", distance]
+        ],
+        df.query(f"study=='{study}' and notation=='{notation2}'")[
+            ["from_slug", "to_slug", distance2]
+        ],
         on=["from_slug", "to_slug"],
         suffixes=["_" + notation, "_" + notation2],
     )
@@ -36,7 +46,9 @@ def merged_distances(study, notation, distance, notation2, distance2):
 @cache
 def dmat_and_order(study, notation, distance):
     df = load_distances().query(f"study=='{study}' and notation=='{notation}'")
-    dmat = df.pivot_table(index="from_slug", columns="to_slug", values=distance).fillna(0)
+    dmat = df.pivot_table(index="from_slug", columns="to_slug", values=distance).fillna(
+        0
+    )
     order = list(dmat.index)
     dmat = dmat.values
     dmat_sym = (dmat + dmat.T) / 2.0
@@ -47,7 +59,9 @@ def dmat_and_order(study, notation, distance):
 def get_distance(study, notation, distance, from_slug, to_slug):
     return (
         load_distances()
-        .query(f"study=='{study}' and notation=='{notation}' and from_slug=='{from_slug}' and to_slug=='{to_slug}'")[distance]
+        .query(
+            f"study=='{study}' and notation=='{notation}' and from_slug=='{from_slug}' and to_slug=='{to_slug}'"
+        )[distance]
         .values[0]
     )
 
@@ -72,9 +86,13 @@ def get_embedding(study, notation, distance, method, dim=2):
     elif method == "umap":
         embedding = UMAP(n_components=dim).fit_transform(dmat_sym)
     elif method == "mds":
-        embedding = MDS(n_components=dim, dissimilarity="precomputed").fit_transform(dmat_sym)
+        embedding = MDS(n_components=dim, dissimilarity="precomputed").fit_transform(
+            dmat_sym
+        )
     elif method == "kk":
-        g = igraph.Graph.Weighted_Adjacency(get_mst(study, notation, distance).toarray().tolist())
+        g = igraph.Graph.Weighted_Adjacency(
+            get_mst(study, notation, distance).toarray().tolist()
+        )
         layout = g.layout_kamada_kawai(maxiter=10000, dim=dim)
         embedding = np.array(layout.coords)
     if dim == 3:

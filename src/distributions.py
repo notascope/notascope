@@ -8,9 +8,22 @@ import numpy as np
 def token_bars(study, notation, distance, from_slug, to_slug, vis):
     tokens_df = load_tokens()
 
-    df = tokens_df.query(f"study == '{study}' and notation== '{notation}'").groupby(["token", "notation"])["slug"].nunique().reset_index()
+    df = (
+        tokens_df.query(f"study == '{study}' and notation== '{notation}'")
+        .groupby(["token", "notation"])["slug"]
+        .nunique()
+        .reset_index()
+    )
     df["y"] = 1
-    fig = px.bar(df, x="slug", y="y", hover_name="token", height=600, hover_data=dict(y=False), labels=dict(slug="token frequency", y="token count"))
+    fig = px.bar(
+        df,
+        x="slug",
+        y="y",
+        hover_name="token",
+        height=600,
+        hover_data=dict(y=False),
+        labels=dict(slug="token frequency", y="token count"),
+    )
     return fig
 
 
@@ -18,7 +31,12 @@ def token_rank(study, notation, distance, from_slug, to_slug, vis):
 
     tokens_df = load_tokens()
 
-    df = tokens_df.query(f"study == '{study}' and notation== '{notation}'").groupby(["token", "notation"])["slug"].nunique().reset_index()
+    df = (
+        tokens_df.query(f"study == '{study}' and notation== '{notation}'")
+        .groupby(["token", "notation"])["slug"]
+        .nunique()
+        .reset_index()
+    )
     fig = px.ecdf(
         df,
         x="slug",
@@ -41,7 +59,9 @@ def farness(study, notation, distance, from_slug, to_slug, vis):
 
     df = pd.DataFrame(dict(slug=order, farness=np.mean(dmat, axis=1)))
 
-    df["bin_center"] = pd.cut(df["farness"], bins=50).apply(lambda x: float(x.mid)).astype(float)
+    df["bin_center"] = (
+        pd.cut(df["farness"], bins=50).apply(lambda x: float(x.mid)).astype(float)
+    )
     df["y"] = 1
     fig = px.bar(
         df,
