@@ -57,7 +57,7 @@ def farness(gallery, notation, distance, from_slug, to_slug, vis):
 
     dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
 
-    df = pd.DataFrame(dict(slug=order, farness=np.mean(dmat, axis=1)))
+    df = pd.DataFrame(dict(slug=order, farness=np.mean(dmat_sym, axis=1)))
 
     df["bin_center"] = (
         pd.cut(df["farness"], bins=50).apply(lambda x: float(x.mid)).astype(float)
@@ -79,4 +79,33 @@ def farness(gallery, notation, distance, from_slug, to_slug, vis):
     fig.update_traces(hoverinfo="none", hovertemplate="<extra></extra>")
     fig.update_xaxes(title_text="farness (binned)")
     fig.update_yaxes(title_text="count")
+    return fig
+
+
+def get_farness_scatter(gallery, notation, distance, from_slug, to_slug, method):
+
+    dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
+    x = y = color = np.mean(dmat_sym, axis=1)
+    xlab = ylab = "farness"
+    range = None
+    if from_slug:
+        y = dmat_sym[order.index(from_slug)]
+        ylab = "distance to " + from_slug
+    if to_slug != from_slug:
+        x = dmat_sym[order.index(to_slug)]
+        xlab = "distance to " + to_slug
+        range = [0, 1.05 * max(np.max(x), np.max(y))]
+    fig = px.scatter(
+        x=x,
+        y=y,
+        hover_data=[order],
+        labels=dict(x=xlab, y=ylab),
+        color=color,
+        height=700,
+        width=700,
+        range_x=range,
+        range_y=range,
+    )
+    fig.update_coloraxes(showscale=False)
+    fig.update_traces(hoverinfo="none", hovertemplate="<extra></extra>")
     return fig

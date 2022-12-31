@@ -5,7 +5,7 @@ from .tokens import *  # noqa
 from .scatter import get_scatter
 from .dendro import get_dendro
 from .network import get_network
-from .distributions import token_rank, token_bars, farness
+from .distributions import token_rank, token_bars, farness, get_farness_scatter
 
 vis_map = {
     "mst": get_network,
@@ -19,6 +19,7 @@ vis_map = {
     "token_rank": token_rank,
     "token_bars": token_bars,
     "farness": farness,
+    "farness_scatter": get_farness_scatter,
 }
 vis_types = list(vis_map.keys())
 
