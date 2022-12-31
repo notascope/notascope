@@ -3,8 +3,7 @@ from glob import glob
 import os
 import sys
 from src import slug_from_path
-from lzma import compress
-from multiprocessing import Pool
+from lz4.frame import compress
 
 
 inpath = sys.argv[1]
@@ -37,6 +36,6 @@ def cost(args):
 
 
 if __name__ == "__main__":
-    with Pool(6) as p, open(f"results/{gallery}/{notation}/ncd_costs.csv", "w") as f:
-        for r in p.map(cost, permutations(file_bytes, 2)):
+    with open(f"results/{gallery}/{notation}/ncd_costs.csv", "w") as f:
+        for r in map(cost, permutations(file_bytes, 2)):
             print(",".join(r), file=f)
