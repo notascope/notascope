@@ -1,0 +1,30 @@
+name: env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - pandas=1.5.2
+  - jupyterlab=3.5.2
+  - python=3.10
+  - scikit-learn=1.2.0
+  - umap-learn=0.5.3
+  - numpy=1.23.5
+  - scipy=1.9.3
+  - pip=22.3.1
+  - plotly=5.11
+  - dash=2.7.1
+  - dash_cytoscape=0.2.0
+  - dash-extensions=0.1.6
+  - tree_sitter=0.20.1
+  - seaborn=0.12.2
+  - altair=4.2.0
+  - altair_saver=0.5.0
+  - python-kaleido=0.2.1
+  - spectra=0.0.11
+  - lz4=4.2.0
+  - python-igraph=0.10.2
+  - statsmodels=0.13.5
+  - black=22.10.0
+  - jq=1.6
+  - pip:
+      - dash_dangerously_set_inner_html
