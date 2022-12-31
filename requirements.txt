@@ -4,9 +4,18 @@ scikit-learn
 plotly
 dash
 dash-cytoscape
+dash_extensions
+dash_dangerously_set_inner_html
 tree_sitter
 parso
 seaborn
 altair
-altair_saver
+altair_saver # needs extra stuff?
 kaleido
+scipy
+umap-learn # via conda
+spectra
+lz4
+jupyterlab
+igraph
+statsmodels

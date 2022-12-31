@@ -79,7 +79,6 @@ def get_embedding(gallery, notation, distance, method, dim=2):
         embedding = TSNE(
             n_components=dim,
             metric="precomputed",
-            square_distances=True,
             learning_rate="auto",
             init="random",
         ).fit_transform(dmat_sym)
