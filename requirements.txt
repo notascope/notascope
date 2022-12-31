@@ -1,7 +1,4 @@
-pandas
-numpy
-scikit-learn
-umap-learn # via conda
+# conda create -n env python=3.10 umap-learn scikit-learn pandas numpy scipy jupyterlab -c conda-forge
 
 plotly
 dash
@@ -14,9 +11,7 @@ seaborn
 altair
 altair_saver
 kaleido
-scipy
 spectra
 lz4
-jupyterlab
 igraph
 statsmodels
