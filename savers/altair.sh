@@ -1,3 +1,3 @@
 #!/bin/zsh
 
-{cat $1 ; echo "chart.save('$2.svg')"} | python
+{cat $1 ; echo "from altair_saver import save; save(chart, '$2.svg', method='node')"} | python
