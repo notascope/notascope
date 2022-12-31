@@ -1,6 +1,8 @@
 pandas
 numpy
 scikit-learn
+umap-learn # via conda
+
 plotly
 dash
 dash-cytoscape
@@ -10,10 +12,9 @@ tree_sitter
 parso
 seaborn
 altair
-altair_saver # needs extra stuff?
+altair_saver
 kaleido
 scipy
-umap-learn # via conda
 spectra
 lz4
 jupyterlab
