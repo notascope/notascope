@@ -442,11 +442,11 @@ def cross_notation_figure(
                     x=[0, -5, -10, 5, 0, -5, 10, 5, 0],
                     y=[0, 5, 10, 5, 10, 15, 10, 15, 20],
                     aaxis=dict(
-                        title=f"{notation} {distance} eccentricity",
+                        title=f"{notation} {distance} farness",
                         gridcolor="lightgrey",
                     ),
                     baxis=dict(
-                        title=f"{notation2} {distance2} eccentricity",
+                        title=f"{notation2} {distance2} farness",
                         gridcolor="lightgrey",
                     ),
                 ),
