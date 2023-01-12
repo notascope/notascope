@@ -89,38 +89,27 @@ def make_hashpath(values):
 def sanitize_state(hashpath_values):
     state = defaultdict(str, hashpath_values)
 
+    if state["gallery"] not in registry:
+        state["gallery"] = "tiny"
+
     if state["vis"] not in vis_types:
         state["vis"] = vis_types[0]
-
-    if state["vis2"] not in vis_types:
-        state["vis2"] = ""
 
     if state["distance"] not in distance_types:
         state["distance"] = distance_types[0]
 
-    if state["distance2"] not in distance_types:
-        state["distance2"] = ""
-
-    if state["gallery"] not in registry:
-        state["gallery"] = "tiny"
-
-    gallery_res = registry[state["gallery"]]
     slugs = set()
-    if state["notation"] in gallery_res:
-        for s in gallery_res[state["notation"]]["slugs"]:
+    if state["notation"] in registry[state["gallery"]]:
+        for s in registry[state["gallery"]][state["notation"]]["slugs"]:
             slugs.add(s)
     else:
         state["notation"] = list(registry[state["gallery"]].keys())[0]
 
-    if state["notation2"] in gallery_res:
-        for s in gallery_res[state["notation2"]]["slugs"]:
+    if state["compare"] in registry[state["gallery"]]:
+        for s in registry[state["gallery"]][state["compare"]]["slugs"]:
             slugs.add(s)
-    else:
-        state["notation2"] = ""
-
-    if state["notation2"] == "":
-        state["vis2"] = ""
-        state["distance2"] = ""
+    elif state["compare"] not in vis_types + distance_types:
+        state["compare"] = ""
 
     if state["from_slug"] not in slugs:
         state["from_slug"] = state["to_slug"] = ""
@@ -138,7 +127,7 @@ def sanitize_state(hashpath_values):
     Input(dict(type="dropdown", id=ALL), "value"),
     Input(dict(type="network", suffix=ALL, seq=ALL), "tapNodeData"),
     Input(dict(type="network", suffix=ALL, seq=ALL), "tapEdgeData"),
-    Input(dict(type="figure", suffix=ALL, seq=ALL), "clickData"),
+    Input(dict(type="figure", suffix=ALL, seq=ALL, notation=ALL), "clickData"),
     State("event_listener", "event"),
 )
 def update_hashpath(selection, dropdowns, node_data, edge_data, _, event):
@@ -181,39 +170,46 @@ def update_hashpath(selection, dropdowns, node_data, edge_data, _, event):
     return hashpath, node_data, edge_data
 
 
+def dropdown_header(label):
+    return dict(
+        disabled=True,
+        label=html.Span(
+            label, style=dict(fontWeight="bold", fontStyle="italic", margin="0 auto")
+        ),
+        value="<>",
+    )
+
+
 @app.callback(
     Output("content", "children"),
     Input("location", "hash"),
 )
 def update_content(hashpath):
-    (
-        gallery,
-        notation,
-        distance,
-        vis,
-        notation2,
-        distance2_in,
-        vis2_in,
-        from_slug,
-        to_slug,
-    ) = itemgetter(
-        "gallery",
-        "notation",
-        "distance",
-        "vis",
-        "notation2",
-        "distance2",
-        "vis2",
-        "from_slug",
-        "to_slug",
-    )(
-        parse_hashpath(hashpath)
-    )
-    distance2 = distance2_in or distance
-    vis2 = vis2_in or vis
+    (gallery, notation, distance, vis, compare, from_slug, to_slug,) = itemgetter(
+        "gallery", "notation", "distance", "vis", "compare", "from_slug", "to_slug"
+    )(parse_hashpath(hashpath))
 
+    notation2 = distance2 = vis2 = None
     notations = [s for s in registry[gallery]]
+    if compare:
+        notation2 = notation
+        distance2 = distance
+        vis2 = vis
+        if compare in notations:
+            notation2 = compare
+        if compare in vis_types:
+            vis2 = compare
+        if compare in distance_types:
+            distance2 = compare
 
+    comparisons = []
+    if len(notations) > 1:
+        comparisons += [dropdown_header("Notations")]
+        comparisons += [dict(label=x, value=x) for x in notations]
+    comparisons += [dropdown_header("Visualizations")]
+    comparisons += [dict(label=x, value=x) for x in vis_types]
+    comparisons += [dropdown_header("Distances")]
+    comparisons += [dict(label=x, value=x) for x in distance_types]
     blocks = [
         html.Div(
             [
@@ -280,48 +276,17 @@ def update_content(hashpath):
             [
                 html.Div(
                     [
-                        html.Span("notation"),
+                        html.Span("comparison"),
                         dcc.Dropdown(
-                            id=dict(id="notation2", type="dropdown"),
-                            value=notation2,
-                            options=notations,
+                            id=dict(id="compare", type="dropdown"),
+                            value=compare,
+                            options=comparisons,
                             clearable=True,
-                            style=dict(width="150px"),
-                            placeholder="Compare...",
+                            style=dict(width="175px"),
                             maxHeight=800,
                         ),
                     ],
                     style=dict(display="inline-block"),
-                ),
-                html.Div(
-                    [
-                        html.Span("visualization"),
-                        dcc.Dropdown(
-                            id=dict(id="vis2", type="dropdown"),
-                            value=vis2_in,
-                            options=vis_types,
-                            clearable=True,
-                            style=dict(width="150px"),
-                            placeholder=vis2,
-                            maxHeight=800,
-                        ),
-                    ],
-                    style=dict(display="inline-block" if notation2 else "none"),
-                ),
-                html.Div(
-                    [
-                        html.Span("distance"),
-                        dcc.Dropdown(
-                            id=dict(id="distance2", type="dropdown"),
-                            value=distance2_in,
-                            options=distance_types,
-                            clearable=True,
-                            style=dict(width="100px"),
-                            placeholder=distance2,
-                            maxHeight=800,
-                        ),
-                    ],
-                    style=dict(display="inline-block" if notation2 else "none"),
                 ),
             ],
             style=dict(margin="0 auto"),
@@ -339,7 +304,12 @@ def update_content(hashpath):
                     [
                         html.Summary("cross-notation"),
                         dcc.Graph(
-                            id=dict(type="figure", suffix="cross", seq="1"),
+                            id=dict(
+                                type="figure",
+                                suffix="cross",
+                                seq="1",
+                                notation=notation,
+                            ),
                             figure=cross_notation_figure(
                                 gallery,
                                 notation,
@@ -363,7 +333,7 @@ def update_content(hashpath):
     blocks.append(
         html.Div(
             html.Details(
-                [html.Summary(notation + " " + vis)]
+                [html.Summary(" ".join([notation, distance, vis]))]
                 + wrap_vis(gallery, notation, distance, vis, from_slug, to_slug, "1"),
                 open=True,
             )
@@ -374,7 +344,7 @@ def update_content(hashpath):
         blocks.append(
             html.Div(
                 html.Details(
-                    [html.Summary(notation2 + " " + vis2)]
+                    [html.Summary(" ".join([notation2, distance2, vis2]))]
                     + wrap_vis(
                         gallery, notation2, distance2, vis2, from_slug, to_slug, "2"
                     ),
@@ -490,7 +460,12 @@ def wrap_vis(gallery, notation, distance, vis, from_slug, to_slug, suffix):
         get_vis(gallery, notation, distance, vis, from_slug, to_slug)
     ):
         if isinstance(vis, go.Figure):
-            vis_list.append(figure(dict(type="figure", suffix=suffix, seq=str(i)), vis))
+            vis_list.append(
+                figure(
+                    dict(type="figure", notation=notation, suffix=suffix, seq=str(i)),
+                    vis,
+                )
+            )
         else:
             vis_list.append(
                 cytoscape(dict(type="network", suffix=suffix, seq=str(i)), vis)
@@ -747,32 +722,30 @@ def details_view(gallery, notation, distance, from_slug, to_slug):
 app.clientside_callback(
     """
     function(ignore) {
-        trig = window.dash_clientside.callback_context.triggered
-        pt = trig.length > 0 && trig[0].value &&  trig[0].value["points"][0]
+        trig = window.dash_clientside.callback_context.triggered;
+        pt = trig.length > 0 && trig[0].value &&  trig[0].value["points"][0];
         if(!pt || !pt["customdata"]){
             return [false, null, null, null];
         }
         qs = new URLSearchParams(window.location.hash.replace(/^#/, ""));
         gallery=qs.get('gallery');
-        notation=qs.get('notation')
-        if(trig[0].prop_id.includes('2')) {
-            notation=qs.get('notation2') // pack this into the id?
-        }
-        slug = pt["customdata"]
+        trig_id = JSON.parse(trig[0].prop_id.split('.')[0]);
+        notation=trig_id.notation;
+        slug = pt["customdata"];
         if(slug.length == 1) {
-            slug = slug[0]
+            slug = slug[0];
         }
         return [true,
                 pt["bbox"],
                 "/assets/results/"+gallery+"/"+notation+"/img/"+slug+".svg",
-                slug]
+                slug];
     }
     """,
     Output("tooltip", "show"),
     Output("tooltip", "bbox"),
     Output("tt_img", "src"),
     Output("tt_name", "children"),
-    Input(dict(type="figure", suffix=ALL, seq=ALL), "hoverData"),
+    Input(dict(type="figure", suffix=ALL, seq=ALL, notation=ALL), "hoverData"),
 )
 
 
