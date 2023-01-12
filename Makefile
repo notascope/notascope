@@ -13,7 +13,7 @@ base: results/$(1)/$(2)/source/$(basename $(3))
 results/$(1)/$(2)/img/$(basename $(3)): galleries/$(1)/$(2)/$(3)
 	@echo "[img]      $(1)/$(2): $(3)"
 	@mkdir -p $$(dir $$@)
-	@savers/$(2).sh $$< $$@
+	@notations/savers/$(2).sh $$< $$@
 	@touch $$@
 base: results/$(1)/$(2)/img/$(basename $(3))
 results/$(1)/summary.html: results/$(1)/$(2)/img/$(basename $(3))
@@ -21,14 +21,14 @@ results/$(1)/summary.html: results/$(1)/$(2)/img/$(basename $(3))
 results/$(1)/$(2)/preproc/$(3): galleries/$(1)/$(2)/$(3)
 	@echo "[preproc]  $(1)/$(2): $(3)"
 	@mkdir -p $$(dir $$@)
-	@preprocessors/$(2).sh $$< $$@
+	@notations/preprocessors/$(2).sh $$< $$@
 	@touch $$@
 results/$(1)/$(2)/difflib_costs.csv results/$(1)/$(2)/ncd_costs.csv results/$(1)/$(2)/tokens.tsv: results/$(1)/$(2)/preproc/$(3)
 
 results/$(1)/$(2)/pretty/$(3): galleries/$(1)/$(2)/$(3)
 	@echo "[pretty]   $(1)/$(2): $(3)"
 	@mkdir -p $$(dir $$@)
-	@prettyprinters/$(2).sh $$< $$@
+	@notations/prettyprinters/$(2).sh $$< $$@
 	@touch $$@
 base: results/$(1)/$(2)/pretty/$(3)
 
