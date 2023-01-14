@@ -11,9 +11,9 @@ from dash_extensions import EventListener
 # local
 from src.utils import load_registry
 from src.distances import distance_types
-from src.pair_vis import wrap_pair_vis
-from src.details import details_view
 from src.vis import vis_types, wrap_vis
+from src.pair_vis import pair_vis_types, wrap_pair_vis
+from src.details import details_view
 
 
 print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
@@ -86,24 +86,33 @@ def sanitize_state(hashpath_values):
     if state["distance"] not in distance_types:
         state["distance"] = distance_types[0]
 
+    notations = list(registry[state["gallery"]].keys())
     slugs = set()
-    if state["notation"] in registry[state["gallery"]]:
+    if state["notation"] in notations:
         for s in registry[state["gallery"]][state["notation"]]["slugs"]:
             slugs.add(s)
     else:
-        state["notation"] = list(registry[state["gallery"]].keys())[0]
+        state["notation"] = notations[0]
 
-    if state["compare"] in registry[state["gallery"]]:
+    if state["compare"] in notations:
         for s in registry[state["gallery"]][state["compare"]]["slugs"]:
             slugs.add(s)
     elif state["compare"] not in vis_types + distance_types:
         state["compare"] = ""
+
+    if (
+        state["pair_vis"] not in pair_vis_types
+        or state["compare"] not in distance_types + notations
+    ):
+        state["pair_vis"] = ""
 
     if state["from_slug"] not in slugs:
         state["from_slug"] = state["to_slug"] = ""
     elif state["to_slug"] not in slugs:
         state["to_slug"] = state["from_slug"]
 
+    for k_to_del in [k for k in state if not state[k]]:
+        del state[k_to_del]
     return state
 
 
@@ -187,9 +196,15 @@ def dropdown_opts(label, options, current):
     Input("location", "hash"),
 )
 def update_content(hashpath):
-    (gallery, notation, distance, vis, compare, from_slug, to_slug,) = itemgetter(
-        "gallery", "notation", "distance", "vis", "compare", "from_slug", "to_slug"
-    )(parse_hashpath(hashpath))
+    state = parse_hashpath(hashpath)
+    gallery = state["gallery"]
+    notation = state["notation"]
+    distance = state["distance"]
+    vis = state["vis"]
+    compare = state["compare"]
+    from_slug = state["from_slug"]
+    to_slug = state["to_slug"]
+    pair_vis = state["pair_vis"]
 
     notation2 = distance2 = vis2 = None
     notations = [s for s in registry[gallery]]
@@ -283,15 +298,35 @@ def update_content(hashpath):
                     ],
                     style=dict(display="inline-block"),
                 ),
+                html.Div(
+                    [
+                        html.Span("pair visualization"),
+                        dcc.Dropdown(
+                            id=dict(id="pair_vis", type="dropdown"),
+                            value=pair_vis,
+                            options=pair_vis_types,
+                            clearable=True,
+                            style=dict(width="175px"),
+                            maxHeight=600,
+                        ),
+                    ],
+                    style=dict(display="inline-block"),
+                )
+                if compare in notations + distance_types
+                else None,
             ],
             style=dict(margin="0 auto", gridColumn="1/3"),
         ),
         dcc.Store(id="selection", data=[from_slug, to_slug]),
     ]
 
-    if notation2 and (
-        (notation != notation2 and distance == distance2)
-        or (notation == notation2 and distance != distance2)
+    if (
+        pair_vis
+        and notation2
+        and (
+            (notation != notation2 and distance == distance2)
+            or (notation == notation2 and distance != distance2)
+        )
     ):
         blocks.append(
             html.Div(
@@ -304,7 +339,7 @@ def update_content(hashpath):
                             distance,
                             notation2,
                             distance2,
-                            "diamond",
+                            pair_vis,
                             from_slug,
                             to_slug,
                         ),
