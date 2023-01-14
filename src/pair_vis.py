@@ -1,11 +1,10 @@
 from .distances import merged_distances
 import plotly.express as px
 import plotly.graph_objects as go
+from dash import dcc
 
 
-def cross_notation_figure(
-    gallery, notation, distance, notation2, distance2, from_slug, to_slug
-):
+def diamond(gallery, notation, distance, notation2, distance2, from_slug, to_slug):
 
     merged = merged_distances(gallery, notation, distance, notation2, distance2)
 
@@ -94,3 +93,23 @@ def cross_notation_figure(
         )
 
     return fig
+
+
+pair_vis_map = {
+    "diamond": diamond,
+}
+pair_vis_types = list(pair_vis_map.keys())
+
+
+def wrap_pair_vis(
+    gallery, notation, distance, notation2, distance2, vis, from_slug, to_slug
+):
+    fig = pair_vis_map[vis](
+        gallery, notation, distance, notation2, distance2, from_slug, to_slug
+    )
+    return dcc.Graph(
+        id=dict(type="figure", suffix="pair", seq="1", notation=notation),
+        figure=fig,
+        style=dict(width="500px", margin="0 auto"),
+        clear_on_unhover=True,
+    )

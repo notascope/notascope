@@ -11,7 +11,7 @@ from dash_extensions import EventListener
 # local
 from src.utils import load_registry
 from src.distances import distance_types
-from src.cross_vis import cross_notation_figure
+from src.pair_vis import wrap_pair_vis
 from src.details import details_view
 from src.vis import vis_types, wrap_vis
 
@@ -158,14 +158,28 @@ def update_hashpath(selection, dropdowns, node_data, edge_data, _, event):
     return hashpath, node_data, edge_data
 
 
-def dropdown_header(label):
-    return dict(
-        disabled=True,
-        label=html.Span(
-            label, style=dict(fontWeight="bold", fontStyle="italic", margin="0 auto")
-        ),
-        value="<>",
-    )
+def dropdown_opts(label, options, current):
+    return [
+        dict(
+            disabled=True,
+            label=html.Span(
+                label,
+                style=dict(fontWeight="bold", fontStyle="italic", margin="0 auto"),
+            ),
+            value="<>",
+        )
+    ] + [
+        dict(
+            label=x
+            if x != current
+            else html.Span(
+                current,
+                style=dict(color="grey"),
+            ),
+            value=x,
+        )
+        for x in options
+    ]
 
 
 @app.callback(
@@ -192,12 +206,10 @@ def update_content(hashpath):
 
     comparisons = []
     if len(notations) > 1:
-        comparisons += [dropdown_header("Notations")]
-        comparisons += [dict(label=x, value=x) for x in notations]
-    comparisons += [dropdown_header("Visualizations")]
-    comparisons += [dict(label=x, value=x) for x in vis_types]
-    comparisons += [dropdown_header("Distances")]
-    comparisons += [dict(label=x, value=x) for x in distance_types]
+        comparisons += dropdown_opts("Notations", notations, notation)
+    comparisons += dropdown_opts("Visualizations", vis_types, vis)
+    comparisons += dropdown_opts("Distances", distance_types, distance)
+
     blocks = [
         html.Div(
             [
@@ -210,7 +222,7 @@ def update_content(hashpath):
                             options=[s for s in registry],
                             clearable=False,
                             style=dict(width="100px"),
-                            maxHeight=800,
+                            maxHeight=600,
                         ),
                     ],
                     style=dict(display="inline-block"),
@@ -224,7 +236,7 @@ def update_content(hashpath):
                             options=notations,
                             clearable=False,
                             style=dict(width="150px"),
-                            maxHeight=800,
+                            maxHeight=600,
                         ),
                     ],
                     style=dict(display="inline-block"),
@@ -238,7 +250,7 @@ def update_content(hashpath):
                             options=vis_types,
                             clearable=False,
                             style=dict(width="150px"),
-                            maxHeight=800,
+                            maxHeight=600,
                         ),
                     ],
                     style=dict(display="inline-block"),
@@ -252,16 +264,11 @@ def update_content(hashpath):
                             options=distance_types,
                             clearable=False,
                             style=dict(width="100px"),
-                            maxHeight=800,
+                            maxHeight=600,
                         ),
                     ],
                     style=dict(display="inline-block"),
                 ),
-            ],
-            style=dict(margin="0 auto"),
-        ),
-        html.Div(
-            [
                 html.Div(
                     [
                         html.Span("comparison"),
@@ -271,13 +278,13 @@ def update_content(hashpath):
                             options=comparisons,
                             clearable=True,
                             style=dict(width="175px"),
-                            maxHeight=800,
+                            maxHeight=600,
                         ),
                     ],
                     style=dict(display="inline-block"),
                 ),
             ],
-            style=dict(margin="0 auto"),
+            style=dict(margin="0 auto", gridColumn="1/3"),
         ),
         dcc.Store(id="selection", data=[from_slug, to_slug]),
     ]
@@ -290,25 +297,16 @@ def update_content(hashpath):
             html.Div(
                 html.Details(
                     [
-                        html.Summary("cross-notation"),
-                        dcc.Graph(
-                            id=dict(
-                                type="figure",
-                                suffix="cross",
-                                seq="1",
-                                notation=notation,
-                            ),
-                            figure=cross_notation_figure(
-                                gallery,
-                                notation,
-                                distance,
-                                notation2,
-                                distance2,
-                                from_slug,
-                                to_slug,
-                            ),
-                            style=dict(width="500px", margin="0 auto"),
-                            clear_on_unhover=True,
+                        html.Summary("comparison"),
+                        wrap_pair_vis(
+                            gallery,
+                            notation,
+                            distance,
+                            notation2,
+                            distance2,
+                            "diamond",
+                            from_slug,
+                            to_slug,
                         ),
                     ],
                     open=True,
