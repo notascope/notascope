@@ -77,7 +77,9 @@ def diamond(gallery, notation, distance, notation2, distance2, from_slug, to_slu
     return fig
 
 
-def scatter(gallery, notation, distance, notation2, distance2, from_slug, to_slug):
+def farness_scatter(
+    gallery, notation, distance, notation2, distance2, from_slug, to_slug
+):
 
     merged = merged_distances(gallery, notation, distance, notation2, distance2)
 
@@ -93,12 +95,13 @@ def scatter(gallery, notation, distance, notation2, distance2, from_slug, to_slu
         merged,
         x=x,
         y=y,
-        hover_name="from_slug",
         color="selected",
-        hover_data={x: False, y: False, "selected": False},
+        hover_data=["from_slug"],
+        category_orders={"selected": [False, True]},
         width=500,
         height=500,
     )
+    fig.update_traces(hoverinfo="none", hovertemplate="<extra></extra>")
     fig.update_layout(showlegend=False)
     if len(fig.data) > 1:
         fig.data[1].marker.size = 10
@@ -106,7 +109,7 @@ def scatter(gallery, notation, distance, notation2, distance2, from_slug, to_slu
 
 
 distance_pair_vis_map = {
-    "scatter": scatter,
+    "farness_scatter": farness_scatter,
 }
 distance_pair_vis_types = list(distance_pair_vis_map.keys())
 

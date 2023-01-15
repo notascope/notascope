@@ -327,15 +327,20 @@ def update_content(hashpath):
         dcc.Store(id="selection", data=[from_slug, to_slug]),
     ]
 
-    if pair_vis and (
-        (notation != notation2 and distance == distance2)
-        or (notation == notation2 and distance != distance2)
-    ):
+    if pair_vis:
         blocks.append(
             html.Div(
                 html.Details(
                     [
-                        html.Summary("comparison"),
+                        html.Summary(
+                            " ".join(
+                                [
+                                    "notation" if compare in notations else "distance",
+                                    pair_vis,
+                                    "pair visualization",
+                                ]
+                            )
+                        ),
                         wrap_pair_vis(
                             gallery,
                             notation,
@@ -379,7 +384,7 @@ def update_content(hashpath):
 
     blocks.append(details_view(gallery, notation, distance, from_slug, to_slug))
 
-    if compare and (distance != distance2 or notation != notation2):
+    if compare:
         blocks.append(details_view(gallery, notation2, distance2, from_slug, to_slug))
 
     return html.Div(className="wrapper", children=blocks)
