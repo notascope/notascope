@@ -1,7 +1,6 @@
 # builtins
 from collections import defaultdict
 from datetime import datetime
-from operator import itemgetter
 from urllib.parse import urlencode, parse_qsl
 
 # plotly
@@ -12,7 +11,7 @@ from dash_extensions import EventListener
 from src.utils import load_registry
 from src.distances import distance_types
 from src.vis import vis_types, wrap_vis
-from src.pair_vis import pair_vis_types, wrap_pair_vis
+from src.pair_vis import distance_pair_vis_types, notation_pair_vis_types, wrap_pair_vis
 from src.details import details_view
 
 
@@ -100,9 +99,15 @@ def sanitize_state(hashpath_values):
     elif state["compare"] not in vis_types + distance_types:
         state["compare"] = ""
 
-    if (
-        state["pair_vis"] not in pair_vis_types
-        or state["compare"] not in distance_types + notations
+    if not (
+        (
+            state["compare"] in distance_types
+            and state["pair_vis"] in distance_pair_vis_types
+        )
+        or (
+            state["compare"] in notations
+            and state["pair_vis"] in notation_pair_vis_types
+        )
     ):
         state["pair_vis"] = ""
 
@@ -304,7 +309,9 @@ def update_content(hashpath):
                         dcc.Dropdown(
                             id=dict(id="pair_vis", type="dropdown"),
                             value=pair_vis,
-                            options=pair_vis_types,
+                            options=notation_pair_vis_types
+                            if compare in notations
+                            else distance_pair_vis_types,
                             clearable=True,
                             style=dict(width="175px"),
                             maxHeight=600,
