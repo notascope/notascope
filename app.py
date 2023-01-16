@@ -230,100 +230,101 @@ def update_content(hashpath):
     comparisons += dropdown_opts("Visualizations", vis_types, vis)
     comparisons += dropdown_opts("Distances", distance_types, distance)
 
-    blocks = [
+    controls = [
         html.Div(
             [
-                html.Div(
-                    [
-                        html.Span("gallery"),
-                        dcc.Dropdown(
-                            id=dict(id="gallery", type="dropdown"),
-                            value=gallery,
-                            options=[s for s in registry],
-                            clearable=False,
-                            style=dict(width="100px"),
-                            maxHeight=600,
-                        ),
-                    ],
-                    style=dict(display="inline-block"),
+                html.Span("gallery"),
+                dcc.Dropdown(
+                    id=dict(id="gallery", type="dropdown"),
+                    value=gallery,
+                    options=[s for s in registry],
+                    clearable=False,
+                    style=dict(width="100px"),
+                    maxHeight=600,
                 ),
-                html.Div(
-                    [
-                        html.Span("notation"),
-                        dcc.Dropdown(
-                            id=dict(id="notation", type="dropdown"),
-                            value=notation,
-                            options=notations,
-                            clearable=False,
-                            style=dict(width="150px"),
-                            maxHeight=600,
-                        ),
-                    ],
-                    style=dict(display="inline-block"),
-                ),
-                html.Div(
-                    [
-                        html.Span("visualization"),
-                        dcc.Dropdown(
-                            id=dict(id="vis", type="dropdown"),
-                            value=vis,
-                            options=vis_types,
-                            clearable=False,
-                            style=dict(width="150px"),
-                            maxHeight=600,
-                        ),
-                    ],
-                    style=dict(display="inline-block"),
-                ),
-                html.Div(
-                    [
-                        html.Span("distance"),
-                        dcc.Dropdown(
-                            id=dict(id="distance", type="dropdown"),
-                            value=distance,
-                            options=distance_types,
-                            clearable=False,
-                            style=dict(width="100px"),
-                            maxHeight=600,
-                        ),
-                    ],
-                    style=dict(display="inline-block"),
-                ),
-                html.Div(
-                    [
-                        html.Span("comparison"),
-                        dcc.Dropdown(
-                            id=dict(id="compare", type="dropdown"),
-                            value=compare,
-                            options=comparisons,
-                            clearable=True,
-                            style=dict(width="175px"),
-                            maxHeight=600,
-                        ),
-                    ],
-                    style=dict(display="inline-block"),
-                ),
-                html.Div(
-                    [
-                        html.Span("pair visualization"),
-                        dcc.Dropdown(
-                            id=dict(id="pair_vis", type="dropdown"),
-                            value=pair_vis,
-                            options=notation_pair_vis_types
-                            if compare in notations
-                            else distance_pair_vis_types,
-                            clearable=True,
-                            style=dict(width="175px"),
-                            maxHeight=600,
-                        ),
-                    ],
-                    style=dict(display="inline-block"),
-                )
-                if compare in notations + distance_types
-                else None,
             ],
-            style=dict(margin="0 auto", gridColumn="1/3"),
+            style=dict(display="inline-block"),
         ),
+        html.Div(
+            [
+                html.Span("notation"),
+                dcc.Dropdown(
+                    id=dict(id="notation", type="dropdown"),
+                    value=notation,
+                    options=notations,
+                    clearable=False,
+                    style=dict(width="150px"),
+                    maxHeight=600,
+                ),
+            ],
+            style=dict(display="inline-block"),
+        ),
+        html.Div(
+            [
+                html.Span("visualization"),
+                dcc.Dropdown(
+                    id=dict(id="vis", type="dropdown"),
+                    value=vis,
+                    options=vis_types,
+                    clearable=False,
+                    style=dict(width="150px"),
+                    maxHeight=600,
+                ),
+            ],
+            style=dict(display="inline-block"),
+        ),
+        html.Div(
+            [
+                html.Span("distance"),
+                dcc.Dropdown(
+                    id=dict(id="distance", type="dropdown"),
+                    value=distance,
+                    options=distance_types,
+                    clearable=False,
+                    style=dict(width="100px"),
+                    maxHeight=600,
+                ),
+            ],
+            style=dict(display="inline-block"),
+        ),
+        html.Div(
+            [
+                html.Span("comparison"),
+                dcc.Dropdown(
+                    id=dict(id="compare", type="dropdown"),
+                    value=compare,
+                    options=comparisons,
+                    clearable=True,
+                    style=dict(width="175px"),
+                    maxHeight=600,
+                ),
+            ],
+            style=dict(display="inline-block"),
+        ),
+    ]
+
+    if compare in notations + distance_types:
+        controls.append(
+            html.Div(
+                [
+                    html.Span("pair visualization"),
+                    dcc.Dropdown(
+                        id=dict(id="pair_vis", type="dropdown"),
+                        value=pair_vis,
+                        options=notation_pair_vis_types
+                        if compare in notations
+                        else distance_pair_vis_types,
+                        clearable=True,
+                        style=dict(width="175px"),
+                        maxHeight=600,
+                    ),
+                ],
+                style=dict(display="inline-block"),
+            )
+        )
+
+    blocks = [
+        html.Div(controls, style=dict(margin="0 auto", gridColumn="1/3")),
         dcc.Store(id="selection", data=[from_slug, to_slug]),
     ]
 
@@ -359,15 +360,18 @@ def update_content(hashpath):
             )
         )
 
-    blocks.append(
-        html.Div(
-            html.Details(
-                [html.Summary(" ".join([notation, distance, vis]))]
-                + wrap_vis(gallery, notation, distance, vis, from_slug, to_slug, "1"),
-                open=True,
-            )
-        ),
-    )
+    if notation:
+        blocks.append(
+            html.Div(
+                html.Details(
+                    [html.Summary(" ".join([notation, distance, vis]))]
+                    + wrap_vis(
+                        gallery, notation, distance, vis, from_slug, to_slug, "1"
+                    ),
+                    open=True,
+                )
+            ),
+        )
 
     if compare:
         blocks.append(
@@ -382,7 +386,8 @@ def update_content(hashpath):
             )
         )
 
-    blocks.append(details_view(gallery, notation, distance, from_slug, to_slug))
+    if notation:
+        blocks.append(details_view(gallery, notation, distance, from_slug, to_slug))
 
     if compare:
         blocks.append(details_view(gallery, notation2, distance2, from_slug, to_slug))
