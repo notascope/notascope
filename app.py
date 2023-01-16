@@ -10,8 +10,9 @@ from dash_extensions import EventListener
 # local
 from src.utils import load_registry
 from src.distances import distance_types
-from src.vis import vis_types, wrap_vis
+from src.single_vis import single_vis_types, wrap_single_vis
 from src.pair_vis import distance_pair_vis_types, notation_pair_vis_types, wrap_pair_vis
+from src.multi_vis import multi_vis_types, wrap_multi_vis
 from src.details import details_view
 
 
@@ -79,9 +80,6 @@ def sanitize_state(hashpath_values):
     if state["gallery"] not in registry:
         state["gallery"] = "tiny"
 
-    if state["vis"] not in vis_types:
-        state["vis"] = vis_types[0]
-
     if state["distance"] not in distance_types:
         state["distance"] = distance_types[0]
 
@@ -90,13 +88,18 @@ def sanitize_state(hashpath_values):
     if state["notation"] in notations:
         for s in registry[state["gallery"]][state["notation"]]["slugs"]:
             slugs.add(s)
+
+        if state["vis"] not in single_vis_types:
+            state["vis"] = single_vis_types[0]
     else:
-        state["notation"] = notations[0]
+        state["notation"] = ""
+        if state["vis"] not in multi_vis_types:
+            state["vis"] = multi_vis_types[0]
 
     if state["compare"] in notations:
         for s in registry[state["gallery"]][state["compare"]]["slugs"]:
             slugs.add(s)
-    elif state["compare"] not in vis_types + distance_types:
+    elif state["compare"] not in single_vis_types + distance_types:
         state["compare"] = ""
 
     if not (
@@ -219,7 +222,7 @@ def update_content(hashpath):
         vis2 = vis
         if compare in notations:
             notation2 = compare
-        if compare in vis_types:
+        if compare in single_vis_types:
             vis2 = compare
         if compare in distance_types:
             distance2 = compare
@@ -227,7 +230,7 @@ def update_content(hashpath):
     comparisons = []
     if len(notations) > 1:
         comparisons += dropdown_opts("Notations", notations, notation)
-    comparisons += dropdown_opts("Visualizations", vis_types, vis)
+    comparisons += dropdown_opts("Visualizations", single_vis_types, vis)
     comparisons += dropdown_opts("Distances", distance_types, distance)
 
     controls = {
@@ -239,22 +242,6 @@ def update_content(hashpath):
             style=dict(width="100px"),
             maxHeight=600,
         ),
-        "notation": dcc.Dropdown(
-            id=dict(id="notation", type="dropdown"),
-            value=notation,
-            options=notations,
-            clearable=False,
-            style=dict(width="150px"),
-            maxHeight=600,
-        ),
-        "visualization": dcc.Dropdown(
-            id=dict(id="vis", type="dropdown"),
-            value=vis,
-            options=vis_types,
-            clearable=False,
-            style=dict(width="150px"),
-            maxHeight=600,
-        ),
         "distance": dcc.Dropdown(
             id=dict(id="distance", type="dropdown"),
             value=distance,
@@ -263,15 +250,33 @@ def update_content(hashpath):
             style=dict(width="100px"),
             maxHeight=600,
         ),
-        "comparison": dcc.Dropdown(
+        "visualization": dcc.Dropdown(
+            id=dict(id="vis", type="dropdown"),
+            value=vis,
+            options=single_vis_types if notation else multi_vis_types,
+            clearable=False,
+            style=dict(width="150px"),
+            maxHeight=600,
+        ),
+        "notation": dcc.Dropdown(
+            id=dict(id="notation", type="dropdown"),
+            value=notation,
+            options=notations,
+            clearable=True,
+            style=dict(width="150px"),
+            maxHeight=600,
+        ),
+    }
+
+    if notation:
+        controls["comparison"] = dcc.Dropdown(
             id=dict(id="compare", type="dropdown"),
             value=compare,
             options=comparisons,
             clearable=True,
             style=dict(width="175px"),
             maxHeight=600,
-        ),
-    }
+        )
 
     if compare in notations + distance_types:
         controls["pair visualization"] = dcc.Dropdown(
@@ -299,6 +304,20 @@ def update_content(hashpath):
         dcc.Store(id="selection", data=[from_slug, to_slug]),
     ]
 
+    if not notation:
+        blocks.append(
+            html.Div(
+                html.Details(
+                    [
+                        html.Summary(" ".join([vis, " visualization"])),
+                        wrap_multi_vis(gallery, notation, vis),
+                    ],
+                    open=True,
+                    style=dict(width="800px", margin="0 auto", textAlign="center"),
+                ),
+                style=dict(gridColumn="1/3"),
+            )
+        )
     if pair_vis:
         blocks.append(
             html.Div(
@@ -336,7 +355,7 @@ def update_content(hashpath):
             html.Div(
                 html.Details(
                     [html.Summary(" ".join([notation, distance, vis]))]
-                    + wrap_vis(
+                    + wrap_single_vis(
                         gallery, notation, distance, vis, from_slug, to_slug, "1"
                     ),
                     open=True,
@@ -349,7 +368,7 @@ def update_content(hashpath):
             html.Div(
                 html.Details(
                     [html.Summary(" ".join([notation2, distance2, vis2]))]
-                    + wrap_vis(
+                    + wrap_single_vis(
                         gallery, notation2, distance2, vis2, from_slug, to_slug, "2"
                     ),
                     open=True,

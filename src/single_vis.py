@@ -20,14 +20,14 @@ vis_map = {
     "farness": farness,
     "farness_scatter": get_farness_scatter,
 }
-vis_types = list(vis_map.keys())
+single_vis_types = list(vis_map.keys())
 
 
 def get_vis(gallery, notation, distance, vis, from_slug, to_slug):
     return [vis_map[vis](gallery, notation, distance, from_slug, to_slug, vis)]
 
 
-def wrap_vis(gallery, notation, distance, vis, from_slug, to_slug, suffix):
+def wrap_single_vis(gallery, notation, distance, vis, from_slug, to_slug, suffix):
     vis_list = []
     for i, vis in enumerate(
         get_vis(gallery, notation, distance, vis, from_slug, to_slug)
