@@ -2,6 +2,38 @@ from .distances import merged_distances
 import plotly.express as px
 import plotly.graph_objects as go
 from dash import dcc
+from .tokens import load_tokens
+
+
+def tokens(gallery, notation, distance, notation2, distance2, from_slug, to_slug):
+    tokens_df = load_tokens()
+
+    gallery = "movies"
+
+    df = (
+        tokens_df.query(
+            f"gallery == '{gallery}' and notation in ('{notation}', '{notation2}')"
+        )
+        .groupby(["token", "notation"])["slug"]
+        .nunique()
+        .reset_index()
+    )
+    fig = px.ecdf(
+        df,
+        x="slug",
+        color="notation",
+        hover_name="token",
+        ecdfnorm=None,
+        height=600,
+        markers=True,
+        lines=True,
+        # ecdfmode="complementary",
+        labels=dict(slug="token frequency"),
+    )
+    fig.update_traces(line_shape="linear", marker_size=5, line_width=1)
+    fig.update_yaxes(title_text="token frequency rank")
+    fig.update_layout(scattermode="group")
+    return fig
 
 
 def diamond(gallery, notation, distance, notation2, distance2, from_slug, to_slug):
@@ -118,6 +150,7 @@ distance_pair_vis_types = list(distance_pair_vis_map.keys())
 
 notation_pair_vis_map = {
     "diamond": diamond,
+    "tokens": tokens,
 }
 notation_pair_vis_types = list(notation_pair_vis_map.keys())
 
@@ -131,6 +164,6 @@ def wrap_pair_vis(
     return dcc.Graph(
         id=dict(type="figure", suffix="pair", seq="1", notation=notation),
         figure=fig,
-        style=dict(width="500px", margin="0 auto"),
+        style=dict(width=str(fig.layout.width or "800") + "px", margin="0 auto"),
         clear_on_unhover=True,
     )

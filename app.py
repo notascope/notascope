@@ -353,7 +353,7 @@ def update_content(hashpath):
                         ),
                     ],
                     open=True,
-                    style=dict(width="800px", margin="0 auto"),
+                    style=dict(width="800px", margin="0 auto", textAlign="center"),
                 ),
                 style=dict(gridColumn="1/3"),
             )
