@@ -13,7 +13,7 @@ distance_types = ["nmi", "cd", "ncd", "difflib"]
 
 
 @cache
-def load_distances():
+def distances_df():
     difflib_df = pd.read_csv(
         "results/difflib_costs.csv",
         names=["gallery", "notation", "from_slug", "to_slug", "difflib"],
@@ -30,7 +30,7 @@ def load_distances():
 
 @cache
 def merged_distances(gallery, notation, distance, notation2, distance2):
-    df = load_distances()
+    df = distances_df()
     return pd.merge(
         df.query(f"gallery=='{gallery}' and notation=='{notation}'")[
             ["from_slug", "to_slug", distance]
@@ -45,7 +45,7 @@ def merged_distances(gallery, notation, distance, notation2, distance2):
 
 @cache
 def dmat_and_order(gallery, notation, distance):
-    df = load_distances().query(f"gallery=='{gallery}' and notation=='{notation}'")
+    df = distances_df().query(f"gallery=='{gallery}' and notation=='{notation}'")
     dmat = df.pivot_table(index="from_slug", columns="to_slug", values=distance).fillna(
         0
     )
@@ -58,7 +58,7 @@ def dmat_and_order(gallery, notation, distance):
 @cache
 def get_distance(gallery, notation, distance, from_slug, to_slug):
     return (
-        load_distances()
+        distances_df()
         .query(
             f"gallery=='{gallery}' and notation=='{notation}' and from_slug=='{from_slug}' and to_slug=='{to_slug}'"
         )[distance]

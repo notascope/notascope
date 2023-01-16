@@ -100,9 +100,12 @@ def farness_scatter(
         category_orders={"selected": [False, True]},
         width=500,
         height=500,
+        labels={x: x + " farness", y: y + " farness"},
     )
     fig.update_traces(hoverinfo="none", hovertemplate="<extra></extra>")
-    fig.update_layout(showlegend=False)
+    fig.update_layout(
+        showlegend=False, xaxis_rangemode="tozero", yaxis_rangemode="tozero"
+    )
     if len(fig.data) > 1:
         fig.data[1].marker.size = 10
     return fig
