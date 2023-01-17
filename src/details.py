@@ -19,6 +19,7 @@ def header_and_image(gallery, notation, slug, tokens_n, tokens_nunique):
         html.Img(
             src=f"/assets/results/{gallery}/{notation}/img/{slug}.{imgext}",
             style=dict(verticalAlign="middle", maxHeight="200px", maxWidth="20vw"),
+            className="zoomable",
         ),
     ]
 

@@ -16,14 +16,17 @@ def thumbnails(gallery, distance, vis):
                 html.Td(
                     html.Img(
                         src=f"/assets/results/{gallery}/{notation}/img/{slug}.svg",
-                        style=dict(maxHeight="100px", maxWidth="100px"),
+                        className="zoomable",
                     )
                 )
             )
-        rows.append(html.Tr([html.Th(slug)] + cells))
+        rows.append(
+            html.Tr([html.Th(slug)] + cells + [html.Th(slug, style=dict(opacity=0))])
+        )
     return html.Table(
         [html.Tr([html.Th()] + [html.Th(n) for n in notations])] + rows,
         style=dict(margin="0 auto"),
+        className="thumbnails",
     )
 
 
