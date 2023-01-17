@@ -2,6 +2,7 @@
 from collections import defaultdict
 from datetime import datetime
 from urllib.parse import urlencode, parse_qsl
+import json
 
 # plotly
 from dash import Dash, html, dcc, Input, Output, State, callback_context, ALL
@@ -133,11 +134,15 @@ def sanitize_state(hashpath_values):
     Input(dict(type="network", suffix=ALL, seq=ALL), "tapNodeData"),
     Input(dict(type="network", suffix=ALL, seq=ALL), "tapEdgeData"),
     Input(dict(type="figure", suffix=ALL, seq=ALL, notation=ALL), "clickData"),
+    Input(dict(type="thumbnail", slug=ALL, notation=ALL), "n_clicks"),
     State("event_listener", "event"),
 )
-def update_hashpath(selection, dropdowns, node_data, edge_data, _, event):
+def update_hashpath(
+    selection, dropdowns, node_data, edge_data, fig_clicks, img_clicks, event
+):
     shift_down = bool((dict(shiftKey=False) if not event else event)["shiftKey"])
     from_slug, to_slug = selection
+    notation = ""
     if callback_context.triggered:
         trig_prop = callback_context.triggered[0]["prop_id"]
         data = callback_context.triggered[0]["value"]
@@ -165,12 +170,19 @@ def update_hashpath(selection, dropdowns, node_data, edge_data, _, event):
             elif not shift_down:
                 from_slug = to_slug
 
+        if trig_prop.endswith("n_clicks"):
+            id = json.loads(callback_context.triggered[0]["prop_id"].split(".")[0])
+            from_slug = to_slug = id["slug"]
+            notation = id["notation"]
+
     hashpath_values = {"from_slug": from_slug, "to_slug": to_slug}
     for input in callback_context.inputs_list[1]:
         try:
             hashpath_values[input["id"]["id"]] = input["value"]
         except Exception as e:
             print(repr(e))
+    if notation:
+        hashpath_values["notation"] = notation
     hashpath = make_hashpath(hashpath_values)
     return hashpath, node_data, edge_data
 

@@ -22,7 +22,7 @@ body {
 .thumbnails img {
   max-height: 150px;
   max-width: 150px;
-  border: 1px solid white;
+  cursor: pointer;
 }
 
 .zoomable {

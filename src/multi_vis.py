@@ -15,6 +15,7 @@ def thumbnails(gallery, distance, vis):
             cells.append(
                 html.Td(
                     html.Img(
+                        id=dict(type="thumbnail", notation=notation, slug=slug),
                         src=f"/assets/results/{gallery}/{notation}/img/{slug}.svg",
                         className="zoomable",
                     )
