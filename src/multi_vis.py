@@ -1,6 +1,30 @@
-from dash import dcc
+from dash import dcc, html
 from .tokens import load_tokens
+from .utils import load_registry
 import plotly.express as px
+import plotly.graph_objects as go
+
+
+def thumbnails(gallery, distance, vis):
+    registry = load_registry()
+    notations = list(registry[gallery].keys())
+    rows = []
+    for slug in registry[gallery][notations[0]]["slugs"]:
+        cells = []
+        for notation in notations:
+            cells.append(
+                html.Td(
+                    html.Img(
+                        src=f"/assets/results/{gallery}/{notation}/img/{slug}.svg",
+                        style=dict(maxHeight="100px", maxWidth="100px"),
+                    )
+                )
+            )
+        rows.append(html.Tr([html.Th(slug)] + cells))
+    return html.Table(
+        [html.Tr([html.Th()] + [html.Th(n) for n in notations])] + rows,
+        style=dict(margin="0 auto"),
+    )
 
 
 def tokens(gallery, distance, vis):
@@ -33,16 +57,20 @@ def tokens(gallery, distance, vis):
 
 
 multi_vis_map = {
+    "thumbnails": thumbnails,
     "tokens": tokens,
 }
 multi_vis_types = list(multi_vis_map)
 
 
 def wrap_multi_vis(gallery, distance, vis):
-    fig = multi_vis_map[vis](gallery, distance, vis)
-    return dcc.Graph(
-        id=dict(type="figure", suffix="multi", seq="1"),
-        figure=fig,
-        style=dict(width=str(fig.layout.width or "800") + "px", margin="0 auto"),
-        clear_on_unhover=True,
-    )
+    out = multi_vis_map[vis](gallery, distance, vis)
+    if isinstance(out, go.Figure):
+        return dcc.Graph(
+            id=dict(type="figure", suffix="multi", seq="1"),
+            figure=out,
+            style=dict(width=str(out.layout.width or "800") + "px", margin="0 auto"),
+            clear_on_unhover=True,
+        )
+    else:
+        return out

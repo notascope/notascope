@@ -307,15 +307,8 @@ def update_content(hashpath):
     if not notation:
         blocks.append(
             html.Div(
-                html.Details(
-                    [
-                        html.Summary(" ".join([vis, " visualization"])),
-                        wrap_multi_vis(gallery, notation, vis),
-                    ],
-                    open=True,
-                    style=dict(width="800px", margin="0 auto", textAlign="center"),
-                ),
-                style=dict(gridColumn="1/3"),
+                wrap_multi_vis(gallery, notation, vis),
+                style=dict(gridColumn="1/3", textAlign="center"),
             )
         )
     if pair_vis:
