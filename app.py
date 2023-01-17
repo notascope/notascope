@@ -144,15 +144,16 @@ def update_hashpath(
     from_slug, to_slug = selection
     notation = ""
     if callback_context.triggered:
-        trig_prop = callback_context.triggered[0]["prop_id"]
+        trig_id, trig_prop = callback_context.triggered[0]["prop_id"].split(".")
+        trig_id = json.loads(trig_id)
         data = callback_context.triggered[0]["value"]
 
-        if trig_prop.endswith("tapEdgeData"):
+        if trig_prop == "tapEdgeData":
             from_slug = data["source"]
             to_slug = data["target"]
             node_data = [None] * len(node_data)
 
-        if trig_prop.endswith("clickData"):
+        if trig_prop == "clickData":
             if "customdata" in data["points"][0]:
                 to_slug = data["points"][0]["customdata"]
                 if len(to_slug) == 1:
@@ -162,7 +163,7 @@ def update_hashpath(
                 elif not shift_down:
                     from_slug = to_slug
 
-        if trig_prop.endswith("tapNodeData"):
+        if trig_prop == "tapNodeData":
             to_slug = data["id"]
             edge_data = [None] * len(edge_data)
             if from_slug == to_slug:
@@ -170,10 +171,9 @@ def update_hashpath(
             elif not shift_down:
                 from_slug = to_slug
 
-        if trig_prop.endswith("n_clicks"):
-            id = json.loads(callback_context.triggered[0]["prop_id"].split(".")[0])
-            from_slug = to_slug = id["slug"]
-            notation = id["notation"]
+        if trig_prop == "n_clicks":
+            from_slug = to_slug = trig_id["slug"]
+            notation = trig_id["notation"]
 
     hashpath_values = {"from_slug": from_slug, "to_slug": to_slug}
     for input in callback_context.inputs_list[1]:
