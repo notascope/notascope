@@ -79,7 +79,7 @@ def sanitize_state(hashpath_values):
     state = defaultdict(str, hashpath_values)
 
     if state["gallery"] not in registry:
-        state["gallery"] = "tiny"
+        state["gallery"] = "movies"
 
     if state["distance"] not in distance_types:
         state["distance"] = distance_types[0]
@@ -96,6 +96,9 @@ def sanitize_state(hashpath_values):
         state["notation"] = ""
         if state["vis"] not in multi_vis_types:
             state["vis"] = multi_vis_types[0]
+
+    if state["notation"] == "":
+        state["compare"] = ""
 
     if state["compare"] in notations:
         for s in registry[state["gallery"]][state["compare"]]["slugs"]:
