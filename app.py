@@ -27,6 +27,9 @@ app = Dash(__name__, title="NotaScope", suppress_callback_exceptions=True)
 app.layout = html.Div(
     [
         html.Div(id="content"),
+        html.Div(
+            id="logomark", children=[html.Img(src="/assets/logo.png"), "NotaScope"]
+        ),
         dcc.Location(id="location"),
         dcc.Tooltip(
             id="tooltip",
@@ -309,8 +312,8 @@ def update_content(hashpath):
         html.Div(
             [
                 html.Div(
-                    [html.Span(k), v],
-                    style=dict(display="inline-block"),
+                    [html.Span(k), html.Span(v, style=dict(textAlign="left"))],
+                    style=dict(display="inline-block", textAlign="center"),
                 )
                 for k, v in controls.items()
             ],
@@ -322,7 +325,7 @@ def update_content(hashpath):
     if not notation:
         blocks.append(
             html.Div(
-                wrap_multi_vis(gallery, notation, vis),
+                wrap_multi_vis(gallery, distance, vis),
                 style=dict(gridColumn="1/3", textAlign="center"),
             )
         )

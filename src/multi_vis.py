@@ -1,8 +1,53 @@
 from dash import dcc, html
 from .tokens import load_tokens
 from .utils import load_registry
+from .distances import distances_df
 import plotly.express as px
 import plotly.graph_objects as go
+from sklearn.manifold import MDS
+import numpy as np
+import pandas as pd
+from .distances import dmat_and_order
+
+
+def embedding(gallery, distance, vis):
+    registry = load_registry()
+    notations = list(registry[gallery].keys())
+
+    distances = np.zeros((len(notations), len(notations)))
+
+    for i, n1 in enumerate(notations):
+        for j, n2 in enumerate(notations):
+            if i < j:
+                dmat1, dmat_sym1, order1 = dmat_and_order(gallery, n1, distance)
+                dmat2, dmat_sym2, order2 = dmat_and_order(gallery, n2, distance)
+
+                d = np.linalg.norm(dmat1 - dmat2)
+                distances[i, j] = d
+                distances[j, i] = d
+
+    embedding = MDS(n_components=2, dissimilarity="precomputed").fit_transform(
+        distances
+    )
+
+    df = pd.DataFrame(embedding, index=notations).reset_index()
+
+    fig = px.scatter(df, x=0, y=1, text="index", height=600, width=600)
+    fig.update_traces(mode="text")
+    return fig
+
+
+def farness(gallery, distance, vis):
+    df = (
+        distances_df()
+        .query(f"gallery=='{gallery}'")
+        .groupby(["notation", "from_slug"])[distance]
+        .mean()
+        .reset_index()
+    )
+    return px.ecdf(
+        df, x=distance, color="notation", ecdfnorm=None, markers=True
+    ).update_traces(line_shape="linear")
 
 
 def thumbnails(gallery, distance, vis):
@@ -62,7 +107,9 @@ def tokens(gallery, distance, vis):
 
 multi_vis_map = {
     "thumbnails": thumbnails,
+    "embedding": embedding,
     "tokens": tokens,
+    "farness": farness,
 }
 multi_vis_types = list(multi_vis_map)
 

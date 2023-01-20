@@ -9,6 +9,21 @@ body {
   margin: 20px;
 }
 
+#logomark {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  font-family: Consolas;
+  font-size: 30px;
+}
+
+#logomark img {
+  width: 40px;
+  height: 40px;
+  margin-right: 5px;
+  vertical-align: bottom;
+}
+
 .comparison {
   text-align: center;
   margin: 0 20px;
