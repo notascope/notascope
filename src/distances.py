@@ -85,9 +85,9 @@ def get_embedding(gallery, notation, distance, method, dim=2):
     elif method == "umap":
         embedding = UMAP(n_components=dim).fit_transform(dmat_sym)
     elif method == "mds":
-        embedding = MDS(n_components=dim, dissimilarity="precomputed").fit_transform(
-            dmat_sym
-        )
+        embedding = MDS(
+            n_components=dim, dissimilarity="precomputed", normalized_stress="auto"
+        ).fit_transform(dmat_sym)
     elif method == "kk":
         g = igraph.Graph.Weighted_Adjacency(
             get_mst(gallery, notation, distance).toarray().tolist()

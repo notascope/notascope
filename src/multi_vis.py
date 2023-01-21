@@ -26,9 +26,9 @@ def embedding(gallery, distance, vis):
                 distances[i, j] = d
                 distances[j, i] = d
 
-    embedding = MDS(n_components=2, dissimilarity="precomputed").fit_transform(
-        distances
-    )
+    embedding = MDS(
+        n_components=2, dissimilarity="precomputed", normalized_stress="auto"
+    ).fit_transform(distances)
 
     df = pd.DataFrame(embedding, index=notations).reset_index()
 
@@ -38,6 +38,8 @@ def embedding(gallery, distance, vis):
 
 
 def farness(gallery, distance, vis):
+    registry = load_registry()
+    notations = list(registry[gallery].keys())
     df = (
         distances_df()
         .query(f"gallery=='{gallery}'")
@@ -46,8 +48,27 @@ def farness(gallery, distance, vis):
         .reset_index()
     )
     return px.ecdf(
-        df, x=distance, color="notation", ecdfnorm=None, markers=True
-    ).update_traces(line_shape="linear")
+        df,
+        x=distance,
+        color="notation",
+        ecdfnorm=None,
+        markers=True,
+        category_orders=dict(notation=notations),
+    ).update_traces(line_shape="linear", marker_size=5, line_width=1)
+
+
+def distance(gallery, distance, vis):
+    registry = load_registry()
+    notations = list(registry[gallery].keys())
+    df = distances_df().query(f"gallery=='{gallery}'")
+    return px.ecdf(
+        df,
+        x=distance,
+        color="notation",
+        ecdfnorm=None,
+        markers=True,
+        category_orders=dict(notation=notations),
+    ).update_traces(line_shape="linear", marker_size=5, line_width=1)
 
 
 def thumbnails(gallery, distance, vis):
@@ -77,6 +98,8 @@ def thumbnails(gallery, distance, vis):
 
 
 def tokens(gallery, distance, vis):
+    registry = load_registry()
+    notations = list(registry[gallery].keys())
     tokens_df = load_tokens()
 
     gallery = "movies"
@@ -98,6 +121,7 @@ def tokens(gallery, distance, vis):
         lines=True,
         # ecdfmode="complementary",
         labels=dict(slug="token frequency"),
+        category_orders=dict(notation=notations),
     )
     fig.update_traces(line_shape="linear", marker_size=5, line_width=1)
     fig.update_yaxes(title_text="token frequency rank")
@@ -110,6 +134,7 @@ multi_vis_map = {
     "embedding": embedding,
     "tokens": tokens,
     "farness": farness,
+    "distance": distance,
 }
 multi_vis_types = list(multi_vis_map)
 
