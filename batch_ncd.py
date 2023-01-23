@@ -2,7 +2,7 @@ from itertools import permutations
 from glob import glob
 import os
 import sys
-from src import slug_from_path
+from src.utils import slug_from_path
 from lz4.frame import compress
 
 

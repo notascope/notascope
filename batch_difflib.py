@@ -3,7 +3,7 @@ from difflib import SequenceMatcher
 from glob import glob
 import os
 import sys
-from src import slug_from_path
+from src.utils import slug_from_path
 from tree_sitter import Language, Parser
 
 basedir = "/Users/nicolas/ets/tree-sitter-parser"
