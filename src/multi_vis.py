@@ -74,8 +74,17 @@ def distance(gallery, distance, vis):
 def thumbnails(gallery, distance, vis):
     registry = load_registry()
     notations = list(registry[gallery].keys())
+    df = distances_df()
+    roughly_sorted_slugs = (
+        df.query(f"gallery=='{gallery}'")
+        .groupby("to_slug")[distance]
+        .mean()
+        .reset_index()
+        .sort_values(by=distance)
+        .to_slug
+    )
     rows = []
-    for slug in registry[gallery][notations[0]]["slugs"]:
+    for slug in roughly_sorted_slugs:
         cells = []
         for notation in notations:
             cells.append(

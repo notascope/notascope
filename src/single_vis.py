@@ -1,12 +1,44 @@
 import dash_cytoscape as cyto
 import plotly.graph_objects as go
-from dash import dcc
+from dash import dcc, html
 from .scatter import get_scatter
 from .dendro import get_dendro
 from .network import get_network
+from .distances import distances_df
 from .distributions import token_rank, token_bars, farness, get_farness_scatter
 
+
+def thumbnails(gallery, notation, distance, from_slug, to_slug, vis):
+    df = distances_df().query(f"gallery=='{gallery}' and notation=='{notation}'")
+    if from_slug:
+        df = df.query(f"from_slug == '{from_slug}'")
+    else:
+        df = df.groupby("to_slug")[distance].mean().reset_index()
+    sorted_slugs = df.sort_values(by=distance).to_slug
+    thumbs = []
+    if from_slug:
+        thumbs += [
+            html.Img(
+                id=dict(type="thumbnail", notation=notation, slug=from_slug),
+                src=f"/assets/results/{gallery}/{notation}/img/{from_slug}.svg",
+                className="selected_thumb",
+            ),
+            html.Br(),
+        ]
+
+    for slug in sorted_slugs:
+        thumbs.append(
+            html.Img(
+                id=dict(type="thumbnail", notation=notation, slug=slug),
+                src=f"/assets/results/{gallery}/{notation}/img/{slug}.svg",
+                className="selected_thumb" if slug == to_slug else "regular_thumb",
+            )
+        )
+    return html.Div(thumbs, className="thumbnails", style=dict(textAlign="center"))
+
+
 vis_map = {
+    "thumbnails": thumbnails,
     "mst": get_network,
     "spanner-1": get_network,
     "spanner-1.1": get_network,
@@ -39,6 +71,8 @@ def wrap_single_vis(gallery, notation, distance, vis, from_slug, to_slug, suffix
                     vis,
                 )
             )
+        elif isinstance(vis, html.Div):
+            vis_list.append(vis)
         else:
             vis_list.append(
                 cytoscape(dict(type="network", suffix=suffix, seq=str(i)), vis)

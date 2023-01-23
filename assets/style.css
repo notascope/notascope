@@ -48,6 +48,13 @@ body {
   border: 1px solid black;
 }
 
+.regular_thumb {
+  border: 2px solid white;
+}
+.selected_thumb {
+  border: 2px solid red;
+}
+
 pre {
   font-size: 11px;
   font-family: Menlo, Monaco, Consolas;

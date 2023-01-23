@@ -159,27 +159,32 @@ def update_hashpath(
             to_slug = data["target"]
             node_data = [None] * len(node_data)
 
-        if trig_prop == "clickData":
-            if "customdata" in data["points"][0]:
-                to_slug = data["points"][0]["customdata"]
-                if len(to_slug) == 1:
-                    to_slug = to_slug[0]
-                if from_slug == to_slug:
+        else:
+            clicked_slug = ""
+            if trig_prop == "clickData":
+                if "customdata" in data["points"][0]:
+                    clicked_slug = data["points"][0]["customdata"]
+                    if len(to_slug) == 1:
+                        clicked_slug = clicked_slug[0]
+
+            if trig_prop == "tapNodeData":
+                clicked_slug = data["id"]
+                edge_data = [None] * len(edge_data)
+
+            if trig_prop == "n_clicks":
+                clicked_slug = trig_id["slug"]
+                notation = trig_id["notation"]
+
+            if shift_down:
+                if clicked_slug in [from_slug, to_slug]:
+                    from_slug, to_slug = to_slug, from_slug
+                else:
+                    to_slug = clicked_slug
+            else:
+                if clicked_slug == from_slug:
                     from_slug = to_slug = ""
-                elif not shift_down:
-                    from_slug = to_slug
-
-        if trig_prop == "tapNodeData":
-            to_slug = data["id"]
-            edge_data = [None] * len(edge_data)
-            if from_slug == to_slug:
-                from_slug = to_slug = ""
-            elif not shift_down:
-                from_slug = to_slug
-
-        if trig_prop == "n_clicks":
-            from_slug = to_slug = trig_id["slug"]
-            notation = trig_id["notation"]
+                else:
+                    from_slug = to_slug = clicked_slug
 
     hashpath_values = {"from_slug": from_slug, "to_slug": to_slug}
     for input in callback_context.inputs_list[1]:
