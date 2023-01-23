@@ -141,10 +141,18 @@ def sanitize_state(hashpath_values):
     Input(dict(type="network", suffix=ALL, seq=ALL), "tapEdgeData"),
     Input(dict(type="figure", suffix=ALL, seq=ALL, notation=ALL), "clickData"),
     Input(dict(type="thumbnail", slug=ALL, notation=ALL), "n_clicks"),
+    Input(dict(type="thumbnail", slug=ALL, no_notation=ALL), "n_clicks"),
     State("event_listener", "event"),
 )
 def update_hashpath(
-    selection, dropdowns, node_data, edge_data, fig_clicks, img_clicks, event
+    selection,
+    _dropdowns,
+    node_data,
+    edge_data,
+    _fig_clicks,
+    _img_clicks,
+    _img_clicks2,
+    event,
 ):
     shift_down = bool((dict(shiftKey=False) if not event else event)["shiftKey"])
     from_slug, to_slug = selection
@@ -159,22 +167,23 @@ def update_hashpath(
             to_slug = data["target"]
             node_data = [None] * len(node_data)
 
-        else:
-            clicked_slug = ""
-            if trig_prop == "clickData":
-                if "customdata" in data["points"][0]:
-                    clicked_slug = data["points"][0]["customdata"]
-                    if len(to_slug) == 1:
-                        clicked_slug = clicked_slug[0]
+        clicked_slug = ""
+        if trig_prop == "clickData":
+            if "customdata" in data["points"][0]:
+                clicked_slug = data["points"][0]["customdata"]
+                if len(to_slug) == 1:
+                    clicked_slug = clicked_slug[0]
 
-            if trig_prop == "tapNodeData":
-                clicked_slug = data["id"]
-                edge_data = [None] * len(edge_data)
+        if trig_prop == "tapNodeData":
+            clicked_slug = data["id"]
+            edge_data = [None] * len(edge_data)
 
-            if trig_prop == "n_clicks":
-                clicked_slug = trig_id["slug"]
+        if trig_prop == "n_clicks":
+            clicked_slug = trig_id["slug"]
+            if "notation" in trig_id:
                 notation = trig_id["notation"]
 
+        if clicked_slug:
             if shift_down:
                 if clicked_slug in [from_slug, to_slug]:
                     from_slug, to_slug = to_slug, from_slug

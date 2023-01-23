@@ -19,7 +19,7 @@ def thumbnails(gallery, notation, distance, from_slug, to_slug, vis):
     if from_slug:
         thumbs += [
             html.Img(
-                id=dict(type="thumbnail", notation=notation, slug=from_slug),
+                id=dict(type="thumbnail", no_notation=notation, slug=from_slug),
                 src=f"/assets/results/{gallery}/{notation}/img/{from_slug}.svg",
                 className="selected_thumb",
             ),
@@ -29,7 +29,7 @@ def thumbnails(gallery, notation, distance, from_slug, to_slug, vis):
     for slug in sorted_slugs:
         thumbs.append(
             html.Img(
-                id=dict(type="thumbnail", notation=notation, slug=slug),
+                id=dict(type="thumbnail", no_notation=notation, slug=slug),
                 src=f"/assets/results/{gallery}/{notation}/img/{slug}.svg",
                 className="selected_thumb" if slug == to_slug else "regular_thumb",
             )
