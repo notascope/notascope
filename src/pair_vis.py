@@ -5,7 +5,7 @@ from dash import dcc
 from .tokens import load_tokens
 
 
-def tokens(gallery, notation, distance, notation2, distance2, from_slug, to_slug):
+def tokens(gallery, notation, distance, notation2, distance2, from_slug, to_slug, vis):
     tokens_df = load_tokens()
 
     gallery = "movies"
@@ -36,7 +36,7 @@ def tokens(gallery, notation, distance, notation2, distance2, from_slug, to_slug
     return fig
 
 
-def diamond(gallery, notation, distance, notation2, distance2, from_slug, to_slug):
+def diamond(gallery, notation, distance, notation2, distance2, from_slug, to_slug, vis):
 
     merged = merged_distances(gallery, notation, distance, notation2, distance2)
 
@@ -110,13 +110,13 @@ def diamond(gallery, notation, distance, notation2, distance2, from_slug, to_slu
 
 
 def farness_scatter(
-    gallery, notation, distance, notation2, distance2, from_slug, to_slug
+    gallery, notation, distance, notation2, distance2, from_slug, to_slug, vis
 ):
 
     merged = merged_distances(gallery, notation, distance, notation2, distance2)
 
-    x = distance
-    y = distance2
+    x = merged.columns[2]
+    y = merged.columns[3]
 
     merged = merged.groupby("from_slug").mean([x, y]).reset_index()
     merged["selected"] = (merged["from_slug"] == from_slug) | (
@@ -143,14 +143,50 @@ def farness_scatter(
     return fig
 
 
+def slope(gallery, notation, distance, notation2, distance2, from_slug, to_slug, vis):
+    df = merged_distances(gallery, notation, distance, notation2, distance2)
+    if from_slug:
+        df = df.query(f"from_slug == '{from_slug}'")
+    df = df.groupby("to_slug").mean(numeric_only=True).reset_index()
+    if "rank" in vis:
+        for col in df.columns[1:]:
+            df[col] = df[col].rank(method="first")
+    df["none"] = None
+    df["selected"] = df["to_slug"] == to_slug
+    df = df.melt(
+        id_vars=["to_slug", "selected"], var_name="pair", value_name="distance"
+    ).sort_values(by=["to_slug", "distance"])
+    df["pair"] = df["pair"].apply(lambda x: None if x == "none" else x)
+    fig = px.line(
+        df,
+        x="distance",
+        y="pair",
+        color="selected",
+        markers=True,
+        hover_data=["to_slug"],
+        category_orders={"selected": [False, True]},
+        labels=dict(distance="rank" if "rank" in vis else "distance"),
+        width=800,
+        height=500,
+    )
+    fig.update_traces(hoverinfo="none", hovertemplate="<extra></extra>")
+    fig.update_layout(showlegend=False)
+    return fig
+
+
 distance_pair_vis_map = {
     "farness_scatter": farness_scatter,
+    "slope": slope,
+    "rank_slope": slope,
 }
 distance_pair_vis_types = list(distance_pair_vis_map.keys())
 
 notation_pair_vis_map = {
     "diamond": diamond,
+    "slope": slope,
+    "rank_slope": slope,
     "tokens": tokens,
+    "farness_scatter": farness_scatter,
 }
 notation_pair_vis_types = list(notation_pair_vis_map.keys())
 
@@ -158,8 +194,12 @@ notation_pair_vis_types = list(notation_pair_vis_map.keys())
 def wrap_pair_vis(
     gallery, notation, distance, notation2, distance2, vis, from_slug, to_slug
 ):
-    fig = dict(**distance_pair_vis_map, **notation_pair_vis_map)[vis](
-        gallery, notation, distance, notation2, distance2, from_slug, to_slug
+    if distance == distance2:
+        vis_function = notation_pair_vis_map[vis]
+    else:
+        vis_function = distance_pair_vis_map[vis]
+    fig = vis_function(
+        gallery, notation, distance, notation2, distance2, from_slug, to_slug, vis
     )
     return dcc.Graph(
         id=dict(type="figure", suffix="pair", seq="1", notation=notation),

@@ -12,9 +12,13 @@ def thumbnails(gallery, notation, distance, from_slug, to_slug, vis):
     df = distances_df().query(f"gallery=='{gallery}' and notation=='{notation}'")
     if from_slug:
         df = df.query(f"from_slug == '{from_slug}'")
-    else:
-        df = df.groupby("to_slug")[distance].mean().reset_index()
-    sorted_slugs = df.sort_values(by=distance).to_slug
+    sorted_slugs = (
+        df.groupby("to_slug")[distance]
+        .mean()
+        .reset_index()
+        .sort_values(by=distance)
+        .to_slug
+    )
     thumbs = []
     if from_slug:
         thumbs += [

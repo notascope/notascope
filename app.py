@@ -174,7 +174,7 @@ def update_hashpath(
             if "customdata" in data["points"][0]:
                 # token figures don't have customdata ATM
                 clicked_slug = data["points"][0]["customdata"]
-                if len(to_slug) == 1:
+                if len(clicked_slug) == 1:
                     clicked_slug = clicked_slug[0]
 
         if trig_prop == "tapNodeData":
@@ -198,7 +198,7 @@ def update_hashpath(
                     # base case: set to
                     to_slug = clicked_slug
             else:
-                if clicked_slug == from_slug:
+                if to_slug == clicked_slug == from_slug:
                     # reset
                     from_slug = to_slug = ""
                 else:
