@@ -16,7 +16,6 @@ results/$(1)/$(2)/img/$(basename $(3)): galleries/$(1)/$(2)/$(3)
 	@notations/savers/$(2).sh $$< $$@
 	@touch $$@
 base: results/$(1)/$(2)/img/$(basename $(3))
-results/$(1)/summary.html: results/$(1)/$(2)/img/$(basename $(3))
 
 results/$(1)/$(2)/preproc/$(3): galleries/$(1)/$(2)/$(3)
 	@echo "[preproc]  $(1)/$(2): $(3)"
@@ -56,12 +55,6 @@ endef
 define GALLERY_rule # gallery
 $(foreach notation,$(shell ls galleries/$(1)),$(eval $(call notation_rule,$(1),$(notation))))
 
-
-results/$(1)/summary.html:
-	@echo "[summary]  $(1)"
-	@mkdir -p $$(dir $$@)
-	@python make_html.py $(1)
-base: results/$(1)/summary.html
 
 endef
 
