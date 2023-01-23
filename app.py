@@ -163,36 +163,46 @@ def update_hashpath(
         data = callback_context.triggered[0]["value"]
 
         if trig_prop == "tapEdgeData":
+            # simple, write the edge
             from_slug = data["source"]
             to_slug = data["target"]
             node_data = [None] * len(node_data)
 
         clicked_slug = ""
         if trig_prop == "clickData":
+            # clicking on a point in a figure
             if "customdata" in data["points"][0]:
+                # token figures don't have customdata ATM
                 clicked_slug = data["points"][0]["customdata"]
                 if len(to_slug) == 1:
                     clicked_slug = clicked_slug[0]
 
         if trig_prop == "tapNodeData":
+            # clicking on a node
             clicked_slug = data["id"]
             edge_data = [None] * len(edge_data)
 
         if trig_prop == "n_clicks":
+            # clicking on an image
             clicked_slug = trig_id["slug"]
             if "notation" in trig_id:
+                # gallery-wide thumbnails force a notation
                 notation = trig_id["notation"]
 
         if clicked_slug:
             if shift_down:
                 if clicked_slug in [from_slug, to_slug]:
+                    # swap from/to
                     from_slug, to_slug = to_slug, from_slug
                 else:
+                    # base case: set to
                     to_slug = clicked_slug
             else:
                 if clicked_slug == from_slug:
+                    # reset
                     from_slug = to_slug = ""
                 else:
+                    # base case: set from
                     from_slug = to_slug = clicked_slug
 
     hashpath_values = {"from_slug": from_slug, "to_slug": to_slug}
