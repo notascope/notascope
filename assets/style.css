@@ -38,17 +38,16 @@ body {
   max-height: 150px;
   max-width: 150px;
   cursor: pointer;
+  vertical-align: middle;
 }
 
-/*
 .zoomable {
   border: 1px solid white;
 }
-.zoomable:hover {
-  transform: scale(2);
-  border: 1px solid black;
+.zoomable:active {
+  transform: scale(2.5);
+  border: 1px solid lightgray;
 }
-*/
 
 .singleWrapper {
   border: 1px solid lightgray;
