@@ -40,12 +40,20 @@ body {
   cursor: pointer;
 }
 
+/*
 .zoomable {
   border: 1px solid white;
 }
 .zoomable:hover {
   transform: scale(2);
   border: 1px solid black;
+}
+*/
+
+.singleWrapper {
+  border: 1px solid lightgray;
+  padding: 0 10px;
+  border-radius: 3px;
 }
 
 .regular_thumb {

@@ -89,6 +89,10 @@ def sanitize_state(hashpath_values):
 
     notations = list(registry[state["gallery"]].keys())
     slugs = set()
+
+    if state["notations"] not in notations and len(notations) == 1:
+        state["notation"] = notations[0]
+
     if state["notation"] in notations:
         for s in registry[state["gallery"]][state["notation"]]["slugs"]:
             slugs.add(s)
@@ -158,8 +162,8 @@ def update_hashpath(
     from_slug, to_slug = selection
     notation = ""
     if callback_context.triggered:
-        trig_id, trig_prop = callback_context.triggered[0]["prop_id"].split(".")
-        trig_id = json.loads(trig_id)
+        *trig_id, trig_prop = callback_context.triggered[0]["prop_id"].split(".")
+        trig_id = json.loads(".".join(trig_id))
         data = callback_context.triggered[0]["value"]
 
         if trig_prop == "tapEdgeData":
@@ -304,7 +308,7 @@ def update_content(hashpath):
             id=dict(id="notation", type="dropdown"),
             value=notation,
             options=notations,
-            clearable=True,
+            clearable=len(notations) > 1,
             style=dict(width="150px"),
             maxHeight=600,
         ),

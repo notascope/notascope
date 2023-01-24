@@ -99,8 +99,11 @@ def single_view(gallery, notation, slug):
         else:
             buffer += c
             pointer = pointer[c]
-    return DangerouslySetInnerHTML(
-        "<pre align='left' style='width: 45vw'>" + out_text + "</pre>"
+    return html.Div(
+        DangerouslySetInnerHTML(
+            "<pre align='left' style='width: 45vw'>" + out_text + "</pre>"
+        ),
+        className="singleWrapper",
     )
 
 

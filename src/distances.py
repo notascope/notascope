@@ -75,6 +75,8 @@ def get_mst(gallery, notation, distance):
 @cache
 def get_embedding(gallery, notation, distance, method, dim=2):
     dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
+    if method in ["tsne", "umap"] and len(dmat) < 30:
+        method = "mds"
     if method == "tsne":
         embedding = TSNE(
             n_components=dim,
