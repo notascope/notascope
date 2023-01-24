@@ -26,5 +26,9 @@ dependencies:
   - statsmodels=0.13.5
   - black=22.10.0
   - jq=1.6
+  - bokeh=3.0.3
+  - selenium=4.7.2
+  - geckodriver
+  - firefox
   - pip:
       - dash_dangerously_set_inner_html
