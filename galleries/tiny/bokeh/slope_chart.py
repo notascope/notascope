@@ -19,8 +19,12 @@ source = ColumnDataSource(plot_df)
 
 p = figure(width=500, height=250, x_range=contestants)
 
-p.line(x="Contestant", y="Apples", source=source, color="red", legend_label="Apples")
-p.line(x="Contestant", y="Oranges", source=source, color="blue", legend_label="Oranges")
+p.line(
+    x="Contestant", y="Apples", source=source, color="steelblue", legend_label="Apples"
+)
+p.line(
+    x="Contestant", y="Oranges", source=source, color="orange", legend_label="Oranges"
+)
 p.line(
     x="Contestant", y="Bananas", source=source, color="green", legend_label="Bananas"
 )

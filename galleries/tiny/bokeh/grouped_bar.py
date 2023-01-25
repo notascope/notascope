@@ -25,7 +25,7 @@ p.vbar(
     top="Alex",
     source=source,
     width=0.2,
-    color="red",
+    color="steelblue",
     legend_label="Alex",
 )
 p.vbar(
@@ -33,6 +33,6 @@ p.vbar(
     top="Jordan",
     source=source,
     width=0.2,
-    color="blue",
+    color="orange",
     legend_label="Jordan",
 )

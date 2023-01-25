@@ -23,6 +23,6 @@ p.vbar_stack(
     width=0.7,
     x="Fruit",
     source=source,
-    color=["red", "blue"],
+    color=["steelblue", "orange"],
     legend_label=contestants,
 )
