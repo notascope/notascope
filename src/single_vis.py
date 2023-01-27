@@ -9,12 +9,12 @@ from .distributions import token_rank, token_bars, farness, get_farness_scatter
 
 
 def thumbnails(gallery, notation, distance, from_slug, to_slug, vis):
-    df = distances_df().query(f"gallery=='{gallery}' and notation=='{notation}'")
+    df = distances_df(gallery=gallery).query(f"notation=='{notation}'")
     if from_slug:
         df = df.query(f"from_slug == '{from_slug}'")
     sorted_slugs = (
         df.groupby("to_slug")[distance]
-        .mean()
+        .median()
         .reset_index()
         .sort_values(by=distance)
         .to_slug
@@ -65,21 +65,21 @@ def get_vis(gallery, notation, distance, vis, from_slug, to_slug):
 
 def wrap_single_vis(gallery, notation, distance, vis, from_slug, to_slug, suffix):
     vis_list = []
-    for i, vis in enumerate(
+    for i, vis_out in enumerate(
         get_vis(gallery, notation, distance, vis, from_slug, to_slug)
     ):
-        if isinstance(vis, go.Figure):
+        if isinstance(vis_out, go.Figure):
             vis_list.append(
                 figure(
                     dict(type="figure", notation=notation, suffix=suffix, seq=str(i)),
-                    vis,
+                    vis_out,
                 )
             )
-        elif isinstance(vis, html.Div):
-            vis_list.append(vis)
+        elif isinstance(vis_out, html.Div):
+            vis_list.append(vis_out)
         else:
             vis_list.append(
-                cytoscape(dict(type="network", suffix=suffix, seq=str(i)), vis)
+                cytoscape(dict(type="network", suffix=suffix, seq=str(i)), vis_out)
             )
     return vis_list
 

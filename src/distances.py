@@ -13,14 +13,28 @@ distance_types = ["nmi", "cd", "ncd", "difflib"]
 
 
 @cache
-def distances_df():
+def distances_df(gallery=None, notation=None):
+    if gallery is not None:
+        if notation is None:
+            return distances_df().query(f"gallery == '{gallery}'")
+        else:
+            return distances_df(gallery=gallery).query(f"notation=='{notation}'")
     difflib_df = pd.read_csv(
         "results/difflib_costs.csv",
         names=["gallery", "notation", "from_slug", "to_slug", "difflib"],
     )
     ncd_df = pd.read_csv(
         "results/ncd_costs.csv",
-        names=["gallery", "notation", "from_slug", "to_slug", "a", "b", "ab"],
+        names=[
+            "gallery",
+            "notation",
+            "from_slug",
+            "to_slug",
+            "from_length",
+            "a",
+            "b",
+            "ab",
+        ],
     )
     ncd_df["nmi"] = 2 * ncd_df["ab"] - ncd_df["a"] - ncd_df["b"]
     ncd_df["cd"] = ncd_df["ab"] - ncd_df[["a", "b"]].min(axis=1)
@@ -30,12 +44,11 @@ def distances_df():
 
 @cache
 def merged_distances(gallery, notation, distance, notation2, distance2):
-    df = distances_df()
     return pd.merge(
-        df.query(f"gallery=='{gallery}' and notation=='{notation}'")[
+        distances_df(gallery=gallery, notation=notation)[
             ["from_slug", "to_slug", distance]
         ],
-        df.query(f"gallery=='{gallery}' and notation=='{notation2}'")[
+        distances_df(gallery=gallery, notation=notation2)[
             ["from_slug", "to_slug", distance2]
         ],
         on=["from_slug", "to_slug"],
@@ -45,9 +58,10 @@ def merged_distances(gallery, notation, distance, notation2, distance2):
 
 @cache
 def dmat_and_order(gallery, notation, distance):
-    df = distances_df().query(f"gallery=='{gallery}' and notation=='{notation}'")
-    dmat = df.pivot_table(index="from_slug", columns="to_slug", values=distance).fillna(
-        0
+    dmat = (
+        distances_df(gallery=gallery, notation=notation)
+        .pivot_table(index="from_slug", columns="to_slug", values=distance)
+        .fillna(0)
     )
     order = list(dmat.index)
     dmat = dmat.values
@@ -58,10 +72,8 @@ def dmat_and_order(gallery, notation, distance):
 @cache
 def get_distance(gallery, notation, distance, from_slug, to_slug):
     return (
-        distances_df()
-        .query(
-            f"gallery=='{gallery}' and notation=='{notation}' and from_slug=='{from_slug}' and to_slug=='{to_slug}'"
-        )[distance]
+        distances_df(gallery=gallery, notation=notation)
+        .query(f"from_slug=='{from_slug}' and to_slug=='{to_slug}'")[distance]
         .values[0]
     )
 

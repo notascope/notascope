@@ -43,7 +43,7 @@ def diamond(gallery, notation, distance, notation2, distance2, from_slug, to_slu
     x = distance + "_" + notation
     y = distance2 + "_" + notation2
 
-    merged = merged.groupby("from_slug").mean([x, y]).reset_index()
+    merged = merged.groupby("from_slug").median([x, y]).reset_index()
     merged["selected"] = (merged["from_slug"] == from_slug) | (
         merged["from_slug"] == to_slug
     )
@@ -118,7 +118,7 @@ def farness_scatter(
     x = merged.columns[2]
     y = merged.columns[3]
 
-    merged = merged.groupby("from_slug").mean([x, y]).reset_index()
+    merged = merged.groupby("from_slug").median([x, y]).reset_index()
     merged["selected"] = (merged["from_slug"] == from_slug) | (
         merged["from_slug"] == to_slug
     )
@@ -147,7 +147,7 @@ def slope(gallery, notation, distance, notation2, distance2, from_slug, to_slug,
     df = merged_distances(gallery, notation, distance, notation2, distance2)
     if from_slug:
         df = df.query(f"from_slug == '{from_slug}'")
-    df = df.groupby("to_slug").mean(numeric_only=True).reset_index()
+    df = df.groupby("to_slug").median(numeric_only=True).reset_index()
     if "rank" in vis:
         for col in df.columns[1:]:
             df[col] = df[col].rank(method="first")

@@ -280,7 +280,7 @@ def update_content(hashpath):
     comparisons += dropdown_opts("Distances", distance_types, distance)
 
     controls = {
-        "gallery": dcc.Dropdown(
+        "Gallery": dcc.Dropdown(
             id=dict(id="gallery", type="dropdown"),
             value=gallery,
             options=[s for s in registry],
@@ -288,15 +288,15 @@ def update_content(hashpath):
             style=dict(width="100px"),
             maxHeight=600,
         ),
-        "distance": dcc.Dropdown(
+        "Distance Function": dcc.Dropdown(
             id=dict(id="distance", type="dropdown"),
             value=distance,
             options=distance_types,
             clearable=False,
-            style=dict(width="100px"),
+            style=dict(width="150px"),
             maxHeight=600,
         ),
-        "visualization": dcc.Dropdown(
+        "Visualization": dcc.Dropdown(
             id=dict(id="vis", type="dropdown"),
             value=vis,
             options=single_vis_types if notation else multi_vis_types,
@@ -304,18 +304,18 @@ def update_content(hashpath):
             style=dict(width="150px"),
             maxHeight=600,
         ),
-        "notation": dcc.Dropdown(
+        "Notation": dcc.Dropdown(
             id=dict(id="notation", type="dropdown"),
             value=notation,
             options=notations,
             clearable=len(notations) > 1,
-            style=dict(width="150px"),
+            style=dict(width="160px"),
             maxHeight=600,
         ),
     }
 
     if notation:
-        controls["comparison"] = dcc.Dropdown(
+        controls["Comparison"] = dcc.Dropdown(
             id=dict(id="compare", type="dropdown"),
             value=compare,
             options=comparisons,
@@ -325,7 +325,7 @@ def update_content(hashpath):
         )
 
     if compare in notations + distance_types:
-        controls["pair visualization"] = dcc.Dropdown(
+        controls["Pair Visualization"] = dcc.Dropdown(
             id=dict(id="pair_vis", type="dropdown"),
             value=pair_vis,
             options=notation_pair_vis_types

@@ -57,7 +57,7 @@ def farness(gallery, notation, distance, from_slug, to_slug, vis):
 
     dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
 
-    df = pd.DataFrame(dict(slug=order, farness=np.mean(dmat_sym, axis=1)))
+    df = pd.DataFrame(dict(slug=order, farness=np.median(dmat_sym, axis=1)))
 
     df["bin_center"] = (
         pd.cut(df["farness"], bins=50).apply(lambda x: float(x.mid)).astype(float)
@@ -85,7 +85,7 @@ def farness(gallery, notation, distance, from_slug, to_slug, vis):
 def get_farness_scatter(gallery, notation, distance, from_slug, to_slug, method):
 
     dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
-    x = y = color = np.mean(dmat_sym, axis=1)
+    x = y = color = np.median(dmat_sym, axis=1)
     xlab = ylab = "farness"
     range = None
     if from_slug:

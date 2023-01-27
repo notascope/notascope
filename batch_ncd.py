@@ -12,11 +12,13 @@ gallery = pieces[1]
 notation = pieces[2]
 file_bytes = dict()
 single_compressed_length = dict()
+single_length = dict()
 for fpath in glob(os.path.join(inpath, "*.*")):
     slug = slug_from_path(fpath)
     with open(fpath, "rb") as f:
         file_bytes[slug] = f.read()
     single_compressed_length[slug] = len(compress(file_bytes[slug]))
+    single_length[slug] = len(file_bytes[slug])
 
 
 def cost(args):
@@ -29,6 +31,7 @@ def cost(args):
         notation,
         from_slug,
         to_slug,
+        str(int(single_length[from_slug])),
         str(int(a)),
         str(int(b)),
         str(int(ab)),

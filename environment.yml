@@ -11,7 +11,7 @@ dependencies:
   - numpy=1.23.5
   - scipy=1.9.3
   - pip=22.3.1
-  - plotly=5.11
+  - plotly=5.13
   - dash=2.7.1
   - dash_cytoscape=0.2.0
   - dash-extensions=0.1.6
