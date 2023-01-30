@@ -1,9 +1,12 @@
 import pandas as pd
 import json
 from glob import glob
+from pathlib import Path
 
 tokens_df = pd.read_csv(
-    "results/tokens.tsv", names=["gallery", "notation", "slug", "token"], delimiter="\t"
+    "results/tokens.tsv",
+    names=["gallery", "notation", "slug", "token"],
+    delimiter="\t",
 )
 
 
@@ -13,17 +16,21 @@ def ext(gallery, notation, obj):
     )[-1]
 
 
-results = dict()
+registry = dict()
 for (gallery, notation), df in tokens_df.groupby(["gallery", "notation"]):
-    if gallery not in results:
-        results[gallery] = dict()
-    results[gallery][notation] = dict(
+    if gallery not in registry:
+        registry[gallery] = dict()
+    imgext = ext(gallery, notation, "img")
+    srcext = ext(gallery, notation, "source")
+    registry[gallery][notation] = dict(
         slugs=list(df["slug"].unique()),
         tokens=df["token"].nunique(),
-        ext=dict(
-            img=ext(gallery, notation, "img"), source=ext(gallery, notation, "source")
-        ),
+        ext=dict(img=imgext, source=srcext),
     )
+    for slug in tokens_df.query(f"gallery=='{gallery}'").slug.unique():
+        slug_path = Path(f"galleries/{gallery}/{notation}/{slug}.{srcext}")
+        if not slug_path.exists():
+            slug_path.write_text("")
 
 with open("results/registry.json", "w") as f:
-    json.dump(results, f)
+    json.dump(registry, f)
