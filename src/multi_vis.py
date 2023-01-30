@@ -54,40 +54,24 @@ def stats(gallery, distance, vis):
     )
 
     result.append(
-        px.ecdf(
+        px.violin(
             df,
             x=distance,
+            y="notation",
             color="notation",
             height=600,
-            ecdfnorm=None,
-            markers=True,
+            points="all",
             category_orders=dict(notation=notations),
-            marginal="box",
-            hover_name="from_slug",
-        ).update_traces(
-            line_shape="linear",
-            marker_size=5,
-            line_width=1,
-            selector=dict(type="scatter"),
+            hover_data=["from_slug"],
         )
-    )
-    df = distances_df(gallery=gallery)
-    result.append(
-        px.ecdf(
-            df,
-            x=distance,
-            color="notation",
-            ecdfnorm=None,
-            markers=True,
-            height=600,
-            marginal="violin",
-            category_orders=dict(notation=notations),
-        ).update_traces(
-            line_shape="linear",
-            marker_size=5,
-            line_width=1,
-            selector=dict(type="scatter"),
+        .update_traces(
+            hoveron="points",
+            pointpos=0,
+            scalemode="count",
+            hoverinfo="none",
+            hovertemplate="",
         )
+        .update_layout(violingroupgap=0, violingap=0.05)
     )
 
     df = (
@@ -96,23 +80,26 @@ def stats(gallery, distance, vis):
         .min()
         .reset_index()
     )
-    fig = px.ecdf(
-        df,
-        x="from_length",
-        color="notation",
-        hover_data=["from_slug"],
-        ecdfnorm=None,
-        height=600,
-        markers=True,
-        lines=True,
-        marginal="box",
-        # ecdfmode="complementary",
-        category_orders=dict(notation=notations),
+    fig = (
+        px.violin(
+            df,
+            x="from_length",
+            y="notation",
+            color="notation",
+            hover_data=["from_slug"],
+            height=600,
+            points="all",
+            category_orders=dict(notation=notations),
+        )
+        .update_traces(
+            hoveron="points",
+            pointpos=0,
+            scalemode="count",
+            hoverinfo="none",
+            hovertemplate="",
+        )
+        .update_layout(violingroupgap=0, violingap=0.05)
     )
-    fig.update_traces(
-        selector=dict(type="scatter"), line_shape="linear", marker_size=5, line_width=1
-    )
-    fig.update_yaxes(title_text="token frequency rank", selector=0)
     # fig.update_layout(scattermode="group")
     result.append(fig)
 
@@ -122,23 +109,27 @@ def stats(gallery, distance, vis):
         .groupby(["token", "notation"])["slug"]
         .nunique()
         .reset_index()
+        .groupby(["notation", "slug"])
+        .count()
+        .reset_index()
+        .sort_values(by="slug", ascending=False)
     )
-    fig = px.ecdf(
+    fig = px.bar(
         df,
-        x="slug",
+        x="notation",
+        y="token",
         color="notation",
-        hover_name="token",
-        ecdfnorm=None,
+        text="slug",
         height=600,
-        markers=True,
-        lines=True,
-        # ecdfmode="complementary",
-        labels=dict(slug="token frequency"),
         category_orders=dict(notation=notations),
     )
-    fig.update_traces(line_shape="linear", marker_size=5, line_width=1)
-    fig.update_yaxes(title_text="token frequency rank")
-    fig.update_layout(scattermode="group")
+    fig.update_traces(
+        textposition="inside",
+        textangle=0,
+        insidetextanchor="middle",
+        texttemplate="%{y} tokens<br> used %{text} times",
+    )
+    fig.update_layout(uniformtext_minsize=8, uniformtext_mode="hide")
     result.append(fig)
 
     return result
@@ -202,11 +193,18 @@ multi_vis_types = list(multi_vis_map)
 def wrap_multi_vis(gallery, distance, vis):
     vis_list = []
 
+    registry = load_registry()
+    first_notation = list(registry[gallery].keys())[0]
     for i, vis_out in enumerate(multi_vis_map[vis](gallery, distance, vis)):
         if isinstance(vis_out, go.Figure):
             vis_list.append(
                 dcc.Graph(
-                    id=dict(type="figure", suffix="multi", seq=str(i)),
+                    id=dict(
+                        type="figure",
+                        suffix="multi",
+                        notation=first_notation,
+                        seq=str(i),
+                    ),
                     figure=vis_out,
                     style=dict(
                         width=str(vis_out.layout.width or "800") + "px", margin="0 auto"
