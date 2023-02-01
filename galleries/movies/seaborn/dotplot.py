@@ -4,7 +4,7 @@ import seaborn as sns
 df = pd.read_csv("data/movies.csv")
 
 ax = sns.pointplot(
-    data=df,
+    df,
     x="Production Budget",
     y="Major Genre",
     linestyles="",

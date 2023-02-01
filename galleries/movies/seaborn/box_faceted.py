@@ -4,8 +4,8 @@ import seaborn as sns
 df = pd.read_csv("data/movies.csv")
 
 ax = sns.catplot(
+    df,
     kind="box",
-    data=df,
     x="MPAA Rating",
     y="Production Budget",
     hue="MPAA Rating",

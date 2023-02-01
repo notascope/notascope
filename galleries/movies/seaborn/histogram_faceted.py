@@ -4,7 +4,7 @@ import seaborn as sns
 df = pd.read_csv("data/movies.csv")
 
 ax = sns.displot(
-    data=df,
+    df,
     x="Production Budget",
     hue="MPAA Rating",
     multiple="stack",

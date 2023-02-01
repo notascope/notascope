@@ -103,6 +103,22 @@ def stats(gallery, distance, vis):
     # fig.update_layout(scattermode="group")
     result.append(fig)
 
+    df = (
+        distances_df(gallery=gallery)
+        .groupby(["notation", "from_slug"])[distance, "from_length"]
+        .median()
+        .reset_index()
+    )
+    result.append(
+        px.scatter(
+            df,
+            x=distance,
+            y="from_length",
+            color="notation",
+            trendline="ols",
+        )
+    )
+
     tokens_df = load_tokens()
     df = (
         tokens_df.query(f"gallery == '{gallery}'")

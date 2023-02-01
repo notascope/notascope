@@ -9,7 +9,7 @@ df2 = (
 )
 
 ax = sns.scatterplot(
-    data=df2,
+    df2,
     x="Production Budget",
     y="Worldwide Gross",
     hue="MPAA Rating",

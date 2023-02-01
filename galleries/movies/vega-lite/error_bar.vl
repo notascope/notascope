@@ -10,7 +10,7 @@
     "x": {
       "field": "Production Budget",
       "type": "quantitative",
-      "aggregate": "median"
+      "aggregate": "mean"
     }
   },
   "layer": [
@@ -20,7 +20,7 @@
     {
       "mark": {
         "type": "errorbar",
-        "extent": "iqr"
+        "extent": "stderr"
       }
     }
   ]
