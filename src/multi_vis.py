@@ -53,7 +53,7 @@ def stats(gallery, distance, vis):
         .reset_index()
     )
 
-    result.append(
+    fig = (
         px.violin(
             df,
             x=distance,
@@ -63,6 +63,8 @@ def stats(gallery, distance, vis):
             points="all",
             category_orders=dict(notation=notations),
             hover_data=["from_slug"],
+            labels={distance: f"Specification Remoteness ({distance})"},
+            title="Specification Remoteness Distribution",
         )
         .update_traces(
             hoveron="points",
@@ -73,34 +75,9 @@ def stats(gallery, distance, vis):
         )
         .update_layout(violingroupgap=0, violingap=0.05)
     )
+    fig.update_yaxes(title="")
+    fig.update_xaxes(rangemode="tozero")
 
-    df = (
-        distances_df(gallery=gallery)
-        .groupby(["from_slug", "notation"])["from_length"]
-        .min()
-        .reset_index()
-    )
-    fig = (
-        px.violin(
-            df,
-            x="from_length",
-            y="notation",
-            color="notation",
-            hover_data=["from_slug"],
-            height=600,
-            points="all",
-            category_orders=dict(notation=notations),
-        )
-        .update_traces(
-            hoveron="points",
-            pointpos=0,
-            scalemode="count",
-            hoverinfo="none",
-            hovertemplate="",
-        )
-        .update_layout(violingroupgap=0, violingap=0.05)
-    )
-    # fig.update_layout(scattermode="group")
     result.append(fig)
 
     df = (
@@ -109,15 +86,22 @@ def stats(gallery, distance, vis):
         .median()
         .reset_index()
     )
-    result.append(
-        px.scatter(
-            df,
-            x=distance,
-            y="from_length",
-            color="notation",
-            trendline="ols",
-        )
+    fig = px.scatter(
+        df,
+        x="from_length",
+        y=distance,
+        color="notation",
+        trendline="ols",
+        labels={
+            distance: f"Specification Remoteness ({distance})",
+            "from_length": "Size in bytes",
+        },
+        title="Specification Remoteness versus Size in Bytes",
     )
+    fig.update_yaxes(rangemode="tozero")
+    fig.update_xaxes(rangemode="tozero")
+
+    result.append(fig)
 
     tokens_df = load_tokens()
     df = (
@@ -138,16 +122,55 @@ def stats(gallery, distance, vis):
         text="slug",
         height=600,
         category_orders=dict(notation=notations),
+        labels=dict(token="Number of Unique Tokens", slug="Number of Uses"),
+        title="Unique Token Usage Distribution",
     )
     fig.update_traces(
         textposition="inside",
         textangle=0,
         insidetextanchor="middle",
-        texttemplate="%{y} tokens<br> used %{text} times",
+        texttemplate="%{y} used %{text}x",
     )
     fig.update_layout(uniformtext_minsize=8, uniformtext_mode="hide")
+    fig.update_xaxes(title="")
+    df = (
+        tokens_df.query(f"gallery == '{gallery}'")
+        .groupby(["notation"])["token"]
+        .nunique()
+        .reset_index()
+    )
+    fig.add_scatter(
+        x=df["notation"],
+        y=df["token"],
+        text=df["token"],
+        mode="text",
+        textposition="top center",
+        showlegend=False,
+    )
     result.append(fig)
 
+    df = (
+        tokens_df.query(f"gallery == '{gallery}'")
+        .groupby(["token", "notation"])["slug"]
+        .nunique()
+        .reset_index()
+    )
+    fig = px.ecdf(
+        df,
+        x="slug",
+        color="notation",
+        hover_name="token",
+        ecdfnorm=None,
+        height=600,
+        markers=True,
+        lines=True,
+        # ecdfmode="complementary",
+        labels=dict(slug="token frequency"),
+    )
+    fig.update_traces(line_shape="linear", marker_size=5, line_width=1)
+    fig.update_yaxes(title_text="token frequency rank")
+    fig.update_layout(scattermode="group")
+    result.append(fig)
     return result
 
 
