@@ -149,6 +149,36 @@ def stats(gallery, distance, vis):
     )
     result.append(fig)
 
+    df1 = (
+        load_tokens()
+        .query(f"gallery == '{gallery}'")
+        .groupby(["notation"])["token"]
+        .nunique()
+        .reset_index()
+    )
+
+    df2 = (
+        distances_df(gallery=gallery)
+        .groupby(["notation", "from_slug"])[distance]
+        .median()
+        .reset_index()  # remoteness by slug by notation
+        .groupby(["notation"])[distance]
+        .mean()
+        .reset_index()  # mean remoteness by notation
+    )
+    fig = px.scatter(
+        pd.merge(df1, df2).reset_index(),
+        x="token",
+        y="nmi",
+        text="notation",
+        height=800,
+        labels=dict(nmi="Mean Remoteness", token="Number of Unique Tokens"),
+    )
+    fig.update_yaxes(rangemode="tozero")
+    fig.update_xaxes(rangemode="tozero")
+    fig.update_traces(mode="text")
+    result.append(fig)
+
     df = (
         tokens_df.query(f"gallery == '{gallery}'")
         .groupby(["token", "notation"])["slug"]
