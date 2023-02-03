@@ -137,11 +137,11 @@ def stats(gallery, distance, vis):
     fig = px.scatter(
         pd.merge(df1, df2).reset_index(),
         x="token",
-        y="nmi",
+        y=distance,
         text="notation",
         height=750,
         title="Remoteness/Unique-Token Tradeoff",
-        labels=dict(nmi="Median Remoteness", token="Number of Unique Tokens"),
+        labels={distance: "Median Remoteness", "token": "Number of Unique Tokens"},
     )
     fig.update_yaxes(rangemode="tozero")
     fig.update_xaxes(rangemode="tozero")
