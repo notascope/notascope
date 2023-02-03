@@ -8,7 +8,6 @@ from functools import cache
 import igraph
 
 
-np.random.seed(123)
 distance_types = ["nmi", "cd", "ncd", "difflib"]
 
 
@@ -86,6 +85,7 @@ def get_mst(gallery, notation, distance):
 
 @cache
 def get_embedding(gallery, notation, distance, method, dim=2):
+    np.random.seed(123)
     dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
     if method in ["tsne", "umap"] and len(dmat) < 30:
         method = "mds"

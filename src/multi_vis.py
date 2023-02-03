@@ -4,40 +4,7 @@ from .utils import load_registry
 from .distances import distances_df
 import plotly.express as px
 import plotly.graph_objects as go
-from sklearn.manifold import MDS
-import numpy as np
 import pandas as pd
-from .distances import dmat_and_order
-
-
-def embedding(gallery, distance, vis):
-    registry = load_registry()
-    notations = list(registry[gallery].keys())
-
-    result = []
-
-    distances = np.zeros((len(notations), len(notations)))
-
-    for i, n1 in enumerate(notations):
-        for j, n2 in enumerate(notations):
-            if i < j:
-                dmat1, dmat_sym1, order1 = dmat_and_order(gallery, n1, distance)
-                dmat2, dmat_sym2, order2 = dmat_and_order(gallery, n2, distance)
-
-                d = np.linalg.norm(dmat1 - dmat2)
-                distances[i, j] = d
-                distances[j, i] = d
-
-    embedding = MDS(
-        n_components=2, dissimilarity="precomputed", normalized_stress="auto"
-    ).fit_transform(distances)
-
-    df = pd.DataFrame(embedding, index=notations).reset_index()
-
-    fig = px.scatter(df, x=0, y=1, text="index", height=600, width=600)
-    fig.update_traces(mode="text")
-    result.append(fig)
-    return result
 
 
 def stats(gallery, distance, vis):
@@ -97,6 +64,7 @@ def stats(gallery, distance, vis):
             "from_length": "Size in bytes",
         },
         title="Specification Remoteness versus Size in Bytes",
+        height=750,
     )
     fig.update_yaxes(rangemode="tozero")
     fig.update_xaxes(rangemode="tozero")
@@ -163,16 +131,17 @@ def stats(gallery, distance, vis):
         .median()
         .reset_index()  # remoteness by slug by notation
         .groupby(["notation"])[distance]
-        .mean()
-        .reset_index()  # mean remoteness by notation
+        .median()
+        .reset_index()  # median remoteness by notation
     )
     fig = px.scatter(
         pd.merge(df1, df2).reset_index(),
         x="token",
         y="nmi",
         text="notation",
-        height=800,
-        labels=dict(nmi="Mean Remoteness", token="Number of Unique Tokens"),
+        height=750,
+        title="Remoteness/Unique-Token Tradeoff",
+        labels=dict(nmi="Median Remoteness", token="Number of Unique Tokens"),
     )
     fig.update_yaxes(rangemode="tozero")
     fig.update_xaxes(rangemode="tozero")
@@ -253,7 +222,6 @@ def thumbnails(gallery, distance, vis):
 
 multi_vis_map = {
     "thumbnails": thumbnails,
-    "embedding": embedding,
     "stats": stats,
 }
 multi_vis_types = list(multi_vis_map)
