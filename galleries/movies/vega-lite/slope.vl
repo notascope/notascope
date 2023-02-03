@@ -10,7 +10,7 @@
       "type": "nominal"
     },
     "y": {
-      "field": "Worldwide Gross",
+      "field": "Production Budget",
       "aggregate": "average",
       "type": "quantitative"
     },

@@ -3,4 +3,4 @@ import seaborn as sns
 
 df = pd.read_csv("data/movies.csv")
 
-ax = sns.countplot(df, x="Major Genre", orient="h")
+ax = sns.countplot(df, y="Major Genre", orient="h")

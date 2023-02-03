@@ -2,9 +2,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 df = pd.read_csv("data/movies.csv")
-df2 = df.pivot_table(
-    index="Major Genre", columns="MPAA Rating", values="Title", aggfunc=len
-)
+df2 = df.groupby(["Major Genre", "MPAA Rating"]).size().unstack()
+
 
 fig, ax = plt.subplots()
 bottom = 0

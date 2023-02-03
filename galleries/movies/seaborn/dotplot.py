@@ -5,7 +5,7 @@ df = pd.read_csv("data/movies.csv")
 
 ax = sns.pointplot(
     df,
-    x="Production Budget",
+    x=df.index,
     y="Major Genre",
     linestyles="",
     errorbar=None,
