@@ -11,9 +11,13 @@ tokens_df = pd.read_csv(
 
 
 def ext(gallery, notation, obj):
-    return sorted(glob(f"results/{gallery}/{notation}/{obj}/*"), key=len)[-1].split(
-        "."
-    )[-1]
+    try:
+        return sorted(glob(f"results/{gallery}/{notation}/{obj}/*"), key=len)[-1].split(
+            "."
+        )[-1]
+    except IndexError:
+        print(f"------ results/{gallery}/{notation}/{obj}/*")
+        raise
 
 
 registry = dict()

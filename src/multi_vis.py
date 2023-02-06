@@ -49,7 +49,7 @@ def stats(gallery, distance, vis):
 
     df = (
         distances_df(gallery=gallery)
-        .groupby(["notation", "from_slug"])[distance, "from_length"]
+        .groupby(["notation", "from_slug"])[[distance, "from_length"]]
         .median()
         .reset_index()
     )
@@ -138,14 +138,16 @@ def stats(gallery, distance, vis):
         pd.merge(df1, df2).reset_index(),
         x="token",
         y=distance,
+        color="notation",
         text="notation",
+        category_orders=dict(notation=notations),
         height=750,
         title="Remoteness/Unique-Token Tradeoff",
         labels={distance: "Median Remoteness", "token": "Number of Unique Tokens"},
     )
     fig.update_yaxes(rangemode="tozero")
     fig.update_xaxes(rangemode="tozero")
-    fig.update_traces(mode="text")
+    fig.update_traces(textposition="top center", showlegend=False)
     result.append(fig)
 
     df = (
@@ -161,6 +163,7 @@ def stats(gallery, distance, vis):
         hover_name="token",
         ecdfnorm=None,
         height=600,
+        category_orders=dict(notation=notations),
         markers=True,
         lines=True,
         # ecdfmode="complementary",
