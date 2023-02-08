@@ -80,10 +80,8 @@ results/registry.json: all
 	@echo "[registry] global"
 	@python make_registry.py
 
-
+app.py: results/registry.json
+	touch app.py
 
 clean:
 	rm -rf results
-
-app.py: all
-	touch app.py

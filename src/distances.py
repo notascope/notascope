@@ -8,7 +8,7 @@ from functools import cache
 import igraph
 
 
-distance_types = ["nmi", "cd", "ncd", "difflib"]
+distance_types = ["voi", "cd", "ncd", "difflib"]
 
 
 @cache
@@ -35,7 +35,7 @@ def distances_df(gallery=None, notation=None):
             "ab",
         ],
     )
-    ncd_df["nmi"] = 2 * ncd_df["ab"] - ncd_df["a"] - ncd_df["b"]
+    ncd_df["voi"] = 2 * ncd_df["ab"] - ncd_df["a"] - ncd_df["b"]
     ncd_df["cd"] = ncd_df["ab"] - ncd_df[["a", "b"]].min(axis=1)
     ncd_df["ncd"] = (1000 * ncd_df["cd"] / ncd_df[["a", "b"]].max(axis=1)).astype(int)
     return pd.merge(difflib_df, ncd_df, how="outer")
