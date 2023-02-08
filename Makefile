@@ -1,6 +1,3 @@
-PATH:=$(PATH):/Users/nicolas/ets/tree-sitter-parser
-
-
 define spec_rule # gallery, notation, spec
 
 results/$(1)/$(2)/source/$(basename $(3)): galleries/$(1)/$(2)/$(3)
@@ -8,14 +5,14 @@ results/$(1)/$(2)/source/$(basename $(3)): galleries/$(1)/$(2)/$(3)
 	@mkdir -p $$(dir $$@)
 	@cp $$< $$(dir $$@)
 	@touch $$@
-base: results/$(1)/$(2)/source/$(basename $(3))
+all: results/$(1)/$(2)/source/$(basename $(3))
 
 results/$(1)/$(2)/img/$(basename $(3)): galleries/$(1)/$(2)/$(3)
 	@echo "[img]      $(1)/$(2): $(3)"
 	@mkdir -p $$(dir $$@)
 	@notations/savers/$(2).sh $$< $$@
 	@touch $$@
-base: results/$(1)/$(2)/img/$(basename $(3))
+all: results/$(1)/$(2)/img/$(basename $(3))
 
 results/$(1)/$(2)/preproc/$(3): galleries/$(1)/$(2)/$(3)
 	@echo "[preproc]  $(1)/$(2): $(3)"
@@ -29,7 +26,7 @@ results/$(1)/$(2)/pretty/$(3): galleries/$(1)/$(2)/$(3)
 	@mkdir -p $$(dir $$@)
 	@notations/prettyprinters/$(2).sh $$< $$@
 	@touch $$@
-base: results/$(1)/$(2)/pretty/$(3)
+all: results/$(1)/$(2)/pretty/$(3)
 
 endef
 
@@ -65,27 +62,28 @@ results/difflib_costs.csv:
 	@echo "[difflib]  global"
 	@mkdir -p $(dir $@)
 	@cat $+ > $@
-base: results/difflib_costs.csv
+all: results/difflib_costs.csv
 
 results/ncd_costs.csv:
 	@echo "[ncd]      global"
 	@mkdir -p $(dir $@)
 	@cat $+ > $@
-ncd: results/ncd_costs.csv
+all: results/ncd_costs.csv
 
 results/tokens.tsv:
 	@echo "[tokens]   global"
 	@mkdir -p $(dir $@)
 	@cat $+ > $@
+all: results/tokens.tsv
 
-results/registry.json: results/tokens.tsv
+results/registry.json: all
 	@echo "[registry] global"
 	@python make_registry.py
-base: results/registry.json
+
 
 
 clean:
 	rm -rf results
 
-base ncd: app.py
+app.py: all
 	touch app.py
