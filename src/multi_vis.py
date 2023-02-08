@@ -39,6 +39,10 @@ def stats(gallery, distance, vis):
             scalemode="count",
             hoverinfo="none",
             hovertemplate="",
+            spanmode="hard",
+            line_width=0,
+            meanline_visible=True,
+            meanline_width=2,
         )
         .update_layout(violingroupgap=0, violingap=0.05)
     )
@@ -65,9 +69,14 @@ def stats(gallery, distance, vis):
         },
         title="Specification Remoteness versus Size in Bytes",
         height=750,
+        hover_data=["from_slug"],
     )
     fig.update_yaxes(rangemode="tozero")
     fig.update_xaxes(rangemode="tozero")
+    fig.update_traces(
+        hoverinfo="none",
+        hovertemplate="",
+    )
 
     result.append(fig)
 
