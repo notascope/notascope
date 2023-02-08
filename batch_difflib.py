@@ -12,7 +12,14 @@ Language.build_library(
     basedir + "/build/languages.so",
     [basedir + "/tree-sitter-%s" % x for x in ["python", "javascript", "r"]],
 )
-langmap = dict(py="python", vl="javascript", json="javascript", js="javascript", R="r")
+langmap = dict(
+    py="python",
+    vl="javascript",
+    vg="javascript",
+    json="javascript",
+    js="javascript",
+    R="r",
+)
 
 
 def get_tokens_for_file(infilepath):

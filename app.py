@@ -3,6 +3,7 @@ from collections import defaultdict
 from datetime import datetime
 from urllib.parse import urlencode, parse_qsl
 import json
+import random
 
 # plotly
 from dash import Dash, html, dcc, Input, Output, State, callback_context, ALL
@@ -17,7 +18,10 @@ from src.multi_vis import multi_vis_types, wrap_multi_vis
 from src.details import details_view
 
 
-print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+print(
+    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    chr(ord("\U0001f400") + random.randrange(78)),
+)
 registry = load_registry()
 print("ready")
 

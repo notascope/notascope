@@ -156,7 +156,7 @@ def stats(gallery, distance, vis):
     )
     fig.update_yaxes(rangemode="tozero")
     fig.update_xaxes(rangemode="tozero")
-    fig.update_traces(textposition="top center", showlegend=False)
+    fig.update_traces(textposition="top center")
     result.append(fig)
 
     df = (
