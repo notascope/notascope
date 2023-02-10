@@ -1,6 +1,13 @@
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go
 
 df = pd.read_csv("data/movies.csv")
-fig = px.scatter(df, x="Production Budget", y="Worldwide Gross", color="IMDB Rating")
+fig = go.Figure(
+    go.Scatter(
+        x=df["Production Budget"],
+        y=df["Worldwide Gross"],
+        marker_color=df["IMDB Rating"],
+        mode="markers",
+    )
+)
 fig

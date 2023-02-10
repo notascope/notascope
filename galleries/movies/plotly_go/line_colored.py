@@ -1,8 +1,12 @@
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go
 
 df = pd.read_csv("data/movies.csv")
 df["Release Date"] = pd.to_datetime(df["Release Date"]).dt.year
-df = df.groupby(["Release Date", "MPAA Rating"]).sum("Worldwide Gross").reset_index()
-fig = px.line(df, x="Release Date", y="Worldwide Gross", color="MPAA Rating")
+df2 = df.pivot_table(
+    index="Release Date", columns="MPAA Rating", values="Worldwide Gross", aggfunc="sum"
+)
+fig = go.Figure()
+for label, column in df2.items():
+    fig.add_trace(go.Scatter(name=label, x=df2.index, y=column))
 fig

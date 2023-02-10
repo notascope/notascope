@@ -1,6 +1,16 @@
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go
 
 df = pd.read_csv("data/movies.csv")
-fig = px.scatter(df, x="Production Budget", y="Worldwide Gross", color="MPAA Rating")
+groups = df.groupby("MPAA Rating")[["Production Budget", "Worldwide Gross"]]
+fig = go.Figure()
+for label, df2 in groups:
+    fig.add_trace(
+        go.Scatter(
+            name=label,
+            x=df2["Production Budget"],
+            y=df2["Worldwide Gross"],
+            mode="markers",
+        )
+    )
 fig

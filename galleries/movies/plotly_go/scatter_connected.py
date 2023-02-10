@@ -1,8 +1,10 @@
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go
 
 df = pd.read_csv("data/movies.csv")
 df["Release Date"] = pd.to_datetime(df["Release Date"]).dt.year
 df = df.groupby("Release Date").sum().reset_index()
-fig = px.line(df, x="Production Budget", y="Worldwide Gross", markers=True)
+fig = go.Figure(
+    go.Scatter(x=df["Production Budget"], y=df["Worldwide Gross"], mode="lines+markers")
+)
 fig

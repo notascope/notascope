@@ -1,6 +1,8 @@
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go
 
 df = pd.read_csv("data/movies.csv")
-fig = px.histogram(df, x="Production Budget", y="Worldwide Gross", histfunc="avg")
+fig = go.Figure(
+    go.Histogram(x=df["Production Budget"], y=df["Worldwide Gross"], histfunc="avg")
+)
 fig

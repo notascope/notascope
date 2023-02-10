@@ -1,6 +1,10 @@
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go
 
 df = pd.read_csv("data/movies.csv")
-fig = px.histogram(df, x="Production Budget", color="MPAA Rating")
-fig
+fig = go.Figure()
+for label, group in df.groupby("MPAA Rating"):
+    fig.add_trace(
+        go.Histogram(name=label, x=group["Production Budget"], histfunc="sum")
+    )
+fig.update_layout(barmode="stack")

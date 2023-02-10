@@ -1,6 +1,6 @@
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go
 
 df = pd.read_csv("data/movies.csv")
-fig = px.pie(df, names="MPAA Rating")
+fig = go.Figure(go.Pie(labels=df["MPAA Rating"]))
 fig
