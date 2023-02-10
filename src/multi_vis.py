@@ -212,7 +212,7 @@ def thumbnails(gallery, distance, vis):
                 html.Td(
                     html.Img(
                         id=dict(type="thumbnail", notation=notation, slug=slug),
-                        src=f"/assets/results/{gallery}/{notation}/img/{slug}.svg",
+                        src=f"/assets/results/{gallery}/{notation}/img/{slug}.png",
                     )
                 )
             )

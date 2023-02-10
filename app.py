@@ -446,7 +446,7 @@ app.clientside_callback(
         }
         return [true,
                 pt["bbox"],
-                "/assets/results/"+gallery+"/"+notation+"/img/"+slug+".svg",
+                "/assets/results/"+gallery+"/"+notation+"/img/"+slug+".png",
                 slug];
     }
     """,

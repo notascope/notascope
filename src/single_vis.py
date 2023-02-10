@@ -24,7 +24,7 @@ def thumbnails(gallery, notation, distance, from_slug, to_slug, vis):
         thumbs += [
             html.Img(
                 id=dict(type="thumbnail", no_notation=notation, slug=from_slug),
-                src=f"/assets/results/{gallery}/{notation}/img/{from_slug}.svg",
+                src=f"/assets/results/{gallery}/{notation}/img/{from_slug}.png",
                 className="selected_thumb",
             ),
             html.Br(),
@@ -34,7 +34,7 @@ def thumbnails(gallery, notation, distance, from_slug, to_slug, vis):
         thumbs.append(
             html.Img(
                 id=dict(type="thumbnail", no_notation=notation, slug=slug),
-                src=f"/assets/results/{gallery}/{notation}/img/{slug}.svg",
+                src=f"/assets/results/{gallery}/{notation}/img/{slug}.png",
                 className="selected_thumb" if slug == to_slug else "regular_thumb",
             )
         )
