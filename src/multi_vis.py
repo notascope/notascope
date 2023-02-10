@@ -240,6 +240,14 @@ multi_vis_types = list(multi_vis_map)
 
 
 def wrap_multi_vis(gallery, distance, vis):
+    return [
+        html.Details(
+            [html.Summary("stats")] + _wrap_multi_vis(gallery, distance, "stats")
+        )
+    ] + _wrap_multi_vis(gallery, distance, "thumbnails")
+
+
+def _wrap_multi_vis(gallery, distance, vis):
     vis_list = []
 
     registry = load_registry()

@@ -299,14 +299,6 @@ def update_content(hashpath):
             style=dict(width="150px"),
             maxHeight=600,
         ),
-        "Visualization": dcc.Dropdown(
-            id=dict(id="vis", type="dropdown"),
-            value=vis,
-            options=single_vis_types if notation else multi_vis_types,
-            clearable=False,
-            style=dict(width="150px"),
-            maxHeight=600,
-        ),
         "Notation": dcc.Dropdown(
             id=dict(id="notation", type="dropdown"),
             value=notation,
@@ -318,6 +310,14 @@ def update_content(hashpath):
     }
 
     if notation:
+        controls["Visualization"] = dcc.Dropdown(
+            id=dict(id="vis", type="dropdown"),
+            value=vis,
+            options=single_vis_types,
+            clearable=False,
+            style=dict(width="150px"),
+            maxHeight=600,
+        )
         controls["Comparison"] = dcc.Dropdown(
             id=dict(id="compare", type="dropdown"),
             value=compare,
