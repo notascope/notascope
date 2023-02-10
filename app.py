@@ -18,12 +18,11 @@ from src.multi_vis import multi_vis_types, wrap_multi_vis
 from src.details import details_view
 
 
-print(
-    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-    chr(ord("\U0001f400") + random.randrange(78)),
-)
 registry = load_registry()
-print("ready")
+print(
+    chr(ord("\U0001f400") + random.randrange(78)),
+    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+)
 
 app = Dash(__name__, title="NotaScope", suppress_callback_exceptions=True)
 
