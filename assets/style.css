@@ -34,11 +34,20 @@ body {
   padding: 10px;
 }
 
+.thumbnails th {
+  cursor: pointer;
+}
+
 .thumbnails img {
   max-height: 150px;
   max-width: 150px;
   cursor: pointer;
   vertical-align: middle;
+}
+
+.bigthumb {
+  max-height: 200px !important;
+  max-width: 300px !important;
 }
 
 .zoomable {

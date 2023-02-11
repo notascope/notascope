@@ -5,6 +5,9 @@ from .distances import distances_df
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
+from functools import cache
+from pathlib import Path
+from .utils import ext
 
 
 def stats(gallery, distance, vis):
@@ -218,14 +221,29 @@ def thumbnails(gallery, distance, vis):
             )
         rows.append(
             html.Tr(
-                [html.Th(slug, style=dict(textAlign="right"))]
+                [
+                    html.Th(
+                        slug,
+                        style=dict(textAlign="right"),
+                        id=dict(type="thumbnail", notation="", slug=slug),
+                    )
+                ]
                 + cells
                 + [html.Th(slug, style=dict(opacity=0))]
             )
         )
     return [
         html.Table(
-            [html.Tr([html.Th()] + [html.Th(n) for n in notations])] + rows,
+            [
+                html.Tr(
+                    [html.Th()]
+                    + [
+                        html.Th(n, id=dict(type="thumbnail", notation=n, slug=""))
+                        for n in notations
+                    ]
+                )
+            ]
+            + rows,
             style=dict(margin="0 auto"),
             className="thumbnails",
         )
@@ -239,7 +257,58 @@ multi_vis_map = {
 multi_vis_types = list(multi_vis_map)
 
 
-def wrap_multi_vis(gallery, distance, vis):
+def thumbnails_for_slug(gallery, distance, from_slug):
+    registry = load_registry()
+    notations = list(registry[gallery].keys())
+    langs = dict(py="python", R="R", json="json", vl="json")
+    return [
+        html.Table(
+            [
+                html.Tr(
+                    [
+                        html.Td(
+                            [
+                                html.P(n, style=dict(margin=0)),
+                                html.Img(
+                                    src=f"/assets/results/{gallery}/{n}/img/{from_slug}.png",
+                                    id=dict(type="thumbnail", notation=n, slug=""),
+                                    className="bigthumb",
+                                ),
+                            ],
+                            style=dict(
+                                verticalAlign="top", borderBottom="1px solid lightgrey"
+                            ),
+                        ),
+                        html.Td(
+                            [
+                                dcc.Markdown(
+                                    "```"
+                                    + langs[ext(gallery, n, "source")]
+                                    + "\n"
+                                    + Path(
+                                        f"results/{gallery}/{n}/pretty/{from_slug}.{ext(gallery, n, 'source')}"
+                                    ).read_text()
+                                    + "```",
+                                    style=dict(textAlign="left"),
+                                ),
+                            ],
+                            style=dict(
+                                verticalAlign="top", borderBottom="1px solid lightgrey"
+                            ),
+                        ),
+                    ]
+                )
+                for n in notations
+            ],
+            style=dict(margin="0 auto"),
+            className="thumbnails",
+        )
+    ]
+
+
+def wrap_multi_vis(gallery, distance, from_slug):
+    if from_slug:
+        return thumbnails_for_slug(gallery, distance, from_slug)
     return [
         html.Details(
             [html.Summary("stats")] + _wrap_multi_vis(gallery, distance, "stats")
@@ -247,6 +316,7 @@ def wrap_multi_vis(gallery, distance, vis):
     ] + _wrap_multi_vis(gallery, distance, "thumbnails")
 
 
+@cache
 def _wrap_multi_vis(gallery, distance, vis):
     vis_list = []
 

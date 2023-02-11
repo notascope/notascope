@@ -12,9 +12,9 @@ from dash_extensions import EventListener
 # local
 from src.utils import load_registry
 from src.distances import distance_types
-from src.single_vis import single_vis_types, wrap_single_vis
+from src.single_vis import single_vis_types, wrap_single_vis, thumbnails_for_notation
 from src.pair_vis import distance_pair_vis_types, notation_pair_vis_types, wrap_pair_vis
-from src.multi_vis import multi_vis_types, wrap_multi_vis
+from src.multi_vis import wrap_multi_vis
 from src.details import details_view
 
 
@@ -92,28 +92,22 @@ def sanitize_state(hashpath_values):
 
     notations = list(registry[state["gallery"]].keys())
     slugs = set()
+    for n in notations:
+        slugs.update(registry[state["gallery"]][n]["slugs"])
 
     if state["notations"] not in notations and len(notations) == 1:
         state["notation"] = notations[0]
 
-    if state["notation"] in notations:
-        for s in registry[state["gallery"]][state["notation"]]["slugs"]:
-            slugs.add(s)
-
-        if state["vis"] not in single_vis_types:
-            state["vis"] = single_vis_types[0]
-    else:
-        state["notation"] = ""
-        if state["vis"] not in multi_vis_types:
-            state["vis"] = multi_vis_types[0]
+    if state["notation"] not in notations:
+        if len(notations) == 1:
+            state["notation"] = notations[0]
+        else:
+            state["notation"] = ""
 
     if state["notation"] == "":
         state["compare"] = ""
 
-    if state["compare"] in notations:
-        for s in registry[state["gallery"]][state["compare"]]["slugs"]:
-            slugs.add(s)
-    elif state["compare"] not in single_vis_types + distance_types:
+    if state["compare"] not in notations + single_vis_types + distance_types:
         state["compare"] = ""
 
     if not (
@@ -164,6 +158,7 @@ def update_hashpath(
     shift_down = bool((dict(shiftKey=False) if not event else event)["shiftKey"])
     from_slug, to_slug = selection
     notation = ""
+    vis = ""
     if callback_context.triggered:
         *trig_id, trig_prop = callback_context.triggered[0]["prop_id"].split(".")
         trig_id = json.loads(".".join(trig_id))
@@ -195,6 +190,7 @@ def update_hashpath(
             if "notation" in trig_id:
                 # gallery-wide thumbnails force a notation
                 notation = trig_id["notation"]
+                vis = "thumbnails"
 
         if clicked_slug:
             if shift_down:
@@ -220,6 +216,8 @@ def update_hashpath(
             print(repr(e))
     if notation:
         hashpath_values["notation"] = notation
+    if vis and from_slug:
+        hashpath_values["vis"] = vis
     hashpath = make_hashpath(hashpath_values)
     return hashpath, node_data, edge_data
 
@@ -279,7 +277,7 @@ def update_content(hashpath):
     comparisons = []
     if len(notations) > 1:
         comparisons += dropdown_opts("Notations", notations, notation)
-    comparisons += dropdown_opts("Visualizations", single_vis_types, vis)
+    comparisons += dropdown_opts("Views", single_vis_types, vis)
     comparisons += dropdown_opts("Distances", distance_types, distance)
 
     controls = {
@@ -291,12 +289,12 @@ def update_content(hashpath):
             style=dict(width="100px"),
             maxHeight=600,
         ),
-        "Distance Function": dcc.Dropdown(
+        "Distance": dcc.Dropdown(
             id=dict(id="distance", type="dropdown"),
             value=distance,
             options=distance_types,
             clearable=False,
-            style=dict(width="150px"),
+            style=dict(width="100px"),
             maxHeight=600,
         ),
         "Notation": dcc.Dropdown(
@@ -310,11 +308,11 @@ def update_content(hashpath):
     }
 
     if notation:
-        controls["Visualization"] = dcc.Dropdown(
+        controls["View"] = dcc.Dropdown(
             id=dict(id="vis", type="dropdown"),
             value=vis,
             options=single_vis_types,
-            clearable=False,
+            clearable=True,
             style=dict(width="150px"),
             maxHeight=600,
         )
@@ -326,9 +324,21 @@ def update_content(hashpath):
             style=dict(width="175px"),
             maxHeight=600,
         )
+    elif from_slug:
+        slugs = set()
+        for n in notations:
+            slugs.update(registry[state["gallery"]][n]["slugs"])
+        controls["Spec"] = dcc.Dropdown(
+            id=dict(id="from_slug", type="dropdown"),
+            value=from_slug,
+            options=sorted(slugs),
+            clearable=True,
+            style=dict(width="225px"),
+            maxHeight=600,
+        )
 
     if compare in notations + distance_types:
-        controls["Pair Visualization"] = dcc.Dropdown(
+        controls["Pair View"] = dcc.Dropdown(
             id=dict(id="pair_vis", type="dropdown"),
             value=pair_vis,
             options=notation_pair_vis_types
@@ -343,7 +353,10 @@ def update_content(hashpath):
         html.Div(
             [
                 html.Div(
-                    [html.Span(k), html.Span(v, style=dict(textAlign="left"))],
+                    [
+                        html.Span(k, style=dict(fontSize="14px")),
+                        html.Span(v, style=dict(textAlign="left")),
+                    ],
                     style=dict(display="inline-block", textAlign="center"),
                 )
                 for k, v in controls.items()
@@ -356,7 +369,7 @@ def update_content(hashpath):
     if not notation:
         blocks.append(
             html.Div(
-                wrap_multi_vis(gallery, distance, vis),
+                wrap_multi_vis(gallery, distance, from_slug),
                 style=dict(gridColumn="1/3", textAlign="center"),
             )
         )
@@ -386,42 +399,53 @@ def update_content(hashpath):
                         ),
                     ],
                     open=True,
+                    id="pair_vis",
                     style=dict(width="800px", margin="0 auto", textAlign="center"),
                 ),
                 style=dict(gridColumn="1/3"),
             )
         )
 
-    if notation:
+    if notation and vis == "":
         blocks.append(
             html.Div(
-                html.Details(
-                    [html.Summary(" ".join([notation, distance, vis]))]
-                    + wrap_single_vis(
-                        gallery, notation, distance, vis, from_slug, to_slug, "1"
-                    ),
-                    open=True,
-                )
-            ),
-        )
-
-    if compare:
-        blocks.append(
-            html.Div(
-                html.Details(
-                    [html.Summary(" ".join([notation2, distance2, vis2]))]
-                    + wrap_single_vis(
-                        gallery, notation2, distance2, vis2, from_slug, to_slug, "2"
-                    ),
-                    open=True,
-                )
+                thumbnails_for_notation(gallery, distance, notation),
+                style=dict(gridColumn="1/3", textAlign="center"),
             )
         )
+    else:
+        if notation:
+            blocks.append(
+                html.Div(
+                    html.Details(
+                        [html.Summary(" ".join([notation, distance, vis]))]
+                        + wrap_single_vis(
+                            gallery, notation, distance, vis, from_slug, to_slug, "1"
+                        ),
+                        open=True,
+                        id="vis",
+                    )
+                ),
+            )
 
-    if notation:
+        if compare:
+            blocks.append(
+                html.Div(
+                    html.Details(
+                        [html.Summary(" ".join([notation2, distance2, vis2]))]
+                        + wrap_single_vis(
+                            gallery, notation2, distance2, vis2, from_slug, to_slug, "2"
+                        ),
+                        open=True,
+                        id="compare_vis",
+                    )
+                )
+            )
+
+    if notation and from_slug and vis:
         blocks.append(details_view(gallery, notation, distance, from_slug, to_slug))
 
-    if compare:
+    if compare and from_slug and vis:
         blocks.append(details_view(gallery, notation2, distance2, from_slug, to_slug))
 
     return html.Div(className="wrapper", children=blocks)

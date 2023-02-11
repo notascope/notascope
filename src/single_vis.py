@@ -6,6 +6,60 @@ from .dendro import get_dendro
 from .network import get_network
 from .distances import distances_df
 from .distributions import token_rank, token_bars, farness, get_farness_scatter
+from .utils import load_registry
+from .utils import ext
+from pathlib import Path
+
+
+def thumbnails_for_notation(gallery, distance, notation):
+    registry = load_registry()
+    slugs = registry[gallery][notation]["slugs"]
+    langs = dict(py="python", R="R", json="json", vl="json")
+    srcext = ext(gallery, notation, "source")
+    lang = langs[srcext]
+    return [
+        html.Table(
+            [
+                html.Tr(
+                    [
+                        html.Td(
+                            [
+                                html.P(s, style=dict(margin=0)),
+                                html.Img(
+                                    src=f"/assets/results/{gallery}/{notation}/img/{s}.png",
+                                    id=dict(
+                                        type="thumbnail", notation=notation, slug=s
+                                    ),
+                                    className="bigthumb",
+                                ),
+                            ],
+                            style=dict(
+                                verticalAlign="top", borderBottom="1px solid lightgrey"
+                            ),
+                        ),
+                        html.Td(
+                            dcc.Markdown(
+                                "```"
+                                + lang
+                                + "\n"
+                                + Path(
+                                    f"results/{gallery}/{notation}/pretty/{s}.{srcext}"
+                                ).read_text()
+                                + "```",
+                                style=dict(textAlign="left"),
+                            ),
+                            style=dict(
+                                verticalAlign="top", borderBottom="1px solid lightgrey"
+                            ),
+                        ),
+                    ]
+                )
+                for s in slugs
+            ],
+            style=dict(margin="0 auto"),
+            className="thumbnails",
+        )
+    ]
 
 
 def thumbnails(gallery, notation, distance, from_slug, to_slug, vis):
@@ -44,10 +98,10 @@ def thumbnails(gallery, notation, distance, from_slug, to_slug, vis):
 vis_map = {
     "thumbnails": thumbnails,
     "mst": get_network,
-    "spanner-1": get_network,
-    "spanner-1.1": get_network,
-    "spanner-1.2": get_network,
     "spanner-1.5": get_network,
+    "spanner-1.2": get_network,
+    "spanner-1.1": get_network,
+    "spanner-1": get_network,
     "tsne": get_scatter,
     "umap": get_scatter,
     "dendro": get_dendro,
