@@ -13,7 +13,7 @@ from pathlib import Path
 
 def thumbnails_for_notation(gallery, distance, notation):
     registry = load_registry()
-    slugs = registry[gallery][notation]["slugs"]
+    specs = registry[gallery][notation]["specs"]
     langs = dict(py="python", R="R", json="json", vl="json")
     srcext = ext(gallery, notation, "source")
     lang = langs[srcext]
@@ -28,7 +28,7 @@ def thumbnails_for_notation(gallery, distance, notation):
                                 html.Img(
                                     src=f"/assets/results/{gallery}/{notation}/img/{s}.png",
                                     id=dict(
-                                        type="thumbnail", notation=notation, slug=s
+                                        type="thumbnail", notation=notation, spec=s
                                     ),
                                     className="bigthumb",
                                 ),
@@ -54,7 +54,7 @@ def thumbnails_for_notation(gallery, distance, notation):
                         ),
                     ]
                 )
-                for s in slugs
+                for s in specs
             ],
             style=dict(margin="0 auto"),
             className="thumbnails",
@@ -62,34 +62,34 @@ def thumbnails_for_notation(gallery, distance, notation):
     ]
 
 
-def thumbnails(gallery, notation, distance, from_slug, to_slug, vis):
+def thumbnails(gallery, notation, distance, from_spec, to_spec, vis):
     df = distances_df(gallery=gallery).query(f"notation=='{notation}'")
-    if from_slug:
-        df = df.query(f"from_slug == '{from_slug}'")
-    sorted_slugs = (
-        df.groupby("to_slug")[distance]
+    if from_spec:
+        df = df.query(f"from_spec == '{from_spec}'")
+    sorted_specs = (
+        df.groupby("to_spec")[distance]
         .median()
         .reset_index()
         .sort_values(by=distance)
-        .to_slug
+        .to_spec
     )
     thumbs = []
-    if from_slug:
+    if from_spec:
         thumbs += [
             html.Img(
-                id=dict(type="thumbnail", no_notation=notation, slug=from_slug),
-                src=f"/assets/results/{gallery}/{notation}/img/{from_slug}.png",
+                id=dict(type="thumbnail", no_notation=notation, spec=from_spec),
+                src=f"/assets/results/{gallery}/{notation}/img/{from_spec}.png",
                 className="selected_thumb",
             ),
             html.Br(),
         ]
 
-    for slug in sorted_slugs:
+    for spec in sorted_specs:
         thumbs.append(
             html.Img(
-                id=dict(type="thumbnail", no_notation=notation, slug=slug),
-                src=f"/assets/results/{gallery}/{notation}/img/{slug}.png",
-                className="selected_thumb" if slug == to_slug else "regular_thumb",
+                id=dict(type="thumbnail", no_notation=notation, spec=spec),
+                src=f"/assets/results/{gallery}/{notation}/img/{spec}.png",
+                className="selected_thumb" if spec == to_spec else "regular_thumb",
             )
         )
     return html.Div(thumbs, className="thumbnails", style=dict(textAlign="center"))
@@ -113,14 +113,14 @@ vis_map = {
 single_vis_types = list(vis_map.keys())
 
 
-def get_vis(gallery, notation, distance, vis, from_slug, to_slug):
-    return [vis_map[vis](gallery, notation, distance, from_slug, to_slug, vis)]
+def get_vis(gallery, notation, distance, vis, from_spec, to_spec):
+    return [vis_map[vis](gallery, notation, distance, from_spec, to_spec, vis)]
 
 
-def wrap_single_vis(gallery, notation, distance, vis, from_slug, to_slug, suffix):
+def wrap_single_vis(gallery, notation, distance, vis, from_spec, to_spec, suffix):
     vis_list = []
     for i, vis_out in enumerate(
-        get_vis(gallery, notation, distance, vis, from_slug, to_slug)
+        get_vis(gallery, notation, distance, vis, from_spec, to_spec)
     ):
         if isinstance(vis_out, go.Figure):
             vis_list.append(

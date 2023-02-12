@@ -6,13 +6,13 @@ from .utils import ext
 from .distances import dmat_and_order, get_distance, get_embedding, get_mst
 
 
-def get_network(gallery, notation, distance, from_slug, to_slug, method):
+def get_network(gallery, notation, distance, from_spec, to_spec, method):
     net = json.loads(build_network(gallery, notation, distance, method))
 
-    if from_slug != to_slug:
-        from_to_distance = get_distance(gallery, notation, distance, from_slug, to_slug)
-        to_from_distance = get_distance(gallery, notation, distance, to_slug, from_slug)
-        both_dirs = [[from_slug, to_slug], [to_slug, from_slug]]
+    if from_spec != to_spec:
+        from_to_distance = get_distance(gallery, notation, distance, from_spec, to_spec)
+        to_from_distance = get_distance(gallery, notation, distance, to_spec, from_spec)
+        both_dirs = [[from_spec, to_spec], [to_spec, from_spec]]
         to_drop = ["__".join(x) for x in both_dirs]
         dropped = [elem for elem in net if elem["data"]["id"] in to_drop]
         net = [elem for elem in net if elem["data"]["id"] not in to_drop]
@@ -24,7 +24,7 @@ def get_network(gallery, notation, distance, from_slug, to_slug, method):
                     "target": dest,
                     "id": id,
                     "length": from_to_distance
-                    if source == from_slug
+                    if source == from_spec
                     else to_from_distance,
                 },
                 "classes": "",
@@ -34,15 +34,15 @@ def get_network(gallery, notation, distance, from_slug, to_slug, method):
                 and "bidir" not in dropped[0]["classes"]
             ):
                 new_elem["classes"] += " inserted"
-            if source == from_slug:
+            if source == from_spec:
                 new_elem["classes"] += " selected"
             net.append(new_elem)
-    elif from_slug:
+    elif from_spec:
         dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
-        from_index = order.index(from_slug)
+        from_index = order.index(from_spec)
         top_indices = np.argsort(dmat_sym[from_index])
         for i in range(min(10, len(dmat_sym))):
-            source = from_slug
+            source = from_spec
             to_index = top_indices[i]
             dest = order[to_index]
             if source != dest:
@@ -58,7 +58,7 @@ def get_network(gallery, notation, distance, from_slug, to_slug, method):
                     }
                 )
     for elem in net:
-        if elem["data"]["id"] in [from_slug, to_slug]:
+        if elem["data"]["id"] in [from_spec, to_spec]:
             elem["classes"] += " selected"
     return net
 

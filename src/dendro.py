@@ -9,14 +9,14 @@ from scipy.cluster import hierarchy
 from scipy.spatial.distance import squareform
 
 
-def get_dendro(gallery, notation, distance, from_slug, to_slug, vis):
+def get_dendro(gallery, notation, distance, from_spec, to_spec, vis):
     dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
-    fig_json, y_by_slug, leaves = build_dendro(gallery, notation, distance)
+    fig_json, y_by_spec, leaves = build_dendro(gallery, notation, distance)
     fig = go.Figure(json.loads(fig_json))
-    if from_slug:
-        from_y = y_by_slug[from_slug]
-        to_y = y_by_slug[to_slug]
-        distance = dmat_sym[order.index(from_slug), order.index(to_slug)]
+    if from_spec:
+        from_y = y_by_spec[from_spec]
+        to_y = y_by_spec[to_spec]
+        distance = dmat_sym[order.index(from_spec), order.index(to_spec)]
         fig.add_scatter(
             x=[0, -distance, -distance, 0],
             y=[from_y, from_y, to_y, to_y],
@@ -26,9 +26,9 @@ def get_dendro(gallery, notation, distance, from_slug, to_slug, vis):
             marker_color="red",
             mode="lines+markers",
         )
-        if from_slug == to_slug:
+        if from_spec == to_spec:
             fig.data[1].marker = dict(
-                color=dmat_sym[order.index(from_slug)][leaves],
+                color=dmat_sym[order.index(from_spec)][leaves],
                 cmax=np.median(dmat_sym),
                 colorscale="Viridis",
             )
@@ -89,28 +89,28 @@ def build_dendro(gallery, notation, distance):
     label_x = []
     label_y = []
     label_text = []
-    y_by_slug = dict()
+    y_by_spec = dict()
 
     def append_point(x_val, y_val):
         y.append(y_val)
         x.append(-x_val)
         cluster_members = nodes[(x_val, y_val)][1]
-        node_slug = None
+        node_spec = None
         if len(cluster_members):
             cluster_medioid = medioid(cluster_members, dmat_sym)
-            node_slug = order[cluster_medioid]
-        hovertext.append([node_slug])
+            node_spec = order[cluster_medioid]
+        hovertext.append([node_spec])
 
     for i, (icoord, dcoord) in enumerate(zip(P["icoord"], P["dcoord"])):
         for j, (y_val, x_val) in enumerate(zip(icoord, dcoord)):
             append_point(x_val, y_val)
             if x_val == 0:
-                slug = P["ivl"][int((y_val - 5) / 10)]
-                if slug not in y_by_slug:
-                    y_by_slug[slug] = y_val
+                spec = P["ivl"][int((y_val - 5) / 10)]
+                if spec not in y_by_spec:
+                    y_by_spec[spec] = y_val
                     label_x.append(-x_val)
                     label_y.append(y_val)
-                    label_text.append(slug)
+                    label_text.append(spec)
         y.append(None)
         x.append(None)
         hovertext.append(None)
@@ -139,4 +139,4 @@ def build_dendro(gallery, notation, distance):
     )
     fig.update_layout(uirevision="yes")
     fig.update_yaxes(visible=False)
-    return fig.to_json(), y_by_slug, P["leaves"]
+    return fig.to_json(), y_by_spec, P["leaves"]

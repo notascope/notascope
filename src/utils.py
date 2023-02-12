@@ -13,5 +13,5 @@ def ext(gallery, notation, obj):
     return load_registry()[gallery][notation]["ext"][obj]
 
 
-def slug_from_path(path):
+def spec_from_path(path):
     return ".".join(path.split("/")[-1].split(".")[:-1])

@@ -6,6 +6,6 @@ import pandas as pd
 def load_tokens():
     return pd.read_csv(
         "results/tokens.tsv",
-        names=["gallery", "notation", "slug", "token"],
+        names=["gallery", "notation", "spec", "token"],
         delimiter="\t",
     )

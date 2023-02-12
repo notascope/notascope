@@ -91,9 +91,9 @@ def sanitize_state(hashpath_values):
         state["distance"] = distance_types[0]
 
     notations = list(registry[state["gallery"]].keys())
-    slugs = set()
+    specs = set()
     for n in notations:
-        slugs.update(registry[state["gallery"]][n]["slugs"])
+        specs.update(registry[state["gallery"]][n]["specs"])
 
     if state["notations"] not in notations and len(notations) == 1:
         state["notation"] = notations[0]
@@ -122,10 +122,10 @@ def sanitize_state(hashpath_values):
     ):
         state["pair_vis"] = ""
 
-    if state["from_slug"] not in slugs:
-        state["from_slug"] = state["to_slug"] = ""
-    elif state["to_slug"] not in slugs:
-        state["to_slug"] = state["from_slug"]
+    if state["from_spec"] not in specs:
+        state["from_spec"] = state["to_spec"] = ""
+    elif state["to_spec"] not in specs:
+        state["to_spec"] = state["from_spec"]
 
     for k_to_del in [k for k in state if not state[k]]:
         del state[k_to_del]
@@ -141,8 +141,8 @@ def sanitize_state(hashpath_values):
     Input(dict(type="network", suffix=ALL, seq=ALL), "tapNodeData"),
     Input(dict(type="network", suffix=ALL, seq=ALL), "tapEdgeData"),
     Input(dict(type="figure", suffix=ALL, seq=ALL, notation=ALL), "clickData"),
-    Input(dict(type="thumbnail", slug=ALL, notation=ALL), "n_clicks"),
-    Input(dict(type="thumbnail", slug=ALL, no_notation=ALL), "n_clicks"),
+    Input(dict(type="thumbnail", spec=ALL, notation=ALL), "n_clicks"),
+    Input(dict(type="thumbnail", spec=ALL, no_notation=ALL), "n_clicks"),
     State("event_listener", "event"),
 )
 def update_hashpath(
@@ -156,7 +156,7 @@ def update_hashpath(
     event,
 ):
     shift_down = bool((dict(shiftKey=False) if not event else event)["shiftKey"])
-    from_slug, to_slug = selection
+    from_spec, to_spec = selection
     notation = ""
     vis = ""
     if callback_context.triggered:
@@ -166,49 +166,49 @@ def update_hashpath(
 
         if trig_prop == "tapEdgeData":
             # simple, write the edge
-            from_slug = data["source"]
-            to_slug = data["target"]
+            from_spec = data["source"]
+            to_spec = data["target"]
             node_data = [None] * len(node_data)
 
-        clicked_slug = ""
+        clicked_spec = ""
         if trig_prop == "clickData":
             # clicking on a point in a figure
             if "customdata" in data["points"][0]:
                 # token figures don't have customdata ATM
-                clicked_slug = data["points"][0]["customdata"]
-                if len(clicked_slug) == 1:
-                    clicked_slug = clicked_slug[0]
+                clicked_spec = data["points"][0]["customdata"]
+                if len(clicked_spec) == 1:
+                    clicked_spec = clicked_spec[0]
 
         if trig_prop == "tapNodeData":
             # clicking on a node
-            clicked_slug = data["id"]
+            clicked_spec = data["id"]
             edge_data = [None] * len(edge_data)
 
         if trig_prop == "n_clicks":
             # clicking on an image
-            clicked_slug = trig_id["slug"]
+            clicked_spec = trig_id["spec"]
             if "notation" in trig_id:
                 # gallery-wide thumbnails force a notation
                 notation = trig_id["notation"]
                 vis = "thumbnails"
 
-        if clicked_slug:
+        if clicked_spec:
             if shift_down:
-                if clicked_slug in [from_slug, to_slug]:
+                if clicked_spec in [from_spec, to_spec]:
                     # swap from/to
-                    from_slug, to_slug = to_slug, from_slug
+                    from_spec, to_spec = to_spec, from_spec
                 else:
                     # base case: set to
-                    to_slug = clicked_slug
+                    to_spec = clicked_spec
             else:
-                if to_slug == clicked_slug == from_slug:
+                if to_spec == clicked_spec == from_spec:
                     # reset
-                    from_slug = to_slug = ""
+                    from_spec = to_spec = ""
                 else:
                     # base case: set from
-                    from_slug = to_slug = clicked_slug
+                    from_spec = to_spec = clicked_spec
 
-    hashpath_values = {"from_slug": from_slug, "to_slug": to_slug}
+    hashpath_values = {"from_spec": from_spec, "to_spec": to_spec}
     for input in callback_context.inputs_list[1]:
         try:
             hashpath_values[input["id"]["id"]] = input["value"]
@@ -216,7 +216,7 @@ def update_hashpath(
             print(repr(e))
     if notation:
         hashpath_values["notation"] = notation
-    if vis and from_slug:
+    if vis and from_spec:
         hashpath_values["vis"] = vis
     hashpath = make_hashpath(hashpath_values)
     return hashpath, node_data, edge_data
@@ -257,8 +257,8 @@ def update_content(hashpath):
     distance = state["distance"]
     vis = state["vis"]
     compare = state["compare"]
-    from_slug = state["from_slug"]
-    to_slug = state["to_slug"]
+    from_spec = state["from_spec"]
+    to_spec = state["to_spec"]
     pair_vis = state["pair_vis"]
 
     notation2 = distance2 = vis2 = None
@@ -324,14 +324,14 @@ def update_content(hashpath):
             style=dict(width="175px"),
             maxHeight=600,
         )
-    elif from_slug:
-        slugs = set()
+    elif from_spec:
+        specs = set()
         for n in notations:
-            slugs.update(registry[state["gallery"]][n]["slugs"])
+            specs.update(registry[state["gallery"]][n]["specs"])
         controls["Spec"] = dcc.Dropdown(
-            id=dict(id="from_slug", type="dropdown"),
-            value=from_slug,
-            options=sorted(slugs),
+            id=dict(id="from_spec", type="dropdown"),
+            value=from_spec,
+            options=sorted(specs),
             clearable=True,
             style=dict(width="225px"),
             maxHeight=600,
@@ -363,13 +363,13 @@ def update_content(hashpath):
             ],
             style=dict(margin="0 auto", gridColumn="1/3"),
         ),
-        dcc.Store(id="selection", data=[from_slug, to_slug]),
+        dcc.Store(id="selection", data=[from_spec, to_spec]),
     ]
 
     if not notation:
         blocks.append(
             html.Div(
-                wrap_multi_vis(gallery, distance, from_slug),
+                wrap_multi_vis(gallery, distance, from_spec),
                 style=dict(gridColumn="1/3", textAlign="center"),
             )
         )
@@ -394,8 +394,8 @@ def update_content(hashpath):
                             notation2,
                             distance2,
                             pair_vis,
-                            from_slug,
-                            to_slug,
+                            from_spec,
+                            to_spec,
                         ),
                     ],
                     open=True,
@@ -420,7 +420,7 @@ def update_content(hashpath):
                     html.Details(
                         [html.Summary(" ".join([notation, distance, vis]))]
                         + wrap_single_vis(
-                            gallery, notation, distance, vis, from_slug, to_slug, "1"
+                            gallery, notation, distance, vis, from_spec, to_spec, "1"
                         ),
                         open=True,
                         id="vis",
@@ -434,7 +434,7 @@ def update_content(hashpath):
                     html.Details(
                         [html.Summary(" ".join([notation2, distance2, vis2]))]
                         + wrap_single_vis(
-                            gallery, notation2, distance2, vis2, from_slug, to_slug, "2"
+                            gallery, notation2, distance2, vis2, from_spec, to_spec, "2"
                         ),
                         open=True,
                         id="compare_vis",
@@ -442,11 +442,11 @@ def update_content(hashpath):
                 )
             )
 
-    if notation and from_slug and vis:
-        blocks.append(details_view(gallery, notation, distance, from_slug, to_slug))
+    if notation and from_spec and vis:
+        blocks.append(details_view(gallery, notation, distance, from_spec, to_spec))
 
-    if compare and from_slug and vis:
-        blocks.append(details_view(gallery, notation2, distance2, from_slug, to_slug))
+    if compare and from_spec and vis:
+        blocks.append(details_view(gallery, notation2, distance2, from_spec, to_spec))
 
     return html.Div(className="wrapper", children=blocks)
 
@@ -464,14 +464,14 @@ app.clientside_callback(
         gallery=qs.get('gallery');
         trig_id = JSON.parse(trig[0].prop_id.split('.')[0]);
         notation=trig_id.notation;
-        slug = pt["customdata"];
-        if(slug.length == 1) {
-            slug = slug[0];
+        spec = pt["customdata"];
+        if(spec.length == 1) {
+            spec = spec[0];
         }
         return [true,
                 pt["bbox"],
-                "/assets/results/"+gallery+"/"+notation+"/img/"+slug+".png",
-                slug];
+                "/assets/results/"+gallery+"/"+notation+"/img/"+spec+".png",
+                spec];
     }
     """,
     Output("tooltip", "show"),

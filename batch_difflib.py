@@ -3,7 +3,7 @@ from difflib import SequenceMatcher
 from glob import glob
 import os
 import sys
-from src.utils import slug_from_path
+from src.utils import spec_from_path
 from tree_sitter import Language, Parser
 
 basedir = "/Users/nicolas/ets/tree-sitter-parser"
@@ -52,11 +52,11 @@ gallery = pieces[1]
 notation = pieces[2]
 tokens = dict()
 for fpath in glob(os.path.join(inpath, "*.*")):
-    tokens[slug_from_path(fpath)] = get_tokens_for_file(fpath)
+    tokens[spec_from_path(fpath)] = get_tokens_for_file(fpath)
 
 
-def cost(from_slug, to_slug):
-    s = SequenceMatcher(None, tokens[from_slug], tokens[to_slug])
+def cost(from_spec, to_spec):
+    s = SequenceMatcher(None, tokens[from_spec], tokens[to_spec])
     total_cost = 0
     for tag, i1, i2, j1, j2 in s.get_opcodes():
         if tag != "equal":
@@ -65,15 +65,15 @@ def cost(from_slug, to_slug):
 
 
 with open(f"results/{gallery}/{notation}/tokens.tsv", "w") as f:
-    for slug, tokens_list in tokens.items():
+    for spec, tokens_list in tokens.items():
         for token in tokens_list:
-            print("\t".join([gallery, notation, slug, token[1]]), file=f)
+            print("\t".join([gallery, notation, spec, token[1]]), file=f)
 
 with open(f"results/{gallery}/{notation}/difflib_costs.csv", "w") as f:
-    for (from_slug, to_slug) in permutations(tokens, 2):
+    for (from_spec, to_spec) in permutations(tokens, 2):
         print(
             ",".join(
-                [gallery, notation, from_slug, to_slug, str(cost(from_slug, to_slug))]
+                [gallery, notation, from_spec, to_spec, str(cost(from_spec, to_spec))]
             ),
             file=f,
         )

@@ -20,15 +20,15 @@ def distances_df(gallery=None, notation=None):
             return distances_df(gallery=gallery).query(f"notation=='{notation}'")
     difflib_df = pd.read_csv(
         "results/difflib_costs.csv",
-        names=["gallery", "notation", "from_slug", "to_slug", "difflib"],
+        names=["gallery", "notation", "from_spec", "to_spec", "difflib"],
     )
     ncd_df = pd.read_csv(
         "results/ncd_costs.csv",
         names=[
             "gallery",
             "notation",
-            "from_slug",
-            "to_slug",
+            "from_spec",
+            "to_spec",
             "from_length",
             "a",
             "b",
@@ -45,12 +45,12 @@ def distances_df(gallery=None, notation=None):
 def merged_distances(gallery, notation, distance, notation2, distance2):
     return pd.merge(
         distances_df(gallery=gallery, notation=notation)[
-            ["from_slug", "to_slug", distance]
+            ["from_spec", "to_spec", distance]
         ],
         distances_df(gallery=gallery, notation=notation2)[
-            ["from_slug", "to_slug", distance2]
+            ["from_spec", "to_spec", distance2]
         ],
-        on=["from_slug", "to_slug"],
+        on=["from_spec", "to_spec"],
         suffixes=["_" + notation, "_" + notation2],
     )
 
@@ -59,7 +59,7 @@ def merged_distances(gallery, notation, distance, notation2, distance2):
 def dmat_and_order(gallery, notation, distance):
     dmat = (
         distances_df(gallery=gallery, notation=notation)
-        .pivot_table(index="from_slug", columns="to_slug", values=distance)
+        .pivot_table(index="from_spec", columns="to_spec", values=distance)
         .fillna(0)
     )
     order = list(dmat.index)
@@ -69,10 +69,10 @@ def dmat_and_order(gallery, notation, distance):
 
 
 @cache
-def get_distance(gallery, notation, distance, from_slug, to_slug):
+def get_distance(gallery, notation, distance, from_spec, to_spec):
     return (
         distances_df(gallery=gallery, notation=notation)
-        .query(f"from_slug=='{from_slug}' and to_slug=='{to_slug}'")[distance]
+        .query(f"from_spec=='{from_spec}' and to_spec=='{to_spec}'")[distance]
         .values[0]
     )
 

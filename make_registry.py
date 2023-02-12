@@ -5,7 +5,7 @@ from pathlib import Path
 
 tokens_df = pd.read_csv(
     "results/tokens.tsv",
-    names=["gallery", "notation", "slug", "token"],
+    names=["gallery", "notation", "spec", "token"],
     delimiter="\t",
 )
 
@@ -27,14 +27,14 @@ for (gallery, notation), df in tokens_df.groupby(["gallery", "notation"]):
     imgext = ext(gallery, notation, "img")
     srcext = ext(gallery, notation, "source")
     registry[gallery][notation] = dict(
-        slugs=list(df["slug"].unique()),
+        specs=list(df["spec"].unique()),
         tokens=df["token"].nunique(),
         ext=dict(img=imgext, source=srcext),
     )
-    for slug in tokens_df.query(f"gallery=='{gallery}'").slug.unique():
-        slug_path = Path(f"galleries/{gallery}/{notation}/{slug}.{srcext}")
-        if not slug_path.exists():
-            slug_path.write_text("")
+    for spec in tokens_df.query(f"gallery=='{gallery}'").spec.unique():
+        spec_path = Path(f"galleries/{gallery}/{notation}/{spec}.{srcext}")
+        if not spec_path.exists():
+            spec_path.write_text("")
 
 with open("results/registry.json", "w") as f:
     json.dump(registry, f)

@@ -18,7 +18,7 @@ def stats(gallery, distance, vis):
     # Farness
     df = (
         distances_df(gallery=gallery)
-        .groupby(["notation", "from_slug"])[distance]
+        .groupby(["notation", "from_spec"])[distance]
         .median()
         .reset_index()
     )
@@ -32,7 +32,7 @@ def stats(gallery, distance, vis):
             height=600,
             points="all",
             category_orders=dict(notation=notations),
-            hover_data=["from_slug"],
+            hover_data=["from_spec"],
             labels={distance: f"Specification Remoteness ({distance})"},
             title="Specification Remoteness Distribution",
         )
@@ -56,7 +56,7 @@ def stats(gallery, distance, vis):
 
     df = (
         distances_df(gallery=gallery)
-        .groupby(["notation", "from_slug"])[[distance, "from_length"]]
+        .groupby(["notation", "from_spec"])[[distance, "from_length"]]
         .median()
         .reset_index()
     )
@@ -72,7 +72,7 @@ def stats(gallery, distance, vis):
         },
         title="Specification Remoteness versus Size in Bytes",
         height=750,
-        hover_data=["from_slug"],
+        hover_data=["from_spec"],
     )
     fig.update_yaxes(rangemode="tozero")
     fig.update_xaxes(rangemode="tozero")
@@ -86,23 +86,23 @@ def stats(gallery, distance, vis):
     tokens_df = load_tokens()
     df = (
         tokens_df.query(f"gallery == '{gallery}'")
-        .groupby(["token", "notation"])["slug"]
+        .groupby(["token", "notation"])["spec"]
         .nunique()
         .reset_index()
-        .groupby(["notation", "slug"])
+        .groupby(["notation", "spec"])
         .count()
         .reset_index()
-        .sort_values(by="slug", ascending=False)
+        .sort_values(by="spec", ascending=False)
     )
     fig = px.bar(
         df,
         x="notation",
         y="token",
         color="notation",
-        text="slug",
+        text="spec",
         height=600,
         category_orders=dict(notation=notations),
-        labels=dict(token="Number of Unique Tokens", slug="Number of Uses"),
+        labels=dict(token="Number of Unique Tokens", spec="Number of Uses"),
         title="Unique Token Usage Distribution",
     )
     fig.update_traces(
@@ -139,9 +139,9 @@ def stats(gallery, distance, vis):
 
     df2 = (
         distances_df(gallery=gallery)
-        .groupby(["notation", "from_slug"])[distance]
+        .groupby(["notation", "from_spec"])[distance]
         .median()
-        .reset_index()  # remoteness by slug by notation
+        .reset_index()  # remoteness by spec by notation
         .groupby(["notation"])[distance]
         .median()
         .reset_index()  # median remoteness by notation
@@ -164,13 +164,13 @@ def stats(gallery, distance, vis):
 
     df = (
         tokens_df.query(f"gallery == '{gallery}'")
-        .groupby(["token", "notation"])["slug"]
+        .groupby(["token", "notation"])["spec"]
         .nunique()
         .reset_index()
     )
     fig = px.ecdf(
         df,
-        x="slug",
+        x="spec",
         color="notation",
         hover_name="token",
         ecdfnorm=None,
@@ -179,7 +179,7 @@ def stats(gallery, distance, vis):
         markers=True,
         lines=True,
         # ecdfmode="complementary",
-        labels=dict(slug="token frequency"),
+        labels=dict(spec="token frequency"),
     )
     fig.update_traces(line_shape="linear", marker_size=5, line_width=1)
     fig.update_yaxes(title_text="token frequency rank")
@@ -193,29 +193,29 @@ def thumbnails(gallery, distance, vis):
     notations = list(registry[gallery].keys())
     df = (
         distances_df(gallery=gallery)
-        .groupby(["notation", "to_slug"])[distance]
+        .groupby(["notation", "to_spec"])[distance]
         .median()
         .reset_index()
     )
 
     df["rank_in_notation"] = df.groupby("notation")[distance].rank()
 
-    slugs_by_mean_farness_rank = (
-        df.groupby("to_slug")["rank_in_notation"]
+    specs_by_mean_farness_rank = (
+        df.groupby("to_spec")["rank_in_notation"]
         .mean()
         .reset_index()
         .sort_values(by="rank_in_notation")
-        .to_slug
+        .to_spec
     )
     rows = []
-    for slug in slugs_by_mean_farness_rank:
+    for spec in specs_by_mean_farness_rank:
         cells = []
         for notation in notations:
             cells.append(
                 html.Td(
                     html.Img(
-                        id=dict(type="thumbnail", notation=notation, slug=slug),
-                        src=f"/assets/results/{gallery}/{notation}/img/{slug}.png",
+                        id=dict(type="thumbnail", notation=notation, spec=spec),
+                        src=f"/assets/results/{gallery}/{notation}/img/{spec}.png",
                     )
                 )
             )
@@ -223,13 +223,13 @@ def thumbnails(gallery, distance, vis):
             html.Tr(
                 [
                     html.Th(
-                        slug,
+                        spec,
                         style=dict(textAlign="right"),
-                        id=dict(type="thumbnail", notation="", slug=slug),
+                        id=dict(type="thumbnail", notation="", spec=spec),
                     )
                 ]
                 + cells
-                + [html.Th(slug, style=dict(opacity=0))]
+                + [html.Th(spec, style=dict(opacity=0))]
             )
         )
     return [
@@ -238,7 +238,7 @@ def thumbnails(gallery, distance, vis):
                 html.Tr(
                     [html.Th()]
                     + [
-                        html.Th(n, id=dict(type="thumbnail", notation=n, slug=""))
+                        html.Th(n, id=dict(type="thumbnail", notation=n, spec=""))
                         for n in notations
                     ]
                 )
@@ -257,7 +257,7 @@ multi_vis_map = {
 multi_vis_types = list(multi_vis_map)
 
 
-def thumbnails_for_slug(gallery, distance, from_slug):
+def thumbnails_for_spec(gallery, distance, from_spec):
     registry = load_registry()
     notations = list(registry[gallery].keys())
     langs = dict(py="python", R="R", json="json", vl="json")
@@ -270,8 +270,8 @@ def thumbnails_for_slug(gallery, distance, from_slug):
                             [
                                 html.P(n, style=dict(margin=0)),
                                 html.Img(
-                                    src=f"/assets/results/{gallery}/{n}/img/{from_slug}.png",
-                                    id=dict(type="thumbnail", notation=n, slug=""),
+                                    src=f"/assets/results/{gallery}/{n}/img/{from_spec}.png",
+                                    id=dict(type="thumbnail", notation=n, spec=""),
                                     className="bigthumb",
                                 ),
                             ],
@@ -286,7 +286,7 @@ def thumbnails_for_slug(gallery, distance, from_slug):
                                     + langs[ext(gallery, n, "source")]
                                     + "\n"
                                     + Path(
-                                        f"results/{gallery}/{n}/pretty/{from_slug}.{ext(gallery, n, 'source')}"
+                                        f"results/{gallery}/{n}/pretty/{from_spec}.{ext(gallery, n, 'source')}"
                                     ).read_text()
                                     + "```",
                                     style=dict(textAlign="left"),
@@ -306,9 +306,9 @@ def thumbnails_for_slug(gallery, distance, from_slug):
     ]
 
 
-def wrap_multi_vis(gallery, distance, from_slug):
-    if from_slug:
-        return thumbnails_for_slug(gallery, distance, from_slug)
+def wrap_multi_vis(gallery, distance, from_spec):
+    if from_spec:
+        return thumbnails_for_spec(gallery, distance, from_spec)
     return [
         html.Details(
             [html.Summary("stats")] + _wrap_multi_vis(gallery, distance, "stats")

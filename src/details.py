@@ -10,28 +10,28 @@ from .distances import get_distance
 from .tokens import load_tokens
 
 
-def header_and_image(gallery, notation, slug, tokens_n, tokens_nunique):
+def header_and_image(gallery, notation, spec, tokens_n, tokens_nunique):
     imgext = ext(gallery, notation, "img")
 
     return [
-        html.H3(slug),
+        html.H3(spec),
         html.P(f"{tokens_n} tokens, {tokens_nunique} uniques"),
         html.Img(
-            src=f"/assets/results/{gallery}/{notation}/img/{slug}.{imgext}",
+            src=f"/assets/results/{gallery}/{notation}/img/{spec}.{imgext}",
             style=dict(verticalAlign="middle", maxHeight="200px", maxWidth="20vw"),
             className="zoomable",
         ),
     ]
 
 
-def diff_view(gallery, notation, from_slug, to_slug):
+def diff_view(gallery, notation, from_spec, to_spec):
     srcext = ext(gallery, notation, "source")
-    with open(f"results/{gallery}/{notation}/pretty/{from_slug}.{srcext}", "r") as f:
+    with open(f"results/{gallery}/{notation}/pretty/{from_spec}.{srcext}", "r") as f:
         from_code = f.read()
-    if from_slug == to_slug:
+    if from_spec == to_spec:
         to_code = from_code
     else:
-        with open(f"results/{gallery}/{notation}/pretty/{to_slug}.{srcext}", "r") as f:
+        with open(f"results/{gallery}/{notation}/pretty/{to_spec}.{srcext}", "r") as f:
             to_code = f.read()
     return html.Div(
         [
@@ -56,11 +56,11 @@ def build_trie(gallery, notation):
     filtered = (
         tokens_df.query(f"gallery=='{gallery}' and notation=='{notation}'")
         .groupby("token")
-        .nunique("slug")
+        .nunique("spec")
     )
-    max_count = filtered["slug"].max()
+    max_count = filtered["spec"].max()
     trie = dict()
-    for token, count in filtered["slug"].items():
+    for token, count in filtered["spec"].items():
         pointer = trie
         for c in token:
             if c not in pointer:
@@ -70,10 +70,10 @@ def build_trie(gallery, notation):
     return trie, max_count
 
 
-def single_view(gallery, notation, slug):
+def single_view(gallery, notation, spec):
     srcext = ext(gallery, notation, "source")
     trie, max_count = build_trie(gallery, notation)
-    with open(f"results/{gallery}/{notation}/pretty/{slug}.{srcext}", "r") as f:
+    with open(f"results/{gallery}/{notation}/pretty/{spec}.{srcext}", "r") as f:
         text = f.read()
 
     scale = spectra.scale([spectra.html("#2FF"), spectra.html("#FFF")]).domain(
@@ -107,37 +107,37 @@ def single_view(gallery, notation, slug):
     )
 
 
-def get_token_info(gallery, notation, slug):
+def get_token_info(gallery, notation, spec):
     tokens_df = load_tokens()
     df = tokens_df.query(
-        f"gallery=='{gallery}' and notation=='{notation}' and slug=='{slug}'"
+        f"gallery=='{gallery}' and notation=='{notation}' and spec=='{spec}'"
     )["token"]
     return df.values, len(df), df.nunique()
 
 
-def details_view(gallery, notation, distance, from_slug, to_slug):
+def details_view(gallery, notation, distance, from_spec, to_spec):
     cmp = None
     try:
         from_tokens, from_tokens_n, from_tokens_nunique = get_token_info(
-            gallery, notation, from_slug
+            gallery, notation, from_spec
         )
-        if from_slug != to_slug:
+        if from_spec != to_spec:
 
             to_tokens, to_tokens_n, to_tokens_nunique = get_token_info(
-                gallery, notation, to_slug
+                gallery, notation, to_spec
             )
             from_to_distance = get_distance(
-                gallery, notation, distance, from_slug, to_slug
+                gallery, notation, distance, from_spec, to_spec
             )
             to_from_distance = get_distance(
-                gallery, notation, distance, to_slug, from_slug
+                gallery, notation, distance, to_spec, from_spec
             )
 
             shared_tokens = list((Counter(from_tokens) & Counter(to_tokens)).elements())
             shared_uniques = set(from_tokens) & set(to_tokens)
             td1 = html.Td(
                 header_and_image(
-                    gallery, notation, from_slug, from_tokens_n, from_tokens_nunique
+                    gallery, notation, from_spec, from_tokens_n, from_tokens_nunique
                 ),
                 style=dict(verticalAlign="top"),
             )
@@ -160,7 +160,7 @@ def details_view(gallery, notation, distance, from_slug, to_slug):
             )
             td3 = html.Td(
                 header_and_image(
-                    gallery, notation, to_slug, to_tokens_n, to_tokens_nunique
+                    gallery, notation, to_spec, to_tokens_n, to_tokens_nunique
                 ),
                 style=dict(verticalAlign="top"),
             )
@@ -169,12 +169,12 @@ def details_view(gallery, notation, distance, from_slug, to_slug):
                     [html.Tr([td1, td2, td3])], style=dict(width="100%", height="300px")
                 )
             ]
-            cmp += [diff_view(gallery, notation, from_slug, to_slug)]
-        elif from_slug != "":
+            cmp += [diff_view(gallery, notation, from_spec, to_spec)]
+        elif from_spec != "":
             cmp = header_and_image(
-                gallery, notation, from_slug, from_tokens_n, from_tokens_nunique
+                gallery, notation, from_spec, from_tokens_n, from_tokens_nunique
             )
-            cmp += [single_view(gallery, notation, from_slug)]
+            cmp += [single_view(gallery, notation, from_spec)]
 
     except Exception as e:
         print(repr(e))
