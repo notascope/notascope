@@ -1,3 +1,3 @@
 #!/bin/zsh
 
-cp $1 $2 && black $2 -l 500
+cat $1 | sed '/^[a-z]*$/d' | isort - --profile=black | black - -C -q -l 500 > $2

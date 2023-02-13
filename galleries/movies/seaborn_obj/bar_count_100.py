@@ -3,6 +3,6 @@ import pandas as pd
 
 df = pd.read_csv("data/movies.csv")
 
-p = so.Plot(df, x="Major Genre", y=0, color="MPAA Rating").add(
+p = so.Plot(df, x="Major Genre", y="Production Budget", color="MPAA Rating").add(
     so.Bar(), so.Agg("sum"), so.Norm("sum", by=["x"]), so.Stack()
 )
