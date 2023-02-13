@@ -24,7 +24,12 @@ def thumbnails(gallery, notation, distance, from_spec, to_spec, vis):
     if from_spec:
         thumbs += [
             html.Img(
-                id=dict(type="thumbnail", no_notation=notation, spec=from_spec),
+                id=dict(
+                    type="thumbnail",
+                    notation=notation,
+                    spec=from_spec,
+                    vis="thumbnails",
+                ),
                 src=img_path(gallery, notation, from_spec),
                 className="selected_thumb",
             ),
@@ -34,7 +39,9 @@ def thumbnails(gallery, notation, distance, from_spec, to_spec, vis):
     for spec in sorted_specs:
         thumbs.append(
             html.Img(
-                id=dict(type="thumbnail", no_notation=notation, spec=spec),
+                id=dict(
+                    type="thumbnail", notation=notation, spec=spec, vis="thumbnails"
+                ),
                 src=img_path(gallery, notation, spec),
                 className="selected_thumb" if spec == to_spec else "regular_thumb",
             )

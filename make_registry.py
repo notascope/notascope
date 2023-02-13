@@ -32,7 +32,7 @@ for (gallery, notation), df in tokens_df.groupby(["gallery", "notation"]):
         ext=dict(img=imgext, source=srcext),
     )
     for spec in tokens_df.query(f"gallery=='{gallery}'").spec.unique():
-        spec_path = Path(f"galleries/{gallery}/{notation}/{spec}.{srcext}")
+        spec_path = Path("galleries", gallery, notation, f"{spec}.{srcext}")
         if not spec_path.exists():
             spec_path.write_text("")
 

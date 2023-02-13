@@ -139,8 +139,7 @@ def sanitize_state(hashpath_values):
     Input(dict(type="network", suffix=ALL, seq=ALL), "tapNodeData"),
     Input(dict(type="network", suffix=ALL, seq=ALL), "tapEdgeData"),
     Input(dict(type="figure", suffix=ALL, seq=ALL, notation=ALL), "clickData"),
-    Input(dict(type="thumbnail", spec=ALL, notation=ALL), "n_clicks"),
-    Input(dict(type="thumbnail", spec=ALL, no_notation=ALL), "n_clicks"),
+    Input(dict(type="thumbnail", spec=ALL, notation=ALL, vis=ALL), "n_clicks"),
     State("event_listener", "event"),
 )
 def update_hashpath(
@@ -150,7 +149,6 @@ def update_hashpath(
     edge_data,
     _fig_clicks,
     _img_clicks,
-    _img_clicks2,
     event,
 ):
     shift_down = bool((dict(shiftKey=False) if not event else event)["shiftKey"])
@@ -186,9 +184,9 @@ def update_hashpath(
             # clicking on an image
             clicked_spec = trig_id["spec"]
             if "notation" in trig_id:
-                # gallery-wide thumbnails force a notation
                 notation = trig_id["notation"]
-                vis = "thumbnails"
+            if "vis" in trig_id:
+                vis = trig_id["vis"]
 
         if clicked_spec:
             if shift_down:
@@ -214,7 +212,7 @@ def update_hashpath(
             print(repr(e))
     if notation:
         hashpath_values["notation"] = notation
-    if vis and from_spec:
+    if vis:
         hashpath_values["vis"] = vis
     hashpath = make_hashpath(hashpath_values)
     return hashpath, node_data, edge_data
@@ -295,15 +293,26 @@ def update_content(hashpath):
             style=dict(width="100px"),
             maxHeight=600,
         ),
-        "Notation": dcc.Dropdown(
-            id=dict(id="notation", type="dropdown"),
-            value=notation,
-            options=notations,
-            clearable=len(notations) > 1,
-            style=dict(width="160px"),
-            maxHeight=600,
-        ),
     }
+
+    if from_spec and not notation:
+        controls["Spec"] = dcc.Dropdown(
+            id=dict(id="from_spec", type="dropdown"),
+            value=from_spec,
+            options=gallery_specs(gallery),
+            clearable=True,
+            style=dict(width="225px"),
+            maxHeight=600,
+        )
+
+    controls["Notation"] = dcc.Dropdown(
+        id=dict(id="notation", type="dropdown"),
+        value=notation,
+        options=notations,
+        clearable=len(notations) > 1,
+        style=dict(width="160px"),
+        maxHeight=600,
+    )
 
     if notation:
         controls["View"] = dcc.Dropdown(
@@ -320,15 +329,6 @@ def update_content(hashpath):
             options=comparisons,
             clearable=True,
             style=dict(width="175px"),
-            maxHeight=600,
-        )
-    elif from_spec:
-        controls["Spec"] = dcc.Dropdown(
-            id=dict(id="from_spec", type="dropdown"),
-            value=from_spec,
-            options=gallery_specs(gallery),
-            clearable=True,
-            style=dict(width="225px"),
             maxHeight=600,
         )
 
@@ -402,12 +402,20 @@ def update_content(hashpath):
         )
 
     if notation and vis == "":
-        blocks.append(
-            html.Div(
-                thumbnails_for_notation(gallery, distance, notation),
-                style=dict(gridColumn="1/3", textAlign="center"),
+        if compare not in notations:
+            blocks.append(
+                html.Div(
+                    thumbnails_for_notation(gallery, distance, notation),
+                    style=dict(gridColumn="1/3", textAlign="center"),
+                )
             )
-        )
+        else:
+            blocks.append(
+                html.Div(
+                    thumbnails_for_notation(gallery, distance, notation, compare),
+                    style=dict(gridColumn="1/3", textAlign="center"),
+                )
+            )
     else:
         if notation:
             blocks.append(

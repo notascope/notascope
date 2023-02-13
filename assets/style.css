@@ -47,7 +47,7 @@ body {
 
 .bigthumb {
   max-height: 200px !important;
-  max-width: 300px !important;
+  max-width: 200px !important;
 }
 
 .zoomable {
@@ -96,11 +96,11 @@ summary {
 }
 
 td .editlink {
-  visibility: hidden;
+  display: none;
 }
 
 td:hover .editlink {
-  visibility: visible;
+  display: block;
   text-decoration: none;
   color: grey;
   position: absolute;

@@ -211,7 +211,12 @@ def thumbnails(gallery, distance, vis):
             cells.append(
                 html.Td(
                     html.Img(
-                        id=dict(type="thumbnail", notation=notation, spec=spec),
+                        id=dict(
+                            type="thumbnail",
+                            notation=notation,
+                            spec=spec,
+                            vis="thumbnails",
+                        ),
                         src=img_path(gallery, notation, spec),
                     )
                 )
@@ -222,7 +227,7 @@ def thumbnails(gallery, distance, vis):
                     html.Th(
                         spec,
                         style=dict(textAlign="right"),
-                        id=dict(type="thumbnail", notation="", spec=spec),
+                        id=dict(type="thumbnail", notation="", spec=spec, vis=""),
                     )
                 ]
                 + cells
@@ -235,7 +240,9 @@ def thumbnails(gallery, distance, vis):
                 html.Tr(
                     [html.Th()]
                     + [
-                        html.Th(n, id=dict(type="thumbnail", notation=n, spec=""))
+                        html.Th(
+                            n, id=dict(type="thumbnail", notation=n, spec="", vis="")
+                        )
                         for n in notations
                     ]
                 )

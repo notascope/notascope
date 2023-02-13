@@ -27,7 +27,7 @@ def diff_view(gallery, notation, from_spec, to_spec):
     if from_spec == to_spec:
         to_code = from_code
     else:
-        to_code = from_code = pretty_source(gallery, notation, to_spec)
+        to_code = pretty_source(gallery, notation, to_spec)
     return html.Div(
         [
             html.Div(
