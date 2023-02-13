@@ -6,17 +6,11 @@ from .dendro import get_dendro
 from .network import get_network
 from .distances import distances_df
 from .distributions import token_rank, token_bars, farness, get_farness_scatter
-from .utils import load_registry
-from .utils import ext
-from pathlib import Path
+from .utils import gallery_specs, pretty_source, md_lang, img_path
 
 
 def thumbnails_for_notation(gallery, distance, notation):
-    registry = load_registry()
-    specs = registry[gallery][notation]["specs"]
-    langs = dict(py="python", R="R", json="json", vl="json")
-    srcext = ext(gallery, notation, "source")
-    lang = langs[srcext]
+    specs = gallery_specs(gallery)
     return [
         html.Table(
             [
@@ -26,7 +20,7 @@ def thumbnails_for_notation(gallery, distance, notation):
                             [
                                 html.P(s, style=dict(margin=0)),
                                 html.Img(
-                                    src=f"/assets/results/{gallery}/{notation}/img/{s}.png",
+                                    src=img_path(gallery, notation, s),
                                     id=dict(
                                         type="thumbnail", notation=notation, spec=s
                                     ),
@@ -40,11 +34,9 @@ def thumbnails_for_notation(gallery, distance, notation):
                         html.Td(
                             dcc.Markdown(
                                 "```"
-                                + lang
+                                + md_lang(gallery, notation)
                                 + "\n"
-                                + Path(
-                                    f"results/{gallery}/{notation}/pretty/{s}.{srcext}"
-                                ).read_text()
+                                + pretty_source(gallery, notation, s)
                                 + "```",
                                 style=dict(textAlign="left"),
                             ),
@@ -78,7 +70,7 @@ def thumbnails(gallery, notation, distance, from_spec, to_spec, vis):
         thumbs += [
             html.Img(
                 id=dict(type="thumbnail", no_notation=notation, spec=from_spec),
-                src=f"/assets/results/{gallery}/{notation}/img/{from_spec}.png",
+                src=img_path(gallery, notation, from_spec),
                 className="selected_thumb",
             ),
             html.Br(),
@@ -88,7 +80,7 @@ def thumbnails(gallery, notation, distance, from_spec, to_spec, vis):
         thumbs.append(
             html.Img(
                 id=dict(type="thumbnail", no_notation=notation, spec=spec),
-                src=f"/assets/results/{gallery}/{notation}/img/{spec}.png",
+                src=img_path(gallery, notation, spec),
                 className="selected_thumb" if spec == to_spec else "regular_thumb",
             )
         )

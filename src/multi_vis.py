@@ -1,18 +1,15 @@
 from dash import dcc, html
 from .tokens import load_tokens
-from .utils import load_registry
 from .distances import distances_df
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 from functools import cache
-from pathlib import Path
-from .utils import ext
+from .utils import pretty_source, gallery_notations, md_lang, img_path
 
 
 def stats(gallery, distance, vis):
-    registry = load_registry()
-    notations = list(registry[gallery].keys())
+    notations = gallery_notations(gallery)
     result = []
 
     # Farness
@@ -189,8 +186,7 @@ def stats(gallery, distance, vis):
 
 
 def thumbnails(gallery, distance, vis):
-    registry = load_registry()
-    notations = list(registry[gallery].keys())
+    notations = gallery_notations(gallery)
     df = (
         distances_df(gallery=gallery)
         .groupby(["notation", "to_spec"])[distance]
@@ -215,7 +211,7 @@ def thumbnails(gallery, distance, vis):
                 html.Td(
                     html.Img(
                         id=dict(type="thumbnail", notation=notation, spec=spec),
-                        src=f"/assets/results/{gallery}/{notation}/img/{spec}.png",
+                        src=img_path(gallery, notation, spec),
                     )
                 )
             )
@@ -258,9 +254,6 @@ multi_vis_types = list(multi_vis_map)
 
 
 def thumbnails_for_spec(gallery, distance, from_spec):
-    registry = load_registry()
-    notations = list(registry[gallery].keys())
-    langs = dict(py="python", R="R", json="json", vl="json")
     return [
         html.Table(
             [
@@ -270,7 +263,7 @@ def thumbnails_for_spec(gallery, distance, from_spec):
                             [
                                 html.P(n, style=dict(margin=0)),
                                 html.Img(
-                                    src=f"/assets/results/{gallery}/{n}/img/{from_spec}.png",
+                                    src=img_path(gallery, n, from_spec),
                                     id=dict(type="thumbnail", notation=n, spec=""),
                                     className="bigthumb",
                                 ),
@@ -283,11 +276,9 @@ def thumbnails_for_spec(gallery, distance, from_spec):
                             [
                                 dcc.Markdown(
                                     "```"
-                                    + langs[ext(gallery, n, "source")]
+                                    + md_lang(gallery, n)
                                     + "\n"
-                                    + Path(
-                                        f"results/{gallery}/{n}/pretty/{from_spec}.{ext(gallery, n, 'source')}"
-                                    ).read_text()
+                                    + pretty_source(gallery, n, from_spec)
                                     + "```",
                                     style=dict(textAlign="left"),
                                 ),
@@ -298,7 +289,7 @@ def thumbnails_for_spec(gallery, distance, from_spec):
                         ),
                     ]
                 )
-                for n in notations
+                for n in gallery_notations(gallery)
             ],
             style=dict(margin="0 auto"),
             className="thumbnails",
@@ -319,9 +310,7 @@ def wrap_multi_vis(gallery, distance, from_spec):
 @cache
 def _wrap_multi_vis(gallery, distance, vis):
     vis_list = []
-
-    registry = load_registry()
-    first_notation = list(registry[gallery].keys())[0]
+    first_notation = gallery_notations(gallery)[0]
     for i, vis_out in enumerate(multi_vis_map[vis](gallery, distance, vis)):
         if isinstance(vis_out, go.Figure):
             vis_list.append(

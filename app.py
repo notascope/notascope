@@ -10,7 +10,7 @@ from dash import Dash, html, dcc, Input, Output, State, callback_context, ALL
 from dash_extensions import EventListener
 
 # local
-from src.utils import load_registry
+from src.utils import gallery_specs, gallery_notations, galleries
 from src.distances import distance_types
 from src.single_vis import single_vis_types, wrap_single_vis, thumbnails_for_notation
 from src.pair_vis import distance_pair_vis_types, notation_pair_vis_types, wrap_pair_vis
@@ -18,7 +18,6 @@ from src.multi_vis import wrap_multi_vis
 from src.details import details_view
 
 
-registry = load_registry()
 print(
     chr(ord("\U0001f400") + random.randrange(78)),
     datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -84,16 +83,14 @@ def make_hashpath(values):
 def sanitize_state(hashpath_values):
     state = defaultdict(str, hashpath_values)
 
-    if state["gallery"] not in registry:
+    if state["gallery"] not in galleries():
         state["gallery"] = "movies"
 
     if state["distance"] not in distance_types:
         state["distance"] = distance_types[0]
 
-    notations = list(registry[state["gallery"]].keys())
-    specs = set()
-    for n in notations:
-        specs.update(registry[state["gallery"]][n]["specs"])
+    notations = gallery_notations(state["gallery"])
+    specs = gallery_specs(state["gallery"])
 
     if state["notations"] not in notations and len(notations) == 1:
         state["notation"] = notations[0]
@@ -262,7 +259,7 @@ def update_content(hashpath):
     pair_vis = state["pair_vis"]
 
     notation2 = distance2 = vis2 = None
-    notations = [s for s in registry[gallery]]
+    notations = gallery_notations(gallery)
     if compare:
         notation2 = notation
         distance2 = distance
@@ -284,7 +281,7 @@ def update_content(hashpath):
         "Gallery": dcc.Dropdown(
             id=dict(id="gallery", type="dropdown"),
             value=gallery,
-            options=[s for s in registry],
+            options=galleries(),
             clearable=False,
             style=dict(width="100px"),
             maxHeight=600,
@@ -325,13 +322,10 @@ def update_content(hashpath):
             maxHeight=600,
         )
     elif from_spec:
-        specs = set()
-        for n in notations:
-            specs.update(registry[state["gallery"]][n]["specs"])
         controls["Spec"] = dcc.Dropdown(
             id=dict(id="from_spec", type="dropdown"),
             value=from_spec,
-            options=sorted(specs),
+            options=gallery_specs(gallery),
             clearable=True,
             style=dict(width="225px"),
             maxHeight=600,

@@ -2,7 +2,7 @@ import json
 from functools import cache
 from scipy.sparse.csgraph import dijkstra
 import numpy as np
-from .utils import ext
+from .utils import img_path
 from .distances import dmat_and_order, get_distance, get_embedding, get_mst
 
 
@@ -127,14 +127,13 @@ def build_network(gallery, notation, distance, method):
         scale = 2000
     else:
         scale = 1000
-    imgext = ext(gallery, notation, "img")
     for i, row in emb_df.iterrows():
         network_elements.append(
             {
                 "data": {
                     "id": i,
                     "label": i,
-                    "url": f"/assets/results/{gallery}/{notation}/img/{i}.{imgext}",
+                    "url": img_path(gallery, notation, i),
                 },
                 "position": {c: row[c] * scale / emb_span for c in ["x", "y"]},
                 "classes": "",

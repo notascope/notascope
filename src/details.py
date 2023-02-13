@@ -5,19 +5,17 @@ import spectra
 import math
 from functools import cache
 from collections import Counter
-from .utils import ext
+from .utils import img_path, pretty_source
 from .distances import get_distance
 from .tokens import load_tokens
 
 
 def header_and_image(gallery, notation, spec, tokens_n, tokens_nunique):
-    imgext = ext(gallery, notation, "img")
-
     return [
         html.H3(spec),
         html.P(f"{tokens_n} tokens, {tokens_nunique} uniques"),
         html.Img(
-            src=f"/assets/results/{gallery}/{notation}/img/{spec}.{imgext}",
+            src=img_path(gallery, notation, spec),
             style=dict(verticalAlign="middle", maxHeight="200px", maxWidth="20vw"),
             className="zoomable",
         ),
@@ -25,14 +23,11 @@ def header_and_image(gallery, notation, spec, tokens_n, tokens_nunique):
 
 
 def diff_view(gallery, notation, from_spec, to_spec):
-    srcext = ext(gallery, notation, "source")
-    with open(f"results/{gallery}/{notation}/pretty/{from_spec}.{srcext}", "r") as f:
-        from_code = f.read()
+    from_code = pretty_source(gallery, notation, from_spec)
     if from_spec == to_spec:
         to_code = from_code
     else:
-        with open(f"results/{gallery}/{notation}/pretty/{to_spec}.{srcext}", "r") as f:
-            to_code = f.read()
+        to_code = from_code = pretty_source(gallery, notation, to_spec)
     return html.Div(
         [
             html.Div(
@@ -71,10 +66,8 @@ def build_trie(gallery, notation):
 
 
 def single_view(gallery, notation, spec):
-    srcext = ext(gallery, notation, "source")
     trie, max_count = build_trie(gallery, notation)
-    with open(f"results/{gallery}/{notation}/pretty/{spec}.{srcext}", "r") as f:
-        text = f.read()
+    text = pretty_source(gallery, notation, spec)
 
     scale = spectra.scale([spectra.html("#2FF"), spectra.html("#FFF")]).domain(
         [math.log(1), math.log(max_count - 1)]
