@@ -12,7 +12,8 @@ from dash_extensions import EventListener
 # local
 from src.utils import gallery_specs, gallery_notations, galleries
 from src.distances import distance_types
-from src.single_vis import single_vis_types, wrap_single_vis, thumbnails_for_notation
+from src.single_vis import single_vis_types, wrap_single_vis
+from src.source_table import thumbnails_for_notation
 from src.pair_vis import distance_pair_vis_types, notation_pair_vis_types, wrap_pair_vis
 from src.multi_vis import wrap_multi_vis
 from src.details import details_view
@@ -477,4 +478,4 @@ app.clientside_callback(
 
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server()

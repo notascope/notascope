@@ -5,7 +5,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 from functools import cache
-from .utils import pretty_source, gallery_notations, md_lang, img_path
+from .utils import gallery_notations, img_path
+from .source_table import thumbnails_for_spec
 
 
 def stats(gallery, distance, vis):
@@ -251,50 +252,6 @@ multi_vis_map = {
     "stats": stats,
 }
 multi_vis_types = list(multi_vis_map)
-
-
-def thumbnails_for_spec(gallery, distance, from_spec):
-    return [
-        html.Table(
-            [
-                html.Tr(
-                    [
-                        html.Td(
-                            [
-                                html.P(n, style=dict(margin=0)),
-                                html.Img(
-                                    src=img_path(gallery, n, from_spec),
-                                    id=dict(type="thumbnail", notation=n, spec=""),
-                                    className="bigthumb",
-                                ),
-                            ],
-                            style=dict(
-                                verticalAlign="top", borderBottom="1px solid lightgrey"
-                            ),
-                        ),
-                        html.Td(
-                            [
-                                dcc.Markdown(
-                                    "```"
-                                    + md_lang(gallery, n)
-                                    + "\n"
-                                    + pretty_source(gallery, n, from_spec)
-                                    + "```",
-                                    style=dict(textAlign="left"),
-                                ),
-                            ],
-                            style=dict(
-                                verticalAlign="top", borderBottom="1px solid lightgrey"
-                            ),
-                        ),
-                    ]
-                )
-                for n in gallery_notations(gallery)
-            ],
-            style=dict(margin="0 auto"),
-            className="thumbnails",
-        )
-    ]
 
 
 def wrap_multi_vis(gallery, distance, from_spec):

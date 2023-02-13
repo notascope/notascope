@@ -1,6 +1,12 @@
 from functools import cache
 import json
 from pathlib import Path
+import os
+
+
+@cache
+def debug_mode():
+    return os.environ.get("DASH_DEBUG") == "true"
 
 
 @cache
@@ -29,8 +35,18 @@ def gallery_specs(gallery):
 
 @cache
 def pretty_source(gallery, notation, spec):
+    return spec_path("results", gallery, notation, "pretty", spec).read_text()
+
+
+@cache
+def vscode_link(gallery, notation, spec):
+    return f"vscode://file/{str(spec_path('galleries', gallery, notation, '.', spec).resolve())}"
+
+
+@cache
+def spec_path(prefix, gallery, notation, subdir, spec):
     srcext = ext(gallery, notation, "source")
-    return Path(f"results/{gallery}/{notation}/pretty/{spec}.{srcext}").read_text()
+    return Path(prefix, gallery, notation, subdir, f"{spec}.{srcext}")
 
 
 @cache

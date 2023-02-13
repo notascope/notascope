@@ -6,52 +6,7 @@ from .dendro import get_dendro
 from .network import get_network
 from .distances import distances_df
 from .distributions import token_rank, token_bars, farness, get_farness_scatter
-from .utils import gallery_specs, pretty_source, md_lang, img_path
-
-
-def thumbnails_for_notation(gallery, distance, notation):
-    specs = gallery_specs(gallery)
-    return [
-        html.Table(
-            [
-                html.Tr(
-                    [
-                        html.Td(
-                            [
-                                html.P(s, style=dict(margin=0)),
-                                html.Img(
-                                    src=img_path(gallery, notation, s),
-                                    id=dict(
-                                        type="thumbnail", notation=notation, spec=s
-                                    ),
-                                    className="bigthumb",
-                                ),
-                            ],
-                            style=dict(
-                                verticalAlign="top", borderBottom="1px solid lightgrey"
-                            ),
-                        ),
-                        html.Td(
-                            dcc.Markdown(
-                                "```"
-                                + md_lang(gallery, notation)
-                                + "\n"
-                                + pretty_source(gallery, notation, s)
-                                + "```",
-                                style=dict(textAlign="left"),
-                            ),
-                            style=dict(
-                                verticalAlign="top", borderBottom="1px solid lightgrey"
-                            ),
-                        ),
-                    ]
-                )
-                for s in specs
-            ],
-            style=dict(margin="0 auto"),
-            className="thumbnails",
-        )
-    ]
+from .utils import img_path
 
 
 def thumbnails(gallery, notation, distance, from_spec, to_spec, vis):
