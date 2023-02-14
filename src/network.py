@@ -1,6 +1,5 @@
 import json
 from functools import cache
-from scipy.sparse.csgraph import dijkstra
 import numpy as np
 from .utils import img_path
 from .distances import dmat_and_order, get_distance, get_embedding, get_mst
@@ -64,6 +63,8 @@ def get_network(gallery, notation, distance, from_spec, to_spec, method):
 
 
 def spanner_adj(distances, t):
+    from scipy.sparse.csgraph import dijkstra
+
     ind = np.unravel_index(np.argsort(distances, axis=None), distances.shape)
     adj = np.zeros(distances.shape)
     for i, j in zip(ind[0], ind[1]):

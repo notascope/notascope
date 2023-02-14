@@ -41,7 +41,16 @@ def code_cell(gallery, notation, spec):
 def thumbnail_cell(gallery, notation, spec, mode):
     return html.Td(
         [
-            html.P(notation if mode == "n" else spec, style=dict(margin=0)),
+            html.P(
+                notation if mode == "n" else spec,
+                id=dict(
+                    type="thumbnail",
+                    notation=notation if mode == "n" else "clear",
+                    spec="clear" if mode == "n" else spec,
+                    vis="",
+                ),
+                style=dict(margin=0, cursor="pointer"),
+            ),
             html.Img(
                 src=img_path(gallery, notation, spec),
                 id=dict(

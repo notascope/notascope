@@ -5,8 +5,6 @@ from functools import cache
 
 import numpy as np
 from .distances import dmat_and_order
-from scipy.cluster import hierarchy
-from scipy.spatial.distance import squareform
 
 
 def get_dendro(gallery, notation, distance, from_spec, to_spec, vis):
@@ -80,6 +78,9 @@ def medioid(samples, dmat_sym):
 @cache
 def build_dendro(gallery, notation, distance):
     dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
+    from scipy.cluster import hierarchy
+    from scipy.spatial.distance import squareform
+
     Z = hierarchy.linkage(squareform(dmat_sym), "average", optimal_ordering=True)
     P = hierarchy.dendrogram(Z, labels=order, no_plot=True)
     nodes, root = make_nodes(P, order)

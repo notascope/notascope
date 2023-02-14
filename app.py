@@ -155,6 +155,7 @@ def update_hashpath(
     from_spec, to_spec = selection
     notation = ""
     vis = ""
+    no_reset = False
     if callback_context.triggered:
         *trig_id, trig_prop = callback_context.triggered[0]["prop_id"].split(".")
         trig_id = json.loads(".".join(trig_id))
@@ -182,6 +183,7 @@ def update_hashpath(
 
         if trig_prop == "n_clicks":
             # clicking on an image
+            no_reset = True
             clicked_spec = trig_id["spec"]
             if "notation" in trig_id:
                 notation = trig_id["notation"]
@@ -197,7 +199,7 @@ def update_hashpath(
                     # base case: set to
                     to_spec = clicked_spec
             else:
-                if to_spec == clicked_spec == from_spec:
+                if not no_reset and to_spec == clicked_spec == from_spec:
                     # reset
                     from_spec = to_spec = ""
                 else:

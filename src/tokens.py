@@ -4,8 +4,4 @@ import pandas as pd
 
 @cache
 def load_tokens():
-    return pd.read_csv(
-        "results/tokens.tsv",
-        names=["gallery", "notation", "spec", "token"],
-        delimiter="\t",
-    )
+    return pd.read_parquet("results/tokens.pqt")

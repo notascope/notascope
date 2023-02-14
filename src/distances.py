@@ -1,11 +1,6 @@
-from sklearn.manifold import TSNE, MDS
-from umap import UMAP
 import pandas as pd
 import numpy as np
-from scipy.sparse.csgraph import minimum_spanning_tree
-from scipy.sparse import coo_matrix
 from functools import cache
-import igraph
 
 
 distance_types = ["voi", "cd", "ncd", "difflib"]
@@ -18,27 +13,11 @@ def distances_df(gallery=None, notation=None):
             return distances_df().query(f"gallery == '{gallery}'")
         else:
             return distances_df(gallery=gallery).query(f"notation=='{notation}'")
-    difflib_df = pd.read_csv(
-        "results/difflib_costs.csv",
-        names=["gallery", "notation", "from_spec", "to_spec", "difflib"],
-    )
-    ncd_df = pd.read_csv(
-        "results/ncd_costs.csv",
-        names=[
-            "gallery",
-            "notation",
-            "from_spec",
-            "to_spec",
-            "from_length",
-            "a",
-            "b",
-            "ab",
-        ],
-    )
-    ncd_df["voi"] = 2 * ncd_df["ab"] - ncd_df["a"] - ncd_df["b"]
-    ncd_df["cd"] = ncd_df["ab"] - ncd_df[["a", "b"]].min(axis=1)
-    ncd_df["ncd"] = (1000 * ncd_df["cd"] / ncd_df[["a", "b"]].max(axis=1)).astype(int)
-    return pd.merge(difflib_df, ncd_df, how="outer")
+    df = pd.read_parquet("results/distances.pqt")
+    df["voi"] = 2 * df["ab"] - df["a"] - df["b"]
+    df["cd"] = df["ab"] - df[["a", "b"]].min(axis=1)
+    df["ncd"] = (1000 * df["cd"] / df[["a", "b"]].max(axis=1)).astype(int)
+    return df
 
 
 @cache
@@ -80,6 +59,9 @@ def get_distance(gallery, notation, distance, from_spec, to_spec):
 @cache
 def get_mst(gallery, notation, distance):
     dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
+    from scipy.sparse.csgraph import minimum_spanning_tree
+    from scipy.sparse import coo_matrix
+
     return coo_matrix(minimum_spanning_tree(dmat_sym))
 
 
@@ -90,6 +72,8 @@ def get_embedding(gallery, notation, distance, method, dim=2):
     if method in ["tsne", "umap"] and len(dmat) < 30:
         method = "mds"
     if method == "tsne":
+        from sklearn.manifold import TSNE
+
         embedding = TSNE(
             n_components=dim,
             metric="precomputed",
@@ -97,12 +81,18 @@ def get_embedding(gallery, notation, distance, method, dim=2):
             init="random",
         ).fit_transform(dmat_sym)
     elif method == "umap":
+        from umap import UMAP
+
         embedding = UMAP(n_components=dim).fit_transform(dmat_sym)
     elif method == "mds":
+        from sklearn.manifold import MDS
+
         embedding = MDS(
             n_components=dim, dissimilarity="precomputed", normalized_stress="auto"
         ).fit_transform(dmat_sym)
     elif method == "kk":
+        import igraph
+
         g = igraph.Graph.Weighted_Adjacency(
             get_mst(gallery, notation, distance).toarray().tolist()
         )
