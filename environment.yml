@@ -4,6 +4,7 @@ channels:
   - defaults
 dependencies:
   - pandas=1.5.2
+  - pyarrow=11.0.0
   - jupyterlab=3.5.2
   - python=3.10
   - scikit-learn=1.2.0
@@ -28,7 +29,8 @@ dependencies:
   - jq=1.6
   - bokeh=3.0.3
   - selenium=4.7.2
+  - isort=5.12
   - geckodriver
   - firefox
   - pip:
-      - dash_dangerously_set_inner_html
+      - dash_dangerously_set_inner_html==0.0.2

@@ -9,6 +9,7 @@ from .utils import gallery_notations, img_path
 from .source_table import thumbnails_for_spec
 
 
+@cache
 def stats(gallery, distance, vis):
     notations = gallery_notations(gallery)
     result = []
@@ -186,6 +187,7 @@ def stats(gallery, distance, vis):
     return result
 
 
+@cache
 def thumbnails(gallery, distance, vis):
     notations = gallery_notations(gallery)
     df = (
@@ -261,6 +263,7 @@ multi_vis_map = {
 multi_vis_types = list(multi_vis_map)
 
 
+@cache
 def wrap_multi_vis(gallery, distance, from_spec):
     if from_spec:
         return thumbnails_for_spec(gallery, distance, from_spec)

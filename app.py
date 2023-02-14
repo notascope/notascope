@@ -25,7 +25,7 @@ print(
 )
 
 app = Dash(__name__, title="NotaScope", suppress_callback_exceptions=True)
-
+server = app.server
 
 app.layout = html.Div(
     [
@@ -284,6 +284,7 @@ def update_content(hashpath):
             value=gallery,
             options=galleries(),
             clearable=False,
+            searchable=False,
             style=dict(width="100px"),
             maxHeight=600,
         ),
@@ -292,6 +293,7 @@ def update_content(hashpath):
             value=distance,
             options=distance_types,
             clearable=False,
+            searchable=False,
             style=dict(width="100px"),
             maxHeight=600,
         ),
@@ -312,6 +314,7 @@ def update_content(hashpath):
         value=notation,
         options=notations,
         clearable=len(notations) > 1,
+        searchable=False,
         style=dict(width="160px"),
         maxHeight=600,
     )
@@ -323,6 +326,7 @@ def update_content(hashpath):
             options=single_vis_types,
             clearable=True,
             style=dict(width="150px"),
+            searchable=False,
             maxHeight=600,
         )
         controls["Comparison"] = dcc.Dropdown(
@@ -331,6 +335,7 @@ def update_content(hashpath):
             options=comparisons,
             clearable=True,
             style=dict(width="175px"),
+            searchable=False,
             maxHeight=600,
         )
 
@@ -342,6 +347,7 @@ def update_content(hashpath):
             if compare in notations
             else distance_pair_vis_types,
             clearable=True,
+            searchable=False,
             style=dict(width="175px"),
             maxHeight=600,
         )
@@ -488,4 +494,4 @@ app.clientside_callback(
 
 
 if __name__ == "__main__":
-    app.run_server()
+    app.run_server(host="0.0.0.0", port=8080)

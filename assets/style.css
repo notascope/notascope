@@ -13,7 +13,9 @@ body {
   position: absolute;
   top: 15px;
   left: 15px;
-  font-family: Consolas;
+  font-family: ui-monospace, Consolas, Menlo, Monaco, "Cascadia Mono",
+    "Segoe UI Mono", "Roboto Mono", "Oxygen Mono", "Ubuntu Monospace",
+    "Source Code Pro", "Fira Mono", "Droid Sans Mono", "Courier New", monospace;
   font-size: 30px;
 }
 

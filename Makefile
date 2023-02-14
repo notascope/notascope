@@ -66,3 +66,9 @@ app.py: results/registry.json
 
 clean:
 	rm -rf results
+
+.PHONY: build
+build:
+	rm -rf build
+	mkdir build
+	cp -r assets results src app.py notascope_components build_files/* build
