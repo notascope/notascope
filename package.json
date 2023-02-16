@@ -2,8 +2,6 @@
   "dependencies": {
     "canvas": "^2.11.0",
     "cli-d3": "yinshanyang/cli-d3",
-    "cytoscape": "^3.22.0",
-    "cytoscape-cola": "^2.5.1",
     "prettier": "^2.7.1",
     "vega": "^5.22.1",
     "vega-lite": "5.6"
