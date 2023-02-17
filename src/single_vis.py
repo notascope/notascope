@@ -5,7 +5,7 @@ from .scatter import get_scatter
 from .dendro import get_dendro
 from .network import get_network
 from .distances import distances_df
-from .distributions import token_rank, token_bars, farness, get_farness_scatter
+from .distributions import token_rank, token_bars, remoteness, get_remoteness_scatter
 from .utils import img_path
 
 
@@ -61,8 +61,8 @@ vis_map = {
     "dendro": get_dendro,
     "token_rank": token_rank,
     "token_bars": token_bars,
-    "farness": farness,
-    "farness_scatter": get_farness_scatter,
+    "remoteness": remoteness,
+    "remoteness_scatter": get_remoteness_scatter,
 }
 single_vis_types = list(vis_map.keys())
 

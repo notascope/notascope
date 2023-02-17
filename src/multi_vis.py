@@ -14,7 +14,6 @@ def stats(gallery, distance, vis):
     notations = gallery_notations(gallery)
     result = []
 
-    # Farness
     df = (
         distances_df(gallery=gallery)
         .groupby(["notation", "from_spec"])[distance]
@@ -199,7 +198,7 @@ def thumbnails(gallery, distance, vis):
 
     df["rank_in_notation"] = df.groupby("notation")[distance].rank()
 
-    specs_by_mean_farness_rank = (
+    specs_by_mean_remoteness_rank = (
         df.groupby("to_spec")["rank_in_notation"]
         .mean()
         .reset_index()
@@ -207,7 +206,7 @@ def thumbnails(gallery, distance, vis):
         .to_spec
     )
     rows = []
-    for spec in specs_by_mean_farness_rank:
+    for spec in specs_by_mean_remoteness_rank:
         cells = []
         for notation in notations:
             cells.append(

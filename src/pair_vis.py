@@ -74,11 +74,11 @@ def diamond(gallery, notation, distance, notation2, distance2, from_spec, to_spe
                 x=[0, -5, -10, 5, 0, -5, 10, 5, 0],
                 y=[0, 5, 10, 5, 10, 15, 10, 15, 20],
                 aaxis=dict(
-                    title=f"{notation} {distance} farness",
+                    title=f"{notation} {distance} remoteness",
                     gridcolor="lightgrey",
                 ),
                 baxis=dict(
-                    title=f"{notation2} {distance2} farness",
+                    title=f"{notation2} {distance2} remoteness",
                     gridcolor="lightgrey",
                 ),
             ),
@@ -109,9 +109,10 @@ def diamond(gallery, notation, distance, notation2, distance2, from_spec, to_spe
     return fig
 
 
-def farness_scatter(
+def remoteness_scatter(
     gallery, notation, distance, notation2, distance2, from_spec, to_spec, vis
 ):
+    import statsmodels.api as sm
 
     merged = merged_distances(gallery, notation, distance, notation2, distance2)
 
@@ -122,6 +123,10 @@ def farness_scatter(
     merged["selected"] = (merged["from_spec"] == from_spec) | (
         merged["from_spec"] == to_spec
     )
+    mn = 0  # min(merged[x].min(), merged[y].min())
+    mx = max(merged[x].max(), merged[y].max())
+    s = 0.1 * (mx - mn)
+    mx += s
 
     fig = px.scatter(
         merged,
@@ -132,12 +137,22 @@ def farness_scatter(
         category_orders={"selected": [False, True]},
         width=500,
         height=500,
-        labels={x: x + " farness", y: y + " farness"},
+        labels={x: x + " remoteness", y: y + " remoteness"},
     )
     fig.update_traces(hoverinfo="none", hovertemplate="<extra></extra>")
-    fig.update_layout(
-        showlegend=False, xaxis_rangemode="tozero", yaxis_rangemode="tozero"
-    )
+    fig.update_layout(showlegend=False)
+    if distance == distance2:
+        fig.add_shape(type="line", x0=mn, x1=mx, y0=mn, y1=mx, line_color="white")
+        fig.update_xaxes(rangemode="tozero", range=[mn, mx])
+        fig.update_yaxes(rangemode="tozero", range=[mn, mx])
+    else:
+        fig.add_traces(
+            px.line(sm.PCA(merged[[x, y]]).project(ncomp=1), x=x, y=y)
+            .update_traces(
+                line_color="grey", hoverinfo="skip", hovertemplate="<extra></extra>"
+            )
+            .data,
+        )
     if len(fig.data) > 1:
         fig.data[1].marker.size = 10
     return fig
@@ -175,7 +190,7 @@ def slope(gallery, notation, distance, notation2, distance2, from_spec, to_spec,
 
 
 distance_pair_vis_map = {
-    "farness_scatter": farness_scatter,
+    "remoteness_scatter": remoteness_scatter,
     "slope": slope,
     "rank_slope": slope,
 }
@@ -186,7 +201,7 @@ notation_pair_vis_map = {
     "slope": slope,
     "rank_slope": slope,
     "tokens": tokens,
-    "farness_scatter": farness_scatter,
+    "remoteness_scatter": remoteness_scatter,
 }
 notation_pair_vis_types = list(notation_pair_vis_map.keys())
 

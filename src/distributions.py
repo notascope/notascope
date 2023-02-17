@@ -1,6 +1,6 @@
 import plotly.express as px
 from .tokens import load_tokens
-from .distances import dmat_and_order
+from .distances import dmat_and_order, distances_df
 import pandas as pd
 import numpy as np
 
@@ -53,40 +53,47 @@ def token_rank(gallery, notation, distance, from_spec, to_spec, vis):
     return fig
 
 
-def farness(gallery, notation, distance, from_spec, to_spec, vis):
-
-    dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
-
-    df = pd.DataFrame(dict(spec=order, farness=np.median(dmat_sym, axis=1)))
-
-    df["bin_center"] = (
-        pd.cut(df["farness"], bins=50).apply(lambda x: float(x.mid)).astype(float)
+def remoteness(gallery, notation, distance, from_spec, to_spec, vis):
+    df = (
+        distances_df(gallery=gallery, notation=notation)
+        .groupby(["from_spec"])[distance]
+        .median()
+        .reset_index()
     )
-    df["y"] = 1
-    fig = px.bar(
-        df,
-        x="bin_center",
-        y="y",
-        color="bin_center",
-        hover_data=["spec"],
-        labels=dict(bin_center="farness"),
-        range_color=[df["bin_center"].min(), df["bin_center"].median() * 2],
-        height=600,
+
+    fig = (
+        px.violin(
+            df,
+            x=distance,
+            height=600,
+            points="all",
+            hover_data=["from_spec"],
+            labels={distance: f"Specification Remoteness ({distance})"},
+            title="Specification Remoteness Distribution",
+        )
+        .update_traces(
+            hoveron="points",
+            pointpos=0,
+            scalemode="count",
+            hoverinfo="none",
+            hovertemplate="",
+            spanmode="hard",
+            line_width=0,
+            meanline_visible=True,
+            meanline_width=2,
+        )
+        .update_layout(violingroupgap=0, violingap=0.05)
     )
-    for s in [from_spec, to_spec]:
-        if s:
-            fig.add_vline(df["farness"][order.index(s)], line_color="red")
-    fig.update_traces(hoverinfo="none", hovertemplate="<extra></extra>")
-    fig.update_xaxes(title_text="farness (binned)")
-    fig.update_yaxes(title_text="count")
+    fig.update_yaxes(title="")
+    fig.update_xaxes(rangemode="tozero")
     return fig
 
 
-def get_farness_scatter(gallery, notation, distance, from_spec, to_spec, method):
+def get_remoteness_scatter(gallery, notation, distance, from_spec, to_spec, method):
 
     dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
     x = y = color = np.median(dmat_sym, axis=1)
-    xlab = ylab = "farness"
+    xlab = ylab = "remoteness"
     range = None
     if from_spec:
         y = dmat_sym[order.index(from_spec)]
