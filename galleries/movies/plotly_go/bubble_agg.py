@@ -2,7 +2,9 @@ import pandas as pd
 import plotly.graph_objects as go
 
 df = pd.read_csv("data/movies.csv")
-df2 = df.groupby("MPAA Rating").mean()
+df2 = df.groupby("MPAA Rating")[
+    ["Production Budget", "Worldwide Gross", "IMDB Rating"]
+].mean()
 fig = go.Figure()
 for label, group in df2.iterrows():
     fig.add_trace(

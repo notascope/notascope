@@ -3,7 +3,11 @@ import pandas as pd
 
 df = pd.read_csv("data/movies.csv")
 df["Release Date"] = pd.to_datetime(df["Release Date"]).dt.year
-df2 = df.groupby("Release Date").sum().reset_index()
+df2 = (
+    df.groupby("Release Date")[["Worldwide Gross", "Production Budget"]]
+    .sum()
+    .reset_index()
+)
 
 fig, ax = plt.subplots()
 
