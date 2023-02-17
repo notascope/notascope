@@ -32,5 +32,6 @@ dependencies:
   - isort=5.12
   - geckodriver
   - firefox
+  - nodejs=18.12.1
   - pip:
       - dash_dangerously_set_inner_html==0.0.2
