@@ -9,7 +9,7 @@ from difflib import SequenceMatcher
 import pandas as pd
 
 
-basedir = "/Users/nicolas/ets/tree-sitter-parser"
+basedir = "./tree_sitter_languages"
 
 Language.build_library(
     basedir + "/build/languages.so",
