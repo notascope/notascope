@@ -33,5 +33,6 @@ dependencies:
   - geckodriver
   - firefox
   - nodejs=18.12.1
+  - textdistance=4.5.0
   - pip:
       - dash_dangerously_set_inner_html==0.0.2

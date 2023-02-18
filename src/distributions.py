@@ -1,7 +1,6 @@
 import plotly.express as px
 from .tokens import load_tokens
 from .distances import dmat_and_order, distances_df
-import pandas as pd
 import numpy as np
 
 
@@ -115,4 +114,6 @@ def get_remoteness_scatter(gallery, notation, distance, from_spec, to_spec, meth
     )
     fig.update_coloraxes(showscale=False)
     fig.update_traces(hoverinfo="none", hovertemplate="<extra></extra>")
+    fig.update_yaxes(rangemode="tozero")
+    fig.update_xaxes(rangemode="tozero")
     return fig

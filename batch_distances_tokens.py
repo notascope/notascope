@@ -7,6 +7,7 @@ from lz4.frame import compress
 from tree_sitter import Language, Parser
 from difflib import SequenceMatcher
 import pandas as pd
+import textdistance
 
 
 basedir = "./tree_sitter_languages"
@@ -99,6 +100,7 @@ def distances(args):
         int(b),
         int(ab),
         int(difflib_cost),
+        int(textdistance.levenshtein.distance(tokens[from_spec], tokens[to_spec])),
     ]
 
 
@@ -115,6 +117,7 @@ distance_df = pd.DataFrame.from_records(
         "b",
         "ab",
         "difflib",
+        "levenshtein",
     ],
 )
 distance_df.to_parquet(f"results/{gallery}/{notation}/distances.pqt")

@@ -3,7 +3,13 @@ import numpy as np
 from functools import cache
 
 
-distance_types = ["difflib", "voi", "cd", "ncd"]
+distance_types = [
+    "levenshtein",
+    "difflib",
+    "voi",
+    "cd",
+    "ncd",
+]
 
 
 @cache
