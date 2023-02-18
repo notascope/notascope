@@ -6,8 +6,7 @@
   "mark": "bar",
   "encoding": {
     "color": {
-      "field": "MPAA Rating",
-      "type": "nominal"
+      "field": "MPAA Rating"
     },
     "x": {
       "aggregate": "count"

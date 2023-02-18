@@ -9,7 +9,6 @@
     },
     "x": {
       "field": "Production Budget",
-      "type": "quantitative",
       "aggregate": "mean"
     }
   },

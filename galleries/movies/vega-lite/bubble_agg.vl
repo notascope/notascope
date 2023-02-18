@@ -7,21 +7,17 @@
   "encoding": {
     "x": {
       "field": "Production Budget",
-      "type": "quantitative",
       "aggregate": "mean"
     },
     "y": {
       "field": "Worldwide Gross",
-      "type": "quantitative",
       "aggregate": "mean"
     },
     "color": {
-      "field": "MPAA Rating",
-      "type": "nominal"
+      "field": "MPAA Rating"
     },
     "size": {
       "field": "IMDB Rating",
-      "type": "quantitative",
       "aggregate": "mean"
     }
   }

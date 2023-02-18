@@ -13,8 +13,7 @@
       "aggregate": "count"
     },
     "color": {
-      "field": "MPAA Rating",
-      "type": "nominal"
+      "field": "MPAA Rating"
     }
   }
 }

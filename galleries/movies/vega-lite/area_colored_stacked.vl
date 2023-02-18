@@ -7,18 +7,15 @@
   "encoding": {
     "x": {
       "field": "Release Date",
-      "type": "temporal",
       "timeUnit": "year"
     },
     "y": {
       "field": "Worldwide Gross",
       "aggregate": "sum",
-      "type": "quantitative",
       "stack": "normalize"
     },
     "color": {
-      "field": "MPAA Rating",
-      "type": "nominal"
+      "field": "MPAA Rating"
     }
   }
 }

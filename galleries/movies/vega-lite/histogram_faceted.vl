@@ -13,12 +13,10 @@
       "aggregate": "count"
     },
     "color": {
-      "field": "MPAA Rating",
-      "type": "nominal"
+      "field": "MPAA Rating"
     },
     "facet": {
       "field": "Major Genre",
-      "type": "nominal",
       "columns": 5
     }
   }

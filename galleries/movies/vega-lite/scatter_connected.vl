@@ -10,17 +10,14 @@
   "encoding": {
     "x": {
       "field": "Production Budget",
-      "aggregate": "sum",
-      "type": "quantitative"
+      "aggregate": "sum"
     },
     "y": {
       "field": "Worldwide Gross",
-      "aggregate": "sum",
-      "type": "quantitative"
+      "aggregate": "sum"
     },
     "order": {
       "field": "Release Date",
-      "type": "temporal",
       "timeUnit": "year"
     }
   }

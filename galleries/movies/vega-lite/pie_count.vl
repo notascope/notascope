@@ -6,8 +6,7 @@
   "mark": "arc",
   "encoding": {
     "color": {
-      "field": "MPAA Rating",
-      "type": "nominal"
+      "field": "MPAA Rating"
     },
     "theta": {
       "aggregate": "count"

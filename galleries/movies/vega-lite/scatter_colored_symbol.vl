@@ -14,12 +14,10 @@
       "type": "quantitative"
     },
     "color": {
-      "field": "MPAA Rating",
-      "type": "nominal"
+      "field": "MPAA Rating"
     },
     "shape": {
-      "field": "Major Genre",
-      "type": "nominal"
+      "field": "Major Genre"
     }
   }
 }

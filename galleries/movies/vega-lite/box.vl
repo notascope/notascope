@@ -6,8 +6,7 @@
   "mark": "boxplot",
   "encoding": {
     "x": {
-      "field": "Major Genre",
-      "type": "nominal"
+      "field": "Major Genre"
     },
     "y": {
       "field": "Production Budget",

@@ -6,17 +6,14 @@
   "mark": "line",
   "encoding": {
     "x": {
-      "field": "Major Genre",
-      "type": "nominal"
+      "field": "Major Genre"
     },
     "y": {
       "field": "Production Budget",
-      "aggregate": "average",
-      "type": "quantitative"
+      "aggregate": "average"
     },
     "color": {
-      "field": "MPAA Rating",
-      "type": "nominal"
+      "field": "MPAA Rating"
     }
   }
 }

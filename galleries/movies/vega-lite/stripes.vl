@@ -7,13 +7,11 @@
   "encoding": {
     "x": {
       "field": "Release Date",
-      "type": "temporal",
       "timeUnit": "year"
     },
     "color": {
       "field": "Worldwide Gross",
-      "aggregate": "sum",
-      "type": "quantitative"
+      "aggregate": "sum"
     }
   }
 }

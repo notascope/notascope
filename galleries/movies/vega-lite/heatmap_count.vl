@@ -6,15 +6,13 @@
   "mark": "rect",
   "encoding": {
     "x": {
-      "field": "Major Genre",
-      "type": "nominal"
+      "field": "Major Genre"
     },
     "color": {
       "aggregate": "count"
     },
     "y": {
-      "field": "MPAA Rating",
-      "type": "nominal"
+      "field": "MPAA Rating"
     }
   }
 }
