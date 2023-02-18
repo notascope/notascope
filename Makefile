@@ -68,7 +68,12 @@ clean:
 	rm -rf results
 
 .PHONY: build
-build:
+build: app.py
 	rm -rf build
 	mkdir build
 	cp -r assets results src app.py notascope_components build_files/* build
+
+
+.PHONY: deploy
+deploy: build
+	cd build && fly deploy
