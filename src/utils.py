@@ -35,7 +35,10 @@ def gallery_specs(gallery):
 
 @cache
 def pretty_source(gallery, notation, spec):
-    return spec_path("results", gallery, notation, "pretty", spec).read_text()
+    try:
+        return spec_path("results", gallery, notation, "pretty", spec).read_text()
+    except:
+        return ""
 
 
 @cache

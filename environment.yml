@@ -18,7 +18,7 @@ dependencies:
   - dash-extensions=0.1.6
   - tree_sitter=0.20.1
   - seaborn=0.12.2
-  - altair=4.2.0
+  - altair=4.2.2
   - altair_saver=0.5.0
   - python-kaleido=0.2.1
   - spectra=0.0.11
