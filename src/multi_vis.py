@@ -182,7 +182,7 @@ def stats(gallery, distance, vis):
     fig.update_traces(line_shape="linear", marker_size=5, line_width=1)
     fig.update_yaxes(title_text="token frequency rank")
     fig.update_layout(scattermode="group")
-    result.append(fig)
+    # result.append(fig)
     return result
 
 

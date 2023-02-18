@@ -6,14 +6,25 @@ import math
 from functools import cache
 from collections import Counter
 from .utils import img_path, pretty_source
-from .distances import get_distance
+from .distances import get_distance, distances_df
 from .tokens import load_tokens
 
 
-def header_and_image(gallery, notation, spec, tokens_n, tokens_nunique):
+def header_and_image(gallery, notation, distance, spec):
+
+    remotenesses = (
+        distances_df(gallery=gallery, notation=notation)
+        .groupby(["from_spec"])[distance]
+        .median()
+        .reset_index()
+    )
+    remotenesses["rank"] = remotenesses[distance].rank()
+    spec_stats = remotenesses.query(f"from_spec == '{spec}'").iloc[0]
     return [
         html.H3(spec),
-        html.P(f"{tokens_n} tokens, {tokens_nunique} uniques"),
+        html.P(
+            f"remoteness: {spec_stats[distance]} ({int(spec_stats['rank'])}/{len(remotenesses)})"
+        ),
         html.Img(
             src=img_path(gallery, notation, spec),
             style=dict(verticalAlign="middle", maxHeight="200px", maxWidth="20vw"),
@@ -132,32 +143,30 @@ def details_view(gallery, notation, distance, from_spec, to_spec):
             shared_tokens = list((Counter(from_tokens) & Counter(to_tokens)).elements())
             shared_uniques = set(from_tokens) & set(to_tokens)
             td1 = html.Td(
-                header_and_image(
-                    gallery, notation, from_spec, from_tokens_n, from_tokens_nunique
-                ),
+                header_and_image(gallery, notation, distance, from_spec),
                 style=dict(verticalAlign="top"),
             )
             td2 = html.Td(
-                ["tokens", html.Br()]
-                + [
-                    f"{from_tokens_n - len(shared_tokens)} ⬌ {to_tokens_n - len(shared_tokens)}"
-                ]
-                + [html.Br(), html.Br(), "uniques", html.Br()]
-                + [
-                    f"{from_tokens_nunique - len(shared_uniques)} ⬌ {to_tokens_nunique - len(shared_uniques)}"
-                ]
-                + [
-                    html.Br(),
-                    html.Br(),
-                    "tree edit",
+                [
+                    "distance",
                     html.Br(),
                     f"{to_from_distance} ⬌ {from_to_distance}",
                 ]
+                + [html.Br(), html.Br()]
+                + [
+                    "tokens",
+                    html.Br(),
+                    f"({from_tokens_n}) {from_tokens_n - len(shared_tokens)} ⬌ {to_tokens_n - len(shared_tokens)} ({to_tokens_n})",
+                ]
+                + [html.Br(), html.Br()]
+                + [
+                    "uniques",
+                    html.Br(),
+                    f"({from_tokens_nunique}) {from_tokens_nunique - len(shared_uniques)} ⬌ {to_tokens_nunique - len(shared_uniques)} ({to_tokens_nunique})",
+                ]
             )
             td3 = html.Td(
-                header_and_image(
-                    gallery, notation, to_spec, to_tokens_n, to_tokens_nunique
-                ),
+                header_and_image(gallery, notation, distance, to_spec),
                 style=dict(verticalAlign="top"),
             )
             cmp = [
@@ -167,9 +176,7 @@ def details_view(gallery, notation, distance, from_spec, to_spec):
             ]
             cmp += [diff_view(gallery, notation, from_spec, to_spec)]
         elif from_spec != "":
-            cmp = header_and_image(
-                gallery, notation, from_spec, from_tokens_n, from_tokens_nunique
-            )
+            cmp = header_and_image(gallery, notation, distance, from_spec)
             cmp += [single_view(gallery, notation, from_spec)]
 
     except Exception as e:
