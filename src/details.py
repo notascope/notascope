@@ -82,12 +82,16 @@ def single_view(gallery, notation, spec):
             if "count" in pointer and pointer["count"] < max_count:
                 color = scale(math.log(pointer["count"])).hexcode
                 out_text += f" style='background: {color}'"
-                out_text += f" title='{pointer['count']}/{max_count}'"
+                out_text += f" title='{buffer}: {pointer['count']}/{max_count}'"
             out_text += ">" + buffer + "</span>"
 
-            buffer = ""
             pointer = trie
-            out_text += c
+            buffer = ""
+            if c in pointer:
+                buffer += c
+                pointer = pointer[c]
+            else:
+                out_text += c
         else:
             buffer += c
             pointer = pointer[c]

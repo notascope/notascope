@@ -158,6 +158,54 @@ def remoteness_scatter(
     return fig
 
 
+def distance_scatter(
+    gallery, notation, distance, notation2, distance2, from_spec, to_spec, vis
+):
+    import statsmodels.api as sm
+
+    merged = merged_distances(gallery, notation, distance, notation2, distance2)
+
+    x = merged.columns[2]
+    y = merged.columns[3]
+
+    merged["selected"] = (merged["from_spec"] == from_spec) | (
+        merged["to_spec"] == to_spec
+    )
+    mn = 0  # min(merged[x].min(), merged[y].min())
+    mx = max(merged[x].max(), merged[y].max())
+    s = 0.1 * (mx - mn)
+    mx += s
+
+    fig = px.scatter(
+        merged,
+        x=x,
+        y=y,
+        color="selected",
+        hover_data=["from_spec"],
+        category_orders={"selected": [False, True]},
+        width=500,
+        height=500,
+        labels={x: x + " remoteness", y: y + " remoteness"},
+    )
+    fig.update_traces(hoverinfo="none", hovertemplate="<extra></extra>")
+    fig.update_layout(showlegend=False)
+    if distance == distance2:
+        fig.add_shape(type="line", x0=mn, x1=mx, y0=mn, y1=mx, line_color="white")
+        fig.update_xaxes(rangemode="tozero", range=[mn, mx])
+        fig.update_yaxes(rangemode="tozero", range=[mn, mx])
+    else:
+        fig.add_traces(
+            px.line(sm.PCA(merged[[x, y]]).project(ncomp=1), x=x, y=y)
+            .update_traces(
+                line_color="grey", hoverinfo="skip", hovertemplate="<extra></extra>"
+            )
+            .data,
+        )
+    if len(fig.data) > 1:
+        fig.data[1].marker.size = 10
+    return fig
+
+
 def slope(gallery, notation, distance, notation2, distance2, from_spec, to_spec, vis):
     df = merged_distances(gallery, notation, distance, notation2, distance2)
     if from_spec:
@@ -191,6 +239,7 @@ def slope(gallery, notation, distance, notation2, distance2, from_spec, to_spec,
 
 distance_pair_vis_map = {
     "remoteness_scatter": remoteness_scatter,
+    "distance_scatter": distance_scatter,
     "slope": slope,
     "rank_slope": slope,
 }
@@ -202,6 +251,7 @@ notation_pair_vis_map = {
     "rank_slope": slope,
     "tokens": tokens,
     "remoteness_scatter": remoteness_scatter,
+    "distance_scatter": distance_scatter,
 }
 notation_pair_vis_types = list(notation_pair_vis_map.keys())
 
