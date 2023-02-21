@@ -59,6 +59,7 @@ def remoteness(gallery, notation, distance, from_spec, to_spec, vis):
         .median()
         .reset_index()
     )
+    selected_ids = [from_spec, to_spec]  # noqa
 
     fig = (
         px.violin(
@@ -80,6 +81,8 @@ def remoteness(gallery, notation, distance, from_spec, to_spec, vis):
             line_width=0,
             meanline_visible=True,
             meanline_width=2,
+            selectedpoints=df.query("from_spec in @selected_ids").index,
+            selected_marker_color="red",
         )
         .update_layout(violingroupgap=0, violingap=0.05)
     )

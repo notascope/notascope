@@ -82,8 +82,16 @@ def build_network(gallery, notation, distance, method):
     dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
     network_elements = []
     n = len(dmat)
-    if method.startswith("spanner") and n < 50:
+
+    if "spanner" in method and n > 50:
+        method = "mds-mst"
+
+    if "mds" in method or "spanner" in method:
         emb_df = get_embedding(gallery, notation, distance, "mds")
+    else:
+        emb_df = get_embedding(gallery, notation, distance, "kk")
+
+    if "spanner" in method:
         edges = spanner_adj(dmat, t=float(method.split("-")[1]))
         for i in range(n):
             for j in range(n):
@@ -104,8 +112,7 @@ def build_network(gallery, notation, distance, method):
                             "classes": (" bidir" if eq else ""),
                         }
                     )
-    else:
-        emb_df = get_embedding(gallery, notation, distance, "kk")
+    elif "mst" in method:
         spanning = get_mst(gallery, notation, distance)
         for i, j, d in zip(spanning.row, spanning.col, spanning.data):
             network_elements.append(
