@@ -171,8 +171,8 @@ def respace(gallery, notation, distance, y, label_y, y_by_spec):
         prev_y = curr_y
 
     def scale_y(y_in, remap):
-        if y_in is None:
-            return None
+        if not y_in:
+            return y_in
         y_out = 0
         for start, end, accum in remap:
             if y_in > start:

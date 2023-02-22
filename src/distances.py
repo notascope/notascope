@@ -47,7 +47,7 @@ def dmat_and_order(gallery, notation, distance):
         .pivot_table(index="from_spec", columns="to_spec", values=distance)
         .fillna(0)
     )
-    order = list(dmat.index)
+    order = dmat.index.tolist()
     dmat = dmat.values
     dmat_sym = (dmat + dmat.T) / 2.0
     return dmat, dmat_sym, order
@@ -104,6 +104,8 @@ def get_embedding(gallery, notation, distance, method, dim=2):
         )
         layout = g.layout_kamada_kawai(maxiter=10000, dim=dim)
         embedding = np.array(layout.coords)
+    else:
+        embedding = None
     if dim == 3:
         return pd.DataFrame(embedding, index=order, columns=["x", "y", "z"])
     return pd.DataFrame(embedding, index=order, columns=["x", "y"])

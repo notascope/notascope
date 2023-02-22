@@ -7,3 +7,7 @@ ignore = ["E501"]
 
 # Never try to fix `F401` (unused imports).
 unfixable = ["F401"]
+
+
+[tool.mypy]
+ignore_missing_imports = true

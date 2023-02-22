@@ -60,8 +60,8 @@ def build_trie(gallery, notation):
     tokens_df = load_tokens()
     filtered = (
         tokens_df.query(f"gallery=='{gallery}' and notation=='{notation}'")
-        .groupby("token")
-        .nunique("spec")
+        .groupby("token")["spec"]
+        .nunique()
     )
     max_count = filtered["spec"].max()
     trie = dict()

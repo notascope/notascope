@@ -121,7 +121,7 @@ def sanitize_state(hashpath_values):
         state["pair_vis"] = ""
 
     if state["vis"] not in single_vis_types:
-        state["vis"] = ""
+        state["vis"] = single_vis_types[0]
 
     if state["from_spec"] not in specs:
         state["from_spec"] = state["to_spec"] = ""
@@ -262,7 +262,7 @@ def update_content(hashpath):
     to_spec = state["to_spec"]
     pair_vis = state["pair_vis"]
 
-    notation2 = distance2 = vis2 = None
+    notation2 = distance2 = vis2 = ""
     notations = gallery_notations(gallery)
     if compare:
         notation2 = notation
@@ -327,7 +327,7 @@ def update_content(hashpath):
             value=compare,
             options=comparisons,
             clearable=True,
-            style=dict(width="175px"),
+            style=dict(width="150px"),
             searchable=False,
             maxHeight=600,
         )
@@ -350,7 +350,7 @@ def update_content(hashpath):
             else distance_pair_vis_types,
             clearable=True,
             searchable=False,
-            style=dict(width="175px"),
+            style=dict(width="125px"),
             maxHeight=600,
         )
 
@@ -471,7 +471,12 @@ def update_content(hashpath):
     if notation and from_spec and vis:
         blocks.append(details_view(gallery, notation, distance, from_spec, to_spec))
 
-    if compare and from_spec and vis:
+    if (
+        compare
+        and from_spec
+        and vis
+        and compare not in single_vis_types + [notation, distance]
+    ):
         blocks.append(details_view(gallery, notation2, distance2, from_spec, to_spec))
 
     return html.Div(className="wrapper", children=blocks)

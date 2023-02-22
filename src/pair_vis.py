@@ -43,7 +43,7 @@ def diamond(gallery, notation, distance, notation2, distance2, from_spec, to_spe
     x = distance + "_" + notation
     y = distance2 + "_" + notation2
 
-    merged = merged.groupby("from_spec").median([x, y]).reset_index()
+    merged = merged.groupby("from_spec")[[x, y]].median().reset_index()
     merged["selected"] = (merged["from_spec"] == from_spec) | (
         merged["from_spec"] == to_spec
     )
@@ -114,12 +114,12 @@ def remoteness_scatter(
 ):
     import statsmodels.api as sm
 
-    merged = merged_distances(gallery, notation, distance, notation2, distance2)
+    merged_in = merged_distances(gallery, notation, distance, notation2, distance2)
 
-    x = merged.columns[2]
-    y = merged.columns[3]
+    x = str(merged_in.columns[2])
+    y = str(merged_in.columns[3])
 
-    merged = merged.groupby("from_spec").median([x, y]).reset_index()
+    merged = merged_in.groupby("from_spec")[[x, y]].median().reset_index()
     merged["selected"] = (merged["from_spec"] == from_spec) | (
         merged["from_spec"] == to_spec
     )
@@ -165,8 +165,8 @@ def distance_scatter(
 
     merged = merged_distances(gallery, notation, distance, notation2, distance2)
 
-    x = merged.columns[2]
-    y = merged.columns[3]
+    x = str(merged.columns[2])
+    y = str(merged.columns[3])
 
     merged["selected"] = (merged["from_spec"] == from_spec) | (
         merged["to_spec"] == to_spec
@@ -216,10 +216,11 @@ def slope(gallery, notation, distance, notation2, distance2, from_spec, to_spec,
             df[col] = df[col].rank(method="first")
     df["none"] = None
     df["selected"] = df["to_spec"] == to_spec
-    df = df.melt(
-        id_vars=["to_spec", "selected"], var_name="pair", value_name="distance"
-    ).sort_values(by=["to_spec", "distance"])
-    df["pair"] = df["pair"].apply(lambda x: None if x == "none" else x)
+    df = (
+        df.melt(id_vars=["to_spec", "selected"], var_name="pair", value_name="distance")
+        .sort_values(by=["to_spec", "distance"])
+        .query("pair != 'none'")
+    )
     fig = px.line(
         df,
         x="distance",
@@ -246,12 +247,12 @@ distance_pair_vis_map = {
 distance_pair_vis_types = list(distance_pair_vis_map.keys())
 
 notation_pair_vis_map = {
+    "scatter": remoteness_scatter,
     "diamond": diamond,
     "slope": slope,
     "rank_slope": slope,
     "tokens": tokens,
-    "remoteness_scatter": remoteness_scatter,
-    "distance_scatter": distance_scatter,
+    "distances": distance_scatter,
 }
 notation_pair_vis_types = list(notation_pair_vis_map.keys())
 
