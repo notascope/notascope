@@ -31,7 +31,7 @@ _current_path = _os.path.dirname(_os.path.abspath(__file__))
 
 _this_module = _sys.modules[__name__]
 
-async_resources = []
+async_resources: list = []
 
 _js_dist = []
 
@@ -78,7 +78,7 @@ _js_dist.extend(
     ]
 )
 
-_css_dist = []
+_css_dist: list = []
 
 
 for _component in __all__:
