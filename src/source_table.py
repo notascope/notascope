@@ -57,7 +57,7 @@ def thumbnail_cell(gallery, notation, spec, mode):
                     type="thumbnail",
                     notation=notation,
                     spec=spec,
-                    vis="thumbnails",
+                    vis="neighbours",
                 ),
                 className="bigthumb",
             ),
@@ -92,7 +92,7 @@ def thumbnails_for_spec(gallery, distance, from_spec):
     )
 
 
-def thumbnails_for_notation(gallery, distance, notation, notation2=None):
+def thumbnails_for_notation(gallery, distance, notation, notation2):
     return _source_table(
         gallery, zip(cycle([notation]), cycle([notation2]), gallery_specs(gallery)), "s"
     )

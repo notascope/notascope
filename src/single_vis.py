@@ -5,7 +5,7 @@ from .scatter import get_scatter
 from .dendro import get_dendro
 from .network import get_network
 from .distances import distances_df
-from .distributions import token_rank, token_bars, remoteness, get_remoteness_scatter
+from .distributions import token_rank, remoteness, get_remoteness_scatter
 from .utils import img_path
 
 
@@ -23,12 +23,16 @@ def thumbnails(gallery, notation, distance, from_spec, to_spec, vis):
     thumbs = []
     if from_spec:
         thumbs += [
+            html.P(
+                from_spec,
+                style=dict(marginBottom=0, marginTop="15px", fontSize="12px"),
+            ),
             html.Img(
                 id=dict(
                     type="thumbnail",
                     notation=notation,
                     spec=from_spec,
-                    vis="thumbnails",
+                    vis="neighbours",
                 ),
                 src=img_path(gallery, notation, from_spec),
                 className="selected_thumb",
@@ -38,33 +42,45 @@ def thumbnails(gallery, notation, distance, from_spec, to_spec, vis):
 
     for spec in sorted_specs:
         thumbs.append(
-            html.Img(
-                id=dict(
-                    type="thumbnail", notation=notation, spec=spec, vis="thumbnails"
-                ),
-                src=img_path(gallery, notation, spec),
-                className="selected_thumb" if spec == to_spec else "regular_thumb",
+            html.Div(
+                [
+                    html.P(
+                        spec,
+                        style=dict(marginBottom=0, marginTop="15px", fontSize="12px"),
+                    ),
+                    html.Img(
+                        id=dict(
+                            type="thumbnail",
+                            notation=notation,
+                            spec=spec,
+                            vis="neighbours",
+                        ),
+                        src=img_path(gallery, notation, spec),
+                        className="selected_thumb"
+                        if spec == to_spec
+                        else "regular_thumb",
+                    ),
+                ],
+                style=dict(display="inline-block"),
             )
         )
     return html.Div(thumbs, className="thumbnails", style=dict(textAlign="center"))
 
 
 vis_map = {
-    "thumbnails": thumbnails,
+    "specs": None,
+    "neighbours": thumbnails,
     "remoteness": remoteness,
     "dendro": get_dendro,
     "mst": get_network,
     "mds": get_network,
     "mds-mst": get_network,
     "spanner-1.5": get_network,
-    "spanner-1.2": get_network,
-    "spanner-1.1": get_network,
     "spanner-1": get_network,
     "tsne": get_scatter,
     "umap": get_scatter,
-    "token_rank": token_rank,
-    "token_bars": token_bars,
-    "remoteness_scatter": get_remoteness_scatter,
+    "tokens": token_rank,
+    "scatter": get_remoteness_scatter,
 }
 single_vis_types = list(vis_map.keys())
 

@@ -4,28 +4,6 @@ from .distances import dmat_and_order, distances_df
 import numpy as np
 
 
-def token_bars(gallery, notation, distance, from_spec, to_spec, vis):
-    tokens_df = load_tokens()
-
-    df = (
-        tokens_df.query(f"gallery == '{gallery}' and notation== '{notation}'")
-        .groupby(["token", "notation"])["spec"]
-        .nunique()
-        .reset_index()
-    )
-    df["y"] = 1
-    fig = px.bar(
-        df,
-        x="spec",
-        y="y",
-        hover_name="token",
-        height=600,
-        hover_data=dict(y=False),
-        labels=dict(spec="token frequency", y="token count"),
-    )
-    return fig
-
-
 def token_rank(gallery, notation, distance, from_spec, to_spec, vis):
 
     tokens_df = load_tokens()

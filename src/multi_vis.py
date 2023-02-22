@@ -216,7 +216,7 @@ def thumbnails(gallery, distance, vis):
                             type="thumbnail",
                             notation=notation,
                             spec=spec,
-                            vis="thumbnails",
+                            vis="neighbours",
                         ),
                         src=img_path(gallery, notation, spec),
                     )
@@ -268,7 +268,8 @@ def wrap_multi_vis(gallery, distance, from_spec):
         return thumbnails_for_spec(gallery, distance, from_spec)
     return [
         html.Details(
-            [html.Summary("stats")] + _wrap_multi_vis(gallery, distance, "stats")
+            [html.Summary("stats")] + _wrap_multi_vis(gallery, distance, "stats"),
+            style=dict(width="800px", margin="0 auto", textAlign="center"),
         )
     ] + _wrap_multi_vis(gallery, distance, "thumbnails")
 

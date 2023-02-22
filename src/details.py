@@ -150,7 +150,7 @@ def details_view(gallery, notation, distance, from_spec, to_spec):
                 [
                     "distance",
                     html.Br(),
-                    f"{to_from_distance} ⬌ {from_to_distance}",
+                    f"(2/40) {to_from_distance} ⬌ {from_to_distance} (5/40)",
                 ]
                 + [html.Br(), html.Br()]
                 + [

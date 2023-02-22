@@ -297,20 +297,10 @@ def update_content(hashpath):
             options=distance_types,
             clearable=False,
             searchable=False,
-            style=dict(width="100px"),
+            style=dict(width="125px"),
             maxHeight=600,
         ),
     }
-
-    if from_spec and not notation:
-        controls["Spec"] = dcc.Dropdown(
-            id=dict(id="from_spec", type="dropdown"),
-            value=from_spec,
-            options=gallery_specs(gallery),
-            clearable=True,
-            style=dict(width="225px"),
-            maxHeight=600,
-        )
 
     controls["Notation"] = dcc.Dropdown(
         id=dict(id="notation", type="dropdown"),
@@ -327,7 +317,7 @@ def update_content(hashpath):
             id=dict(id="vis", type="dropdown"),
             value=vis,
             options=single_vis_types,
-            clearable=True,
+            clearable=False,
             style=dict(width="150px"),
             searchable=False,
             maxHeight=600,
@@ -339,6 +329,15 @@ def update_content(hashpath):
             clearable=True,
             style=dict(width="175px"),
             searchable=False,
+            maxHeight=600,
+        )
+    elif from_spec:
+        controls["Spec"] = dcc.Dropdown(
+            id=dict(id="from_spec", type="dropdown"),
+            value=from_spec,
+            options=gallery_specs(gallery),
+            clearable=True,
+            style=dict(width="225px"),
             maxHeight=600,
         )
 
@@ -422,23 +421,20 @@ def update_content(hashpath):
             )
         )
 
-    if notation and vis == "":
-        if compare not in notations:
+    if notation:
+        if vis == "specs":
             blocks.append(
                 html.Div(
-                    thumbnails_for_notation(gallery, distance, notation),
+                    thumbnails_for_notation(
+                        gallery,
+                        distance,
+                        notation,
+                        compare if compare in notations else None,
+                    ),
                     style=dict(gridColumn="1/3", textAlign="center"),
                 )
             )
         else:
-            blocks.append(
-                html.Div(
-                    thumbnails_for_notation(gallery, distance, notation, compare),
-                    style=dict(gridColumn="1/3", textAlign="center"),
-                )
-            )
-    else:
-        if notation:
             blocks.append(
                 html.Div(
                     html.Details(
@@ -452,19 +448,25 @@ def update_content(hashpath):
                 ),
             )
 
-        if compare:
-            blocks.append(
-                html.Div(
-                    html.Details(
-                        [html.Summary(" ".join([notation2, distance2, vis2]))]
-                        + wrap_single_vis(
-                            gallery, notation2, distance2, vis2, from_spec, to_spec, "2"
-                        ),
-                        open=True,
-                        id="compare_vis",
+            if compare:
+                blocks.append(
+                    html.Div(
+                        html.Details(
+                            [html.Summary(" ".join([notation2, distance2, vis2]))]
+                            + wrap_single_vis(
+                                gallery,
+                                notation2,
+                                distance2,
+                                vis2,
+                                from_spec,
+                                to_spec,
+                                "2",
+                            ),
+                            open=True,
+                            id="compare_vis",
+                        )
                     )
                 )
-            )
 
     if notation and from_spec and vis:
         blocks.append(details_view(gallery, notation, distance, from_spec, to_spec))
