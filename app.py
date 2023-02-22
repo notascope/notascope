@@ -120,6 +120,9 @@ def sanitize_state(hashpath_values):
     ):
         state["pair_vis"] = ""
 
+    if state["vis"] not in single_vis_types:
+        state["vis"] = ""
+
     if state["from_spec"] not in specs:
         state["from_spec"] = state["to_spec"] = ""
     elif state["to_spec"] not in specs:
@@ -357,7 +360,17 @@ def update_content(hashpath):
             [
                 html.Div(
                     [
-                        html.Span(k, style=dict(fontSize="14px")),
+                        html.Span(
+                            dcc.Link(
+                                k,
+                                href="/#"
+                                + urlencode(dict(gallery=gallery, distance=distance)),
+                                style=dict(textDecoration="none", color="black"),
+                            )
+                            if k == "Gallery"
+                            else k,
+                            style=dict(fontSize="14px"),
+                        ),
                         html.Span(v, style=dict(textAlign="left")),
                     ],
                     style=dict(display="inline-block", textAlign="center"),
