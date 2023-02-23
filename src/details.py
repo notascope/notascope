@@ -151,9 +151,9 @@ def details_view(gallery, notation, distance, from_spec, to_spec):
             )
             td2 = html.Td(
                 [
-                    html.Strong(distance),
+                    distance,
                     html.Br(),
-                    html.Strong(from_to_distance),
+                    html.Strong(from_to_distance, style=dict(fontSize="25px")),
                 ]
                 + [html.Br(), html.Br()]
                 + [

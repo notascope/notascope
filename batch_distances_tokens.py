@@ -5,7 +5,6 @@ import sys
 from src.utils import spec_from_path
 from lz4.frame import compress
 from tree_sitter import Language, Parser
-from difflib import SequenceMatcher
 import pandas as pd
 import textdistance
 
@@ -59,8 +58,8 @@ single_compressed_length = dict()
 single_length = dict()
 tokens = dict()
 
-
-for fpath in glob(os.path.join(inpath, "*.*")):
+paths = glob(os.path.join(inpath, "*.*"))
+for fpath in paths:
     spec = spec_from_path(fpath)
     with open(fpath, "rb") as f:
         file_bytes[spec] = f.read()
@@ -78,15 +77,6 @@ token_df = pd.DataFrame.from_records(
     token_rows, columns=["gallery", "notation", "spec", "token"]
 )
 token_df.to_parquet(f"results/{gallery}/{notation}/tokens.pqt")
-
-
-def dl(from_spec, to_spec):
-    s = SequenceMatcher(None, tokens[from_spec], tokens[to_spec])
-    difflib_cost = 0
-    for tag, i1, i2, j1, j2 in s.get_opcodes():
-        if tag != "equal":
-            difflib_cost += max(i2 - i1, j2 - j1)
-    return difflib_cost
 
 
 def voi(from_spec, to_spec):
@@ -116,7 +106,6 @@ def distances(args):
     cd_avg = (cd(from_spec, to_spec) + cd(to_spec, from_spec)) / 2
     ncd_avg = (ncd(from_spec, to_spec) + ncd(to_spec, from_spec)) / 2
     lev = textdistance.levenshtein.distance(tokens[from_spec], tokens[to_spec])
-    difflib_avg = (dl(from_spec, to_spec) + dl(to_spec, from_spec)) / 2
     return (
         [
             gallery,
@@ -127,7 +116,6 @@ def distances(args):
             voi_avg,
             cd_avg,
             ncd_avg,
-            difflib_avg,
             lev,
         ],
         [
@@ -139,7 +127,6 @@ def distances(args):
             voi_avg,
             cd_avg,
             ncd_avg,
-            difflib_avg,
             lev,
         ],
     )
@@ -161,7 +148,6 @@ distance_df = pd.DataFrame.from_records(
         "voi",
         "cd",
         "ncd",
-        "difflib",
         "levenshtein",
     ],
 )
