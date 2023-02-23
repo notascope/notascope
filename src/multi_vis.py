@@ -4,7 +4,7 @@ from .distances import distances_df
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
-from functools import cache
+from .utils import cache
 from .utils import gallery_notations, img_path
 from .source_table import thumbnails_for_spec
 

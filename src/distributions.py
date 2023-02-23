@@ -71,15 +71,15 @@ def remoteness(gallery, notation, distance, from_spec, to_spec, vis):
 
 def get_remoteness_scatter(gallery, notation, distance, from_spec, to_spec, method):
 
-    dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
-    x = y = color = np.median(dmat_sym, axis=1)
+    dmat, order = dmat_and_order(gallery, notation, distance)
+    x = y = color = np.median(dmat, axis=1)
     xlab = ylab = "remoteness"
     range = None
     if from_spec:
-        y = dmat_sym[order.index(from_spec)]
+        y = dmat[order.index(from_spec)]
         ylab = "distance to " + from_spec
     if to_spec != from_spec:
-        x = dmat_sym[order.index(to_spec)]
+        x = dmat[order.index(to_spec)]
         xlab = "distance to " + to_spec
         range = [0, 1.05 * max(np.max(x), np.max(y))]
     fig = px.scatter(

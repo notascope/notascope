@@ -3,10 +3,10 @@ from notascope_components import DashDiff
 from dash_dangerously_set_inner_html import DangerouslySetInnerHTML
 import spectra
 import math
-from functools import cache
+from .utils import cache, gallery_specs
 from collections import Counter
 from .utils import img_path, pretty_source
-from .distances import get_distance, distances_df
+from .distances import get_distance, distances_df, get_distance_rank
 from .tokens import load_tokens
 
 
@@ -18,7 +18,7 @@ def header_and_image(gallery, notation, distance, spec):
         .median()
         .reset_index()
     )
-    remotenesses["rank"] = remotenesses[distance].rank()
+    remotenesses["rank"] = remotenesses[distance].rank(method="min")
     spec_stats = remotenesses.query(f"from_spec == '{spec}'").iloc[0]
     return [
         html.H3(spec),
@@ -27,7 +27,7 @@ def header_and_image(gallery, notation, distance, spec):
         ),
         html.Img(
             src=img_path(gallery, notation, spec),
-            style=dict(verticalAlign="middle", maxHeight="200px", maxWidth="20vw"),
+            style=dict(verticalAlign="middle", maxHeight="200px", maxWidth="15vw"),
             className="zoomable",
         ),
     ]
@@ -63,11 +63,11 @@ def build_trie(gallery, notation):
         .groupby("token")["spec"]
         .nunique()
     )
-    max_count = filtered["spec"].max()
+    max_count = filtered.max()
     trie = dict()
-    for token, count in filtered["spec"].items():
+    for token, count in filtered.items():
         pointer = trie
-        for c in token:
+        for c in str(token):
             if c not in pointer:
                 pointer[c] = dict()
             pointer = pointer[c]
@@ -129,14 +129,17 @@ def details_view(gallery, notation, distance, from_spec, to_spec):
             gallery, notation, from_spec
         )
         if from_spec != to_spec:
-
+            specs = gallery_specs(gallery)
             to_tokens, to_tokens_n, to_tokens_nunique = get_token_info(
                 gallery, notation, to_spec
             )
             from_to_distance = get_distance(
                 gallery, notation, distance, from_spec, to_spec
             )
-            to_from_distance = get_distance(
+            from_to_rank = get_distance_rank(
+                gallery, notation, distance, from_spec, to_spec
+            )
+            to_from_rank = get_distance_rank(
                 gallery, notation, distance, to_spec, from_spec
             )
 
@@ -148,9 +151,15 @@ def details_view(gallery, notation, distance, from_spec, to_spec):
             )
             td2 = html.Td(
                 [
-                    "distance",
+                    html.Strong(distance),
                     html.Br(),
-                    f"(2/40) {to_from_distance} ⬌ {from_to_distance} (5/40)",
+                    html.Strong(from_to_distance),
+                ]
+                + [html.Br(), html.Br()]
+                + [
+                    "neighbours",
+                    html.Br(),
+                    f"{to_from_rank}/{len(specs)} ⬌ {from_to_rank}/{len(specs)}",
                 ]
                 + [html.Br(), html.Br()]
                 + [

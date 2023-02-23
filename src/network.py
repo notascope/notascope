@@ -1,5 +1,5 @@
 import json
-from functools import cache
+from .utils import cache
 import numpy as np
 from .utils import img_path
 from .distances import dmat_and_order, get_distance, get_embedding, get_mst
@@ -37,10 +37,10 @@ def get_network(gallery, notation, distance, from_spec, to_spec, method):
                 new_elem["classes"] += " selected"
             net.append(new_elem)
     elif from_spec:
-        dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
+        dmat, order = dmat_and_order(gallery, notation, distance)
         from_index = order.index(from_spec)
-        top_indices = np.argsort(dmat_sym[from_index])
-        for i in range(min(10, len(dmat_sym))):
+        top_indices = np.argsort(dmat[from_index])
+        for i in range(min(10, len(dmat))):
             source = from_spec
             to_index = top_indices[i]
             dest = order[to_index]
@@ -51,7 +51,7 @@ def get_network(gallery, notation, distance, from_spec, to_spec, method):
                             "source": source,
                             "target": dest,
                             "id": source + "__" + dest + "_nnnn",
-                            "length": dmat_sym[from_index, to_index],
+                            "length": dmat[from_index, to_index],
                         },
                         "classes": "neighbour",
                     }
@@ -79,7 +79,7 @@ def spanner_adj(distances, t):
 
 @cache
 def build_network(gallery, notation, distance, method):
-    dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
+    dmat, order = dmat_and_order(gallery, notation, distance)
     network_elements = []
     n = len(dmat)
 

@@ -1,4 +1,4 @@
-from functools import cache
+from .utils import cache
 import pandas as pd
 
 

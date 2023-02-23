@@ -1,22 +1,21 @@
 import json
 import plotly.graph_objects as go
-from functools import cache
-
+from .utils import cache
 
 import numpy as np
 from .distances import dmat_and_order, get_distance
 
 
 def get_dendro(gallery, notation, distance, from_spec, to_spec, vis):
-    dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
+    dmat, order = dmat_and_order(gallery, notation, distance)
     fig_json, y_by_spec, leaves = build_dendro(gallery, notation, distance)
     fig = go.Figure(json.loads(fig_json))
     if from_spec:
         from_y = y_by_spec[from_spec]
         to_y = y_by_spec[to_spec]
-        distance = dmat_sym[order.index(from_spec), order.index(to_spec)]
+        d = dmat[order.index(from_spec), order.index(to_spec)]
         fig.add_scatter(
-            x=[0, -distance, -distance, 0],
+            x=[0, -d, -d, 0],
             y=[from_y, from_y, to_y, to_y],
             marker_opacity=[1, 0, 0, 1],
             hoverinfo="skip",
@@ -26,14 +25,14 @@ def get_dendro(gallery, notation, distance, from_spec, to_spec, vis):
         )
         if from_spec == to_spec:
             fig.data[1].marker = dict(
-                color=dmat_sym[order.index(from_spec)][leaves],
-                cmax=np.median(dmat_sym),
+                color=dmat[order.index(from_spec)][leaves],
+                cmax=np.median(dmat),
                 colorscale="Viridis",
             )
         else:
             fig.data[1].marker.opacity = 0
     else:
-        fig.data[1].marker = dict(color=np.median(dmat_sym, axis=0)[leaves])
+        fig.data[1].marker = dict(color=np.median(dmat, axis=0)[leaves])
     return fig
 
 
@@ -77,11 +76,11 @@ def medioid(samples, dmat_sym):
 
 @cache
 def build_dendro(gallery, notation, distance):
-    dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
+    dmat, order = dmat_and_order(gallery, notation, distance)
     from scipy.cluster import hierarchy
     from scipy.spatial.distance import squareform
 
-    Z = hierarchy.linkage(squareform(dmat_sym), "average", optimal_ordering=True)
+    Z = hierarchy.linkage(squareform(dmat), "average", optimal_ordering=True)
     P = hierarchy.dendrogram(Z, labels=order, no_plot=True)
     nodes, root = make_nodes(P, order)
     x = []
@@ -98,7 +97,7 @@ def build_dendro(gallery, notation, distance):
         cluster_members = nodes[(x_val, y_val)][1]
         node_spec = None
         if len(cluster_members):
-            cluster_medioid = medioid(cluster_members, dmat_sym)
+            cluster_medioid = medioid(cluster_members, dmat)
             node_spec = order[cluster_medioid]
         hovertext.append([node_spec])
 

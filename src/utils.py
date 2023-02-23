@@ -1,7 +1,16 @@
-from functools import cache
 import json
 from pathlib import Path
 import os
+
+
+import functools
+from typing import Callable, TypeVar, cast
+
+FuncT = TypeVar("FuncT", bound=Callable)
+
+
+def cache(func: FuncT) -> FuncT:
+    return cast(FuncT, functools.cache(func))
 
 
 @cache

@@ -1,4 +1,4 @@
-from itertools import permutations
+from itertools import combinations
 from glob import glob
 import os
 import sys
@@ -80,31 +80,76 @@ token_df = pd.DataFrame.from_records(
 token_df.to_parquet(f"results/{gallery}/{notation}/tokens.pqt")
 
 
-def distances(args):
-    from_spec, to_spec = args
-    a = single_compressed_length[from_spec]
-    b = single_compressed_length[to_spec]
-    ab = len(compress(file_bytes[from_spec] + file_bytes[to_spec]))
+def dl(from_spec, to_spec):
     s = SequenceMatcher(None, tokens[from_spec], tokens[to_spec])
     difflib_cost = 0
     for tag, i1, i2, j1, j2 in s.get_opcodes():
         if tag != "equal":
             difflib_cost += max(i2 - i1, j2 - j1)
-    return [
-        gallery,
-        notation,
-        from_spec,
-        to_spec,
-        int(single_length[from_spec]),
-        int(a),
-        int(b),
-        int(ab),
-        int(difflib_cost),
-        int(textdistance.levenshtein.distance(tokens[from_spec], tokens[to_spec])),
-    ]
+    return difflib_cost
 
 
-distance_rows = [r for r in map(distances, permutations(file_bytes, 2))]
+def voi(from_spec, to_spec):
+    a = single_compressed_length[from_spec]
+    b = single_compressed_length[to_spec]
+    ab = len(compress(file_bytes[from_spec] + file_bytes[to_spec]))
+    return 2 * ab - a - b
+
+
+def cd(from_spec, to_spec):
+    a = single_compressed_length[from_spec]
+    b = single_compressed_length[to_spec]
+    ab = len(compress(file_bytes[from_spec] + file_bytes[to_spec]))
+    return ab - min(a, b)
+
+
+def ncd(from_spec, to_spec):
+    a = single_compressed_length[from_spec]
+    b = single_compressed_length[to_spec]
+    ab = len(compress(file_bytes[from_spec] + file_bytes[to_spec]))
+    return 1000 * (ab - min(a, b)) / max(a, b)
+
+
+def distances(args):
+    from_spec, to_spec = args
+    voi_avg = (voi(from_spec, to_spec) + voi(to_spec, from_spec)) / 2
+    cd_avg = (cd(from_spec, to_spec) + cd(to_spec, from_spec)) / 2
+    ncd_avg = (ncd(from_spec, to_spec) + ncd(to_spec, from_spec)) / 2
+    lev = textdistance.levenshtein.distance(tokens[from_spec], tokens[to_spec])
+    difflib_avg = (dl(from_spec, to_spec) + dl(to_spec, from_spec)) / 2
+    return (
+        [
+            gallery,
+            notation,
+            from_spec,
+            to_spec,
+            int(single_length[from_spec]),
+            voi_avg,
+            cd_avg,
+            ncd_avg,
+            difflib_avg,
+            lev,
+        ],
+        [
+            gallery,
+            notation,
+            to_spec,
+            from_spec,
+            int(single_length[to_spec]),
+            voi_avg,
+            cd_avg,
+            ncd_avg,
+            difflib_avg,
+            lev,
+        ],
+    )
+
+
+distance_rows = []
+for xy, yx in map(distances, combinations(file_bytes, 2)):
+    distance_rows.append(xy)
+    distance_rows.append(yx)
+
 distance_df = pd.DataFrame.from_records(
     distance_rows,
     columns=[
@@ -113,9 +158,9 @@ distance_df = pd.DataFrame.from_records(
         "from_spec",
         "to_spec",
         "from_length",
-        "a",
-        "b",
-        "ab",
+        "voi",
+        "cd",
+        "ncd",
         "difflib",
         "levenshtein",
     ],

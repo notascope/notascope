@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
-from functools import cache
-
+from .utils import cache
 
 distance_types = [
     "levenshtein",
@@ -19,11 +18,7 @@ def distances_df(gallery=None, notation=None):
             return distances_df().query(f"gallery == '{gallery}'")
         else:
             return distances_df(gallery=gallery).query(f"notation=='{notation}'")
-    df = pd.read_parquet("results/distances.pqt")
-    df["voi"] = 2 * df["ab"] - df["a"] - df["b"]
-    df["cd"] = df["ab"] - df[["a", "b"]].min(axis=1)
-    df["ncd"] = (1000 * df["cd"] / df[["a", "b"]].max(axis=1)).astype(int)
-    return df
+    return pd.read_parquet("results/distances.pqt")
 
 
 @cache
@@ -41,16 +36,15 @@ def merged_distances(gallery, notation, distance, notation2, distance2):
 
 
 @cache
-def dmat_and_order(gallery, notation, distance):
+def dmat_and_order(
+    gallery: str, notation: str, distance: str
+) -> tuple[np.ndarray, list[str]]:
     dmat = (
         distances_df(gallery=gallery, notation=notation)
         .pivot_table(index="from_spec", columns="to_spec", values=distance)
         .fillna(0)
     )
-    order = dmat.index.tolist()
-    dmat = dmat.values
-    dmat_sym = (dmat + dmat.T) / 2.0
-    return dmat, dmat_sym, order
+    return dmat.values, dmat.index.tolist()
 
 
 @cache
@@ -63,18 +57,29 @@ def get_distance(gallery, notation, distance, from_spec, to_spec):
 
 
 @cache
+def get_distance_rank(gallery, notation, distance, from_spec, to_spec):
+    df = (
+        distances_df(gallery=gallery, notation=notation)
+        .query(f"from_spec=='{from_spec}'")
+        .copy()
+    )
+    df["rank"] = df[distance].rank(method="min").astype(int)
+    return df.query(f"to_spec=='{to_spec}'")["rank"].values[0]
+
+
+@cache
 def get_mst(gallery, notation, distance):
-    dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
+    dmat, order = dmat_and_order(gallery, notation, distance)
     from scipy.sparse.csgraph import minimum_spanning_tree
     from scipy.sparse import coo_matrix
 
-    return coo_matrix(minimum_spanning_tree(dmat_sym))
+    return coo_matrix(minimum_spanning_tree(dmat))
 
 
 @cache
 def get_embedding(gallery, notation, distance, method, dim=2):
     np.random.seed(123)
-    dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
+    dmat, order = dmat_and_order(gallery, notation, distance)
     if method in ["tsne", "umap"] and len(dmat) < 30:
         method = "mds"
     if method == "tsne":
@@ -85,17 +90,17 @@ def get_embedding(gallery, notation, distance, method, dim=2):
             metric="precomputed",
             learning_rate="auto",
             init="random",
-        ).fit_transform(dmat_sym)
+        ).fit_transform(dmat)
     elif method == "umap":
         from umap import UMAP
 
-        embedding = UMAP(n_components=dim).fit_transform(dmat_sym)
+        embedding = UMAP(n_components=dim).fit_transform(dmat)
     elif method == "mds":
         from sklearn.manifold import MDS
 
         embedding = MDS(
             n_components=dim, dissimilarity="precomputed", normalized_stress="auto"
-        ).fit_transform(dmat_sym)
+        ).fit_transform(dmat)
     elif method == "kk":
         import igraph
 

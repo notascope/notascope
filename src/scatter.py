@@ -1,6 +1,6 @@
 import json
 import plotly.graph_objects as go
-from functools import cache
+from .utils import cache
 import plotly.express as px
 import numpy as np
 from .distances import dmat_and_order, get_embedding
@@ -10,7 +10,7 @@ def get_scatter(gallery, notation, distance, from_spec, to_spec, method):
     fig_json, fig_df = build_scatter(gallery, notation, distance, method)
     fig = go.Figure(json.loads(fig_json))
 
-    dmat, dmat_sym, order = dmat_and_order(gallery, notation, distance)
+    dmat, order = dmat_and_order(gallery, notation, distance)
     if from_spec:
         from_row = fig_df.loc[from_spec]
         to_row = fig_df.loc[to_spec]
@@ -22,12 +22,12 @@ def get_scatter(gallery, notation, distance, from_spec, to_spec, method):
         )
         if from_spec == to_spec:
             fig.data[0].marker = dict(
-                color=dmat_sym[order.index(from_spec)],
-                cmax=np.median(dmat_sym),
+                color=dmat[order.index(from_spec)],
+                cmax=np.median(dmat),
                 colorscale="Viridis",
             )
     else:
-        fig.data[0].marker = dict(color=np.median(dmat_sym, axis=0))
+        fig.data[0].marker = dict(color=np.median(dmat, axis=0))
 
     return fig
 
