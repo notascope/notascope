@@ -74,10 +74,7 @@ def stats(gallery, distance, vis):
     )
     fig.update_yaxes(rangemode="tozero")
     fig.update_xaxes(rangemode="tozero")
-    fig.update_traces(
-        hoverinfo="none",
-        hovertemplate="",
-    )
+    fig.update_traces(hoverinfo="none", hovertemplate="")
 
     result.append(fig)
 
@@ -255,10 +252,7 @@ def thumbnails(gallery, distance, vis):
     ]
 
 
-multi_vis_map = {
-    "thumbnails": thumbnails,
-    "stats": stats,
-}
+multi_vis_map = {"thumbnails": thumbnails, "stats": stats}
 multi_vis_types = list(multi_vis_map)
 
 

@@ -47,10 +47,7 @@ def diff_view(gallery, notation, from_spec, to_spec):
             )
         ],
         style=dict(
-            marginTop="20px",
-            textAlign="left",
-            maxWidth="48vw",
-            border="1px solid grey",
+            marginTop="20px", textAlign="left", maxWidth="48vw", border="1px solid grey"
         ),
     )
 

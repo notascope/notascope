@@ -39,25 +39,10 @@ app.layout = html.Div(
             children=[
                 html.Div(
                     [
-                        html.P(
-                            id="tt_name", style=dict(textAlign="center", display="none")
-                        ),
-                        html.Img(
-                            id="tt_img",
-                            style={
-                                "width": "100px",
-                                "height": "100px",
-                                "object-fit": "cover",
-                                "margin": 0,
-                            },
-                        ),
+                        html.Img(id="tt_img", className="tooltip_image"),
+                        html.Img(id="tt_img2", className="tooltip_image"),
                     ],
-                    style={
-                        "width": "100px",
-                        "height": "100px",
-                        "padding": 0,
-                        "margin": 0,
-                    },
+                    className="tooltip",
                 )
             ],
             style={"opacity": 0.85, "padding": 0, "margin": 0},
@@ -146,13 +131,7 @@ def sanitize_state(hashpath_values):
     State("event_listener", "event"),
 )
 def update_hashpath(
-    selection,
-    _dropdowns,
-    node_data,
-    edge_data,
-    _fig_clicks,
-    _img_clicks,
-    event,
+    selection, _dropdowns, node_data, edge_data, _fig_clicks, _img_clicks, event
 ):
     shift_down = bool((dict(shiftKey=False) if not event else event)["shiftKey"])
     from_spec, to_spec = selection
@@ -178,6 +157,9 @@ def update_hashpath(
                 clicked_spec = data["points"][0]["customdata"]
                 if len(clicked_spec) == 1:
                     clicked_spec = clicked_spec[0]
+                if len(clicked_spec) == 2:
+                    from_spec, to_spec = clicked_spec
+                    clicked_spec = ""
 
         if trig_prop == "tapNodeData":
             # clicking on a node
@@ -235,22 +217,14 @@ def dropdown_opts(label, options, current):
         )
     ] + [
         dict(
-            label=x
-            if x != current
-            else html.Span(
-                current,
-                style=dict(color="grey"),
-            ),
+            label=x if x != current else html.Span(current, style=dict(color="grey")),
             value=x,
         )
         for x in options
     ]
 
 
-@app.callback(
-    Output("content", "children"),
-    Input("location", "hash"),
-)
+@app.callback(Output("content", "children"), Input("location", "hash"))
 def update_content(hashpath):
     state = parse_hashpath(hashpath)
     gallery = state["gallery"]
@@ -445,7 +419,7 @@ def update_content(hashpath):
                         open=True,
                         id="vis",
                     )
-                ),
+                )
             )
 
             if compare:
@@ -499,16 +473,26 @@ app.clientside_callback(
         if(spec.length == 1) {
             spec = spec[0];
         }
-        return [true,
-                pt["bbox"],
+        if(spec.length == 2) {
+            return [true, pt["bbox"],
+                    "/assets/results/"+gallery+"/"+notation+"/img/"+spec[0]+".png",
+                    "/assets/results/"+gallery+"/"+notation+"/img/"+spec[1]+".png",
+                    {display: 'inline'},
+                    "tooltip2"];
+        }
+        return [true, pt["bbox"],
                 "/assets/results/"+gallery+"/"+notation+"/img/"+spec+".png",
-                spec];
+                "",
+                {display: 'none'},
+                "tooltip"];
     }
     """,
     Output("tooltip", "show"),
     Output("tooltip", "bbox"),
     Output("tt_img", "src"),
-    Output("tt_name", "children"),
+    Output("tt_img2", "src"),
+    Output("tt_img2", "style"),
+    Output("tooltip", "className"),
     Input(dict(type="figure", suffix=ALL, seq=ALL, notation=ALL), "hoverData"),
 )
 

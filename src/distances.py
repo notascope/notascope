@@ -2,13 +2,7 @@ import pandas as pd
 import numpy as np
 from .utils import cache
 
-distance_types = [
-    "levenshtein",
-    "difflib",
-    "voi",
-    "cd",
-    "ncd",
-]
+distance_types = ["levenshtein", "difflib", "voi", "cd", "ncd"]
 
 
 @cache
@@ -86,10 +80,7 @@ def get_embedding(gallery, notation, distance, method, dim=2):
         from sklearn.manifold import TSNE
 
         embedding = TSNE(
-            n_components=dim,
-            metric="precomputed",
-            learning_rate="auto",
-            init="random",
+            n_components=dim, metric="precomputed", learning_rate="auto", init="random"
         ).fit_transform(dmat)
     elif method == "umap":
         from umap import UMAP

@@ -21,11 +21,7 @@ def code_cell(gallery, notation, spec):
                 + pretty_source(gallery, notation, spec)
                 + "```"
             ),
-            html.A(
-                "✎",
-                href=vscode_link(gallery, notation, spec),
-                className="editlink",
-            )
+            html.A("✎", href=vscode_link(gallery, notation, spec), className="editlink")
             if debug_mode()
             else "",
         ],
@@ -54,10 +50,7 @@ def thumbnail_cell(gallery, notation, spec, mode):
             html.Img(
                 src=img_path(gallery, notation, spec),
                 id=dict(
-                    type="thumbnail",
-                    notation=notation,
-                    spec=spec,
-                    vis="neighbours",
+                    type="thumbnail", notation=notation, spec=spec, vis="neighbours"
                 ),
                 className="bigthumb",
             ),

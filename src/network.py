@@ -138,11 +138,7 @@ def build_network(gallery, notation, distance, method):
     for i, row in emb_df.iterrows():
         network_elements.append(
             {
-                "data": {
-                    "id": i,
-                    "label": i,
-                    "url": img_path(gallery, notation, i),
-                },
+                "data": {"id": i, "label": i, "url": img_path(gallery, notation, i)},
                 "position": {c: row[c] * scale / emb_span for c in ["x", "y"]},
                 "classes": "",
             }

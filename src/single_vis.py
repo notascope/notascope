@@ -24,8 +24,7 @@ def thumbnails(gallery, notation, distance, from_spec, to_spec, vis):
     if from_spec:
         thumbs += [
             html.P(
-                from_spec,
-                style=dict(marginBottom=0, marginTop="15px", fontSize="12px"),
+                from_spec, style=dict(marginBottom=0, marginTop="15px", fontSize="12px")
             ),
             html.Img(
                 id=dict(
@@ -175,13 +174,7 @@ def cytoscape(id, elements):
                     "border-width": 5,
                 },
             },
-            {
-                "selector": ".inserted",
-                "style": {"line-style": "dashed"},
-            },
-            {
-                "selector": ".neighbour",
-                "style": {"line-color": "red"},
-            },
+            {"selector": ".inserted", "style": {"line-style": "dashed"}},
+            {"selector": ".neighbour", "style": {"line-color": "red"}},
         ],
     )

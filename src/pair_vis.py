@@ -8,8 +8,6 @@ from .tokens import load_tokens
 def tokens(gallery, notation, distance, notation2, distance2, from_spec, to_spec, vis):
     tokens_df = load_tokens()
 
-    gallery = "movies"
-
     df = (
         tokens_df.query(
             f"gallery == '{gallery}' and notation in ('{notation}', '{notation2}')"
@@ -74,12 +72,10 @@ def diamond(gallery, notation, distance, notation2, distance2, from_spec, to_spe
                 x=[0, -5, -10, 5, 0, -5, 10, 5, 0],
                 y=[0, 5, 10, 5, 10, 15, 10, 15, 20],
                 aaxis=dict(
-                    title=f"{notation} {distance} remoteness",
-                    gridcolor="lightgrey",
+                    title=f"{notation} {distance} remoteness", gridcolor="lightgrey"
                 ),
                 baxis=dict(
-                    title=f"{notation2} {distance2} remoteness",
-                    gridcolor="lightgrey",
+                    title=f"{notation2} {distance2} remoteness", gridcolor="lightgrey"
                 ),
             ),
         ]
@@ -151,7 +147,7 @@ def remoteness_scatter(
             .update_traces(
                 line_color="grey", hoverinfo="skip", hovertemplate="<extra></extra>"
             )
-            .data,
+            .data
         )
     if len(fig.data) > 1:
         fig.data[1].marker.size = 10
@@ -163,14 +159,29 @@ def distance_scatter(
 ):
     import statsmodels.api as sm
 
-    merged = merged_distances(gallery, notation, distance, notation2, distance2)
+    merged = (
+        merged_distances(gallery, notation, distance, notation2, distance2)
+        .query("from_spec < to_spec")
+        .copy()
+    )
 
     x = str(merged.columns[2])
     y = str(merged.columns[3])
 
-    merged["selected"] = (merged["from_spec"] == from_spec) | (
-        merged["to_spec"] == to_spec
-    )
+    merged["selected"] = False
+    merged.loc[
+        (merged["from_spec"] == from_spec) | (merged["to_spec"] == from_spec),
+        "selected",
+    ] = from_spec
+    merged.loc[
+        (merged["from_spec"] == to_spec) | (merged["to_spec"] == to_spec), "selected"
+    ] = to_spec
+    merged.loc[
+        (merged["from_spec"] == min(from_spec, to_spec))
+        & (merged["to_spec"] == max(from_spec, to_spec)),
+        "selected",
+    ] = "here"
+
     mn = 0  # min(merged[x].min(), merged[y].min())
     mx = max(merged[x].max(), merged[y].max())
     s = 0.1 * (mx - mn)
@@ -181,28 +192,43 @@ def distance_scatter(
         x=x,
         y=y,
         color="selected",
-        hover_data=["from_spec"],
-        category_orders={"selected": [False, True]},
+        hover_data=["from_spec", "to_spec"],
+        category_orders=dict(selected=[False, from_spec, to_spec, "here"]),
+        color_discrete_map={
+            False: "grey",
+            "here": px.colors.qualitative.Plotly[1],
+            from_spec: px.colors.qualitative.Plotly[0],
+            to_spec: px.colors.qualitative.Plotly[2],
+        },
         width=500,
         height=500,
         labels={x: x + " remoteness", y: y + " remoteness"},
     )
     fig.update_traces(hoverinfo="none", hovertemplate="<extra></extra>")
     fig.update_layout(showlegend=False)
+    if len(fig.data) > 1:
+        fig.update_traces(selector=0, marker_size=2)
+    if len(fig.data) == 4:
+        fig.update_traces(
+            selector=3, marker=dict(size=10, line_color="white", line_width=2)
+        )
     if distance == distance2:
-        fig.add_shape(type="line", x0=mn, x1=mx, y0=mn, y1=mx, line_color="white")
+        fig.add_shape(
+            type="line", x0=mn, x1=mx, y0=mn, y1=mx, line_color="white", line_width=1
+        )
         fig.update_xaxes(rangemode="tozero", range=[mn, mx])
         fig.update_yaxes(rangemode="tozero", range=[mn, mx])
     else:
         fig.add_traces(
             px.line(sm.PCA(merged[[x, y]]).project(ncomp=1), x=x, y=y)
             .update_traces(
-                line_color="grey", hoverinfo="skip", hovertemplate="<extra></extra>"
+                line_color="grey",
+                hoverinfo="skip",
+                hovertemplate="<extra></extra>",
+                line_width=1,
             )
-            .data,
+            .data
         )
-    if len(fig.data) > 1:
-        fig.data[1].marker.size = 10
     return fig
 
 
@@ -239,8 +265,8 @@ def slope(gallery, notation, distance, notation2, distance2, from_spec, to_spec,
 
 
 distance_pair_vis_map = {
-    "remoteness_scatter": remoteness_scatter,
-    "distance_scatter": distance_scatter,
+    "scatter": remoteness_scatter,
+    "distances": distance_scatter,
     "slope": slope,
     "rank_slope": slope,
 }

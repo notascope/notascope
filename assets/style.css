@@ -110,3 +110,24 @@ td:hover .editlink {
   right: 10px;
   font-size: 20px;
 }
+
+.tooltip {
+  width: 100px;
+  height: 100px;
+  padding: 0;
+  margin: 0;
+}
+
+.tooltip2 {
+  width: 200px;
+  height: 100px;
+  padding: 0;
+  margin: 0;
+}
+
+.tooltip_image {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  margin: 0;
+}
