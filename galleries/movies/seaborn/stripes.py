@@ -1,8 +1,5 @@
 import pandas as pd
 import seaborn as sns
 
-df = pd.read_csv("data/movies.csv")
-df["Release Date"] = pd.to_datetime(df["Release Date"]).dt.year
-df2 = df.groupby("Release Date")["Worldwide Gross"].sum().reset_index()
-ax = sns.displot(df2, x="Release Date", y=1, weights="Worldwide Gross", bins=100)
-ax.set(ylim=[1, 1.01])
+df = pd.read_csv("data/movies.csv", parse_dates=["Release Date"])
+ax = sns.displot(df, x="Release Date", y=1, weights="Worldwide Gross", binwidth=365)

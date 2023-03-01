@@ -1,14 +1,5 @@
 import pandas as pd
 import seaborn as sns
 
-df = pd.read_csv("data/movies.csv")
-df["Release Date"] = pd.to_datetime(df["Release Date"]).dt.year
-
-ax = sns.catplot(
-    df,
-    kind="bar",
-    x="Release Date",
-    y="Worldwide Gross",
-    estimator="sum",
-    errorbar=None,
-)
+df = pd.read_csv("data/movies.csv", parse_dates=["Release Date"])
+ax = sns.displot(df, x="Release Date", weights="Worldwide Gross", binwidth=365)

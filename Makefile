@@ -5,7 +5,7 @@ results/$(1)/$(2)/img/$(basename $(3)): galleries/$(1)/$(2)/$(3)
 	@mkdir -p $$(dir $$@)
 	@notations/savers/$(2).sh $$< $$@
 	@touch $$@
-all: results/$(1)/$(2)/img/$(basename $(3))
+app.py: results/$(1)/$(2)/img/$(basename $(3))
 
 results/$(1)/$(2)/preproc/$(3): galleries/$(1)/$(2)/$(3)
 	@echo "[preproc]  $(1)/$(2): $(3)"
@@ -19,7 +19,7 @@ results/$(1)/$(2)/pretty/$(3): galleries/$(1)/$(2)/$(3)
 	@mkdir -p $$(dir $$@)
 	@notations/prettyprinters/$(2).sh $$< $$@
 	@touch $$@
-all: results/$(1)/$(2)/pretty/$(3)
+app.py: results/$(1)/$(2)/pretty/$(3)
 
 endef
 
@@ -49,15 +49,15 @@ results/distances.pqt:
 	@echo "[dist]     global"
 	@mkdir -p $(dir $@)
 	@python concat_pqt.py $@ $+
-all: results/distances.pqt
+results/registry.json: results/distances.pqt
 
 results/tokens.pqt:
 	@echo "[tokens]   global"
 	@mkdir -p $(dir $@)
 	@python concat_pqt.py $@ $+
-all: results/tokens.pqt
+results/registry.json: results/tokens.pqt
 
-results/registry.json: all
+results/registry.json:
 	@echo "[registry] global"
 	@python make_registry.py
 

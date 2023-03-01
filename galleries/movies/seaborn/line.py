@@ -1,8 +1,8 @@
 import pandas as pd
 import seaborn as sns
 
-df = pd.read_csv("data/movies.csv")
-df["Release Date"] = pd.to_datetime(df["Release Date"]).dt.year
+df = pd.read_csv("data/movies.csv", parse_dates=["Release Date"])
+df["Release Date"] = df["Release Date"].dt.year
 
 ax = sns.relplot(
     df,

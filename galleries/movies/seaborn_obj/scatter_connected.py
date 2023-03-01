@@ -1,15 +1,8 @@
 import pandas as pd
 import seaborn.objects as so
 
-df = pd.read_csv("data/movies.csv")
-df["Release Date"] = pd.to_datetime(df["Release Date"]).dt.year
-
-df2 = (
-    df.groupby("Release Date")[["Worldwide Gross", "Production Budget"]]
-    .sum()
-    .reset_index()
-)
-
+df = pd.read_csv("data/movies.csv", parse_dates=["Release Date"])
+df2 = df.groupby(df["Release Date"].dt.year).sum(numeric_only=True)
 
 p = (
     so.Plot(df2, x="Production Budget", y="Worldwide Gross")
