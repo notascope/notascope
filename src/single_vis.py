@@ -28,10 +28,7 @@ def thumbnails(gallery, notation, distance, from_spec, to_spec, vis):
             ),
             html.Img(
                 id=dict(
-                    type="thumbnail",
-                    notation=notation,
-                    spec=from_spec,
-                    vis="neighbours",
+                    type="thumbnail", notation="", spec=from_spec, vis="neighbours"
                 ),
                 src=img_path(gallery, notation, from_spec),
                 className="selected_thumb",
@@ -49,10 +46,7 @@ def thumbnails(gallery, notation, distance, from_spec, to_spec, vis):
                     ),
                     html.Img(
                         id=dict(
-                            type="thumbnail",
-                            notation=notation,
-                            spec=spec,
-                            vis="neighbours",
+                            type="thumbnail", notation="", spec=spec, vis="neighbours"
                         ),
                         src=img_path(gallery, notation, spec),
                         className="selected_thumb"
