@@ -9,8 +9,7 @@ df2 = df.pivot_table(
 
 fig, ax = plt.subplots()
 
-for rating in df2.columns:
-    ax.plot(df2.index, df2[rating], label=rating)
-
+ax.plot(df2)
+ax.legend(df2.columns)
 ax.set_xlabel("Release Date")
 ax.set_ylabel("Worldwide Gross")
