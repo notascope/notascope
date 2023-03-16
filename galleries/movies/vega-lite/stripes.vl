@@ -3,7 +3,7 @@
   "data": {
     "url": "data/movies.csv"
   },
-  "mark": "bar",
+  "mark": "rect",
   "encoding": {
     "x": {
       "field": "Release Date",

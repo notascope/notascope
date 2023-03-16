@@ -10,7 +10,7 @@
     },
     "x": {
       "field": "Production Budget",
-      "aggregate": "median"
+      "aggregate": "mean"
     }
   }
 }
