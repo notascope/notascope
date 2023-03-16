@@ -138,7 +138,7 @@ def stats(gallery, distance, vis):
         .median()
         .reset_index()  # remoteness by spec by notation
         .groupby(["notation"])[distance]
-        .median()
+        .mean()
         .reset_index()  # median remoteness by notation
     )
     fig = px.scatter(
