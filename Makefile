@@ -60,8 +60,9 @@ results/registry.json: results/tokens.pqt
 results/registry.json:
 	@echo "[registry] global"
 	@python make_registry.py
-
 app.py: results/registry.json
+
+app.py:
 	touch app.py
 
 clean:

@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 import os
+from time import time
 
 
 import functools
@@ -75,7 +76,7 @@ def md_lang(gallery, notation):
 @cache
 def img_path(gallery, notation, spec):
     imgext = ext(gallery, notation, "img")
-    return f"/assets/results/{gallery}/{notation}/img/{spec}.{imgext}"
+    return f"/assets/results/{gallery}/{notation}/img/{spec}.{imgext}?{time()}"
 
 
 def spec_from_path(path):
