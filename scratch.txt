@@ -1,0 +1,24 @@
+df <- read.csv("data/movies.csv", check.names = FALSE)
+
+# Convert MPAA Rating to factor and specify levels and colors
+df$`MPAA Rating` <- factor(df$`MPAA Rating`, levels = c("G", "PG", "PG-13", "R", "NC-17"))
+colors <- c("blue", "green", "orange", "red", "purple")
+
+# Compute means by MPAA Rating
+df_means <- aggregate(
+  cbind(`Production Budget`, `Worldwide Gross`, `IMDB Rating`) ~ `MPAA Rating`,
+  data = df,
+  FUN = mean,
+  na.rm = TRUE
+)
+
+# Plot the data
+plot(
+  x = df_means$`Production Budget`,
+  y = df_means$`Worldwide Gross`,
+  col = colors[df_means$`MPAA Rating`],
+  pch = 19,
+  cex = df_means$`IMDB Rating`,
+  xlab = "Production Budget",
+  ylab = "Worldwide Gross"
+)
