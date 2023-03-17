@@ -6,7 +6,5 @@ df = pd.read_csv("data/movies.csv")
 chart = (
     alt.Chart(df)
     .mark_bar()
-    .encode(
-        alt.X("Production Budget").bin(), alt.Y("count()"), alt.Color("MPAA Rating")
-    )
+    .encode(x=alt.X("Production Budget").bin(), y="count()", color="MPAA Rating")
 )

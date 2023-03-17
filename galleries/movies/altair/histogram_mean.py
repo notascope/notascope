@@ -6,7 +6,5 @@ df = pd.read_csv("data/movies.csv")
 chart = (
     alt.Chart(df)
     .mark_bar()
-    .encode(
-        alt.X("Production Budget").bin(), alt.Y("Worldwide Gross").aggregate("mean")
-    )
+    .encode(x=alt.X("Production Budget").bin(), y="mean(Worldwide Gross)")
 )

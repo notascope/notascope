@@ -4,5 +4,5 @@ import altair as alt
 df = pd.read_csv("data/movies.csv")
 
 chart = (
-    alt.Chart(df).mark_line().encode(alt.X("Production Budget").bin(), alt.Y("count()"))
+    alt.Chart(df).mark_line().encode(x=alt.X("Production Budget").bin(), y="count()")
 )

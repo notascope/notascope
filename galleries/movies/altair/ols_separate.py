@@ -6,9 +6,7 @@ df = pd.read_csv("data/movies.csv")
 chart = (
     alt.Chart(df)
     .mark_line()
-    .encode(
-        alt.X("Production Budget"), alt.Y("Worldwide Gross"), alt.Color("MPAA Rating")
-    )
+    .encode(x="Production Budget", y="Worldwide Gross", color="MPAA Rating")
     .transform_regression(
         "Production Budget", "Worldwide Gross", groupby=["MPAA Rating"]
     )

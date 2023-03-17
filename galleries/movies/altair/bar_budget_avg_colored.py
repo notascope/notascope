@@ -7,9 +7,9 @@ chart = (
     alt.Chart(df)
     .mark_bar()
     .encode(
-        alt.X("Major Genre"),
-        alt.Y("Production Budget").aggregate("mean"),
-        alt.XOffset("MPAA Rating"),
-        alt.Color("MPAA Rating"),
+        x="Major Genre",
+        y="mean(Production Budget)",
+        xOffset="MPAA Rating",
+        color="MPAA Rating",
     )
 )

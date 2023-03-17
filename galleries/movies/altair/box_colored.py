@@ -7,9 +7,9 @@ chart = (
     alt.Chart(df)
     .mark_boxplot()
     .encode(
-        alt.X("Major Genre"),
-        alt.XOffset("MPAA Rating"),
-        alt.Y("Production Budget"),
-        alt.Color("MPAA Rating"),
+        x="Major Genre",
+        xOffset="MPAA Rating",
+        y="Production Budget",
+        color="MPAA Rating",
     )
 )

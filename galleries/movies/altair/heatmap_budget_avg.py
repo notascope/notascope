@@ -6,9 +6,5 @@ df = pd.read_csv("data/movies.csv")
 chart = (
     alt.Chart(df)
     .mark_rect()
-    .encode(
-        alt.X("Major Genre"),
-        alt.Y("MPAA Rating"),
-        alt.Color("Production Budget").aggregate("mean"),
-    )
+    .encode(x="Major Genre", y="MPAA Rating", color="mean(Production Budget)")
 )

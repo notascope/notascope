@@ -7,9 +7,9 @@ chart = (
     alt.Chart(df)
     .mark_point()
     .encode(
-        alt.X("Production Budget").aggregate("mean"),
-        alt.Y("Worldwide Gross").aggregate("mean"),
-        alt.Color("MPAA Rating"),
-        alt.Size("IMDB Rating").aggregate("mean"),
+        x="mean(Production Budget)",
+        y="mean(Worldwide Gross)",
+        color="MPAA Rating",
+        size="mean(IMDB Rating)",
     )
 )
