@@ -11,7 +11,9 @@ def distances_df(gallery=None, notation=None):
         if notation is None:
             return distances_df().query(f"gallery == '{gallery}'")
         else:
-            return distances_df(gallery=gallery).query(f"notation=='{notation}'")
+            return distances_df().query(
+                f"gallery == '{gallery}' and notation=='{notation}'"
+            )
     return pd.read_parquet("results/distances.pqt")
 
 

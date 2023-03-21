@@ -167,20 +167,23 @@ def distance_scatter(
 
     x = str(merged.columns[2])
     y = str(merged.columns[3])
-
     merged["selected"] = False
-    merged.loc[
-        (merged["from_spec"] == from_spec) | (merged["to_spec"] == from_spec),
-        "selected",
-    ] = from_spec
-    merged.loc[
-        (merged["from_spec"] == to_spec) | (merged["to_spec"] == to_spec), "selected"
-    ] = to_spec
-    merged.loc[
-        (merged["from_spec"] == min(from_spec, to_spec))
-        & (merged["to_spec"] == max(from_spec, to_spec)),
-        "selected",
-    ] = "here"
+    if from_spec:
+        merged.loc[
+            (merged["from_spec"] == from_spec) | (merged["to_spec"] == from_spec),
+            "selected",
+        ] = from_spec
+    if to_spec:
+        merged.loc[
+            (merged["from_spec"] == to_spec) | (merged["to_spec"] == to_spec),
+            "selected",
+        ] = to_spec
+    if from_spec and to_spec:
+        merged.loc[
+            (merged["from_spec"] == min(from_spec, to_spec))
+            & (merged["to_spec"] == max(from_spec, to_spec)),
+            "selected",
+        ] = "here"
 
     mn = 0  # min(merged[x].min(), merged[y].min())
     mx = max(merged[x].max(), merged[y].max())
@@ -202,7 +205,7 @@ def distance_scatter(
         },
         width=500,
         height=500,
-        labels={x: x + " remoteness", y: y + " remoteness"},
+        labels={x: x + " distances", y: y + " distances"},
     )
     fig.update_traces(hoverinfo="none", hovertemplate="<extra></extra>")
     fig.update_layout(showlegend=False)
