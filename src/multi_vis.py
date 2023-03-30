@@ -66,9 +66,9 @@ def stats(gallery, distance, vis):
         trendline="ols",
         labels={
             distance: f"Specification Remoteness ({distance})",
-            "from_length": "Size in bytes",
+            "from_length": "Length in bytes",
         },
-        title="Specification Remoteness versus Size in Bytes",
+        title="Specification Remoteness versus Length in Bytes",
         height=750,
         hover_data=["from_spec"],
     )
@@ -134,11 +134,8 @@ def stats(gallery, distance, vis):
 
     df2 = (
         distances_df(gallery=gallery)
-        .groupby(["notation", "from_spec"])[distance]
-        .median()
-        .reset_index()  # remoteness by spec by notation
         .groupby(["notation"])[distance]
-        .mean()
+        .median()
         .reset_index()  # median remoteness by notation
     )
     fig = px.scatter(
@@ -149,8 +146,8 @@ def stats(gallery, distance, vis):
         text="notation",
         category_orders=dict(notation=notations),
         height=750,
-        title="Remoteness/Unique-Token Tradeoff",
-        labels={distance: "Median Remoteness", "token": "Number of Unique Tokens"},
+        title="Sprawl versus Vocabulary Size",
+        labels={distance: "Sprawl", "token": "Vocabulary Size"},
     )
     fig.update_yaxes(rangemode="tozero")
     fig.update_xaxes(rangemode="tozero")
