@@ -1,6 +1,6 @@
 ## NotaScope
 
-To get started you'll need [`git`](https://git-scm.com/) and [`conda`](https://docs.conda.io/) (or `miniconda` or `mamba` or similar) installed.
+To get started you'll need [`git`](https://git-scm.com/) and [`conda`](https://docs.conda.io/) (or `miniconda` or `mamba` or similar) installed:
 
 ```bash
 $ git clone git@github.com:nicolaskruchten/notascope.git
