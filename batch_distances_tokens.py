@@ -21,6 +21,7 @@ langmap = dict(
     vg="javascript",
     json="javascript",
     js="javascript",
+    mjs="javascript",
     R="r",
 )
 

@@ -1,3 +1,3 @@
 #!/bin/zsh
 
-cp $1 $2
+npx prettier --print-width=60 $1 > $2

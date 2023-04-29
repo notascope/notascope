@@ -69,7 +69,7 @@ def ext(gallery, notation, obj):
 
 @cache
 def md_lang(gallery, notation):
-    langs = dict(py="python", R="R", json="json", vl="json")
+    langs = dict(py="python", R="R", json="json", vl="json", mjs="js")
     return langs[ext(gallery, notation, "source")]
 
 

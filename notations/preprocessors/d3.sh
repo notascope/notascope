@@ -1,3 +1,3 @@
 #!/bin/zsh
 
-cp $1 $2
+npx uglifyjs $1 > $2
