@@ -1,7 +1,6 @@
 from bokeh.plotting import figure
-from bokeh.models import ColumnDataSource
 from bokeh.transform import dodge
-from bokeh.palettes import Category10
+from bokeh.palettes import Category10_8
 import pandas as pd
 
 df = pd.read_csv("data/movies.csv")
@@ -13,13 +12,12 @@ df2 = df.pivot_table(
 )
 width = 0.8 / len(df2.columns)
 
-source = ColumnDataSource(df2.reset_index())
-p = figure(x_range=source.data["Major Genre"])
+p = figure(x_range=df2.index.unique().to_list())
 for i, (label, counts) in enumerate(df2.items()):
     p.vbar(
         x=dodge("Major Genre", width * i - 0.5, range=p.x_range),
         top=label,
-        color=Category10[10][i],
+        color=Category10_8[i],
         width=width,
-        source=source,
+        source=df2.reset_index(),
     )

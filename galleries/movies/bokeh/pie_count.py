@@ -2,14 +2,15 @@ import pandas as pd
 import numpy as np
 from bokeh.plotting import figure
 from bokeh.transform import cumsum
-from bokeh.palettes import Category10
+from bokeh.palettes import Category10_8
 
 df = pd.read_csv("data/movies.csv")
+df["MPAA Rating"] = df["MPAA Rating"].fillna("Unknown")
 df2 = df["MPAA Rating"].value_counts().reset_index()
 df2.columns = ["MPAA Rating", "count"]
 
 df2["angle"] = df2["count"] / df2["count"].sum() * 2 * np.pi
-df2["color"] = Category10[len(df2)]
+df2["color"] = Category10_8
 
 p = figure()
 

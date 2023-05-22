@@ -1,6 +1,6 @@
 import pandas as pd
 from bokeh.plotting import figure
-from bokeh.palettes import Category10_10
+from bokeh.palettes import Category10_8
 import numpy as np
 
 df = pd.read_csv("data/movies.csv")
@@ -15,4 +15,4 @@ for i, (label, df2) in enumerate(groups):
     y = df2["Worldwide Gross"]
     b, a = np.polyfit(x, y, deg=1)
     xseq = np.array([x.min(), x.max()])
-    p.line(xseq, a + b * xseq, color=Category10_10[i], legend_label=label)
+    p.line(xseq, a + b * xseq, color=Category10_8[i], legend_label=label)
