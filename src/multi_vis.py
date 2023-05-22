@@ -106,22 +106,27 @@ def stats(gallery, distance, vis):
         insidetextanchor="middle",
         texttemplate="%{y} used %{text}x",
     )
-    fig.update_layout(uniformtext_minsize=8, uniformtext_mode="hide")
-    fig.update_xaxes(title="")
+    for t in fig.data:
+        t.legendgroup = t.name
+    fig.update_layout(uniformtext_minsize=6, uniformtext_mode="hide")
+    fig.update_xaxes(title="", categoryorder="total descending")
     df = (
         tokens_df.query(f"gallery == '{gallery}'")
         .groupby(["notation"])["token"]
         .nunique()
         .reset_index()
     )
-    fig.add_scatter(
-        x=df["notation"],
-        y=df["token"],
-        text=df["token"],
-        mode="text",
-        textposition="top center",
-        showlegend=False,
-    )
+
+    for _, row in df.iterrows():
+        fig.add_scatter(
+            x=[row["notation"]],
+            y=[row["token"]],
+            text=[row["token"]],
+            mode="text",
+            textposition="top center",
+            showlegend=False,
+            legendgroup=row["notation"],
+        )
     result.append(fig)
 
     df1 = (
