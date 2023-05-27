@@ -1,5 +1,5 @@
+import hvplot.pandas
 import pandas as pd
-import altair as alt
 
 df = pd.DataFrame(
     {
@@ -9,5 +9,5 @@ df = pd.DataFrame(
     }
 )
 
-chart = alt.Chart(df).mark_line().encode(x="Contestant", y="Number Eaten", color="Fruit")
-chart.properties(width=400, height=400)
+df2 = df.pivot_table(index="Contestant", columns="Fruit", values="Number Eaten")
+p = df2.hvplot.line()

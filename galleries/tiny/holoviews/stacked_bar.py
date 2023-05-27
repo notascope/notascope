@@ -1,5 +1,5 @@
+import holoviews as hv
 import pandas as pd
-import altair as alt
 
 df = pd.DataFrame(
     {
@@ -9,5 +9,8 @@ df = pd.DataFrame(
     }
 )
 
-chart = alt.Chart(df).mark_bar().encode(x="Fruit", y="Number Eaten", color="Contestant")
-chart.properties(width=400, height=400)
+p = (
+    hv.Dataset(df)
+    .to(hv.Bars, ["Fruit", "Contestant"], "Number Eaten")
+    .opts(stacked=True)
+)
