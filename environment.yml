@@ -21,7 +21,6 @@ dependencies:
   - altair=5.0.0
   - holoviews=1.16.0
   - hvplot=0.8.3
-  - panel=1.0
   - python-kaleido=0.2.1
   - spectra=0.0.11
   - lz4=4.2.0
