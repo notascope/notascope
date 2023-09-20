@@ -13,7 +13,7 @@
     "build": "npm run build:js && npm run build:backends",
     "build:activated": "npm run build:js && npm run build:backends-activated"
   },
-  "author": "",
+  "author": "Nicolas Kruchten <nicolas@kruchten.com>",
   "license": "MIT",
   "dependencies": {
     "ramda": "^0.26.1",
