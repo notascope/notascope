@@ -8,16 +8,17 @@ df["MPAA Rating"] = df["MPAA Rating"].fillna("Unknown")
 marker_types = [
     "asterisk",
     "circle",
-    "cross",
-    "diamond",
-    "square",
-    "triangle",
-    "inverted_triangle",
-    "x",
     "circle_cross",
-]
-markers = [
-    marker_types[i % len(marker_types)] for i in range(len(df["Major Genre"].unique()))
+    "circle_dot",
+    "circle_x",
+    "circle_y",
+    "cross",
+    "dash",
+    "diamond",
+    "diamond_cross",
+    "diamond_dot",
+    "dot",
+    "hex",
 ]
 
 p = figure()
@@ -27,5 +28,5 @@ p.scatter(
     y="Worldwide Gross",
     source=df,
     color=factor_cmap("MPAA Rating", "Category10_10", df["MPAA Rating"].unique()),
-    marker=factor_mark("Major Genre", markers, df["Major Genre"].unique()),
+    marker=factor_mark("Major Genre", marker_types, df["Major Genre"].unique()),
 )

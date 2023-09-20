@@ -3,7 +3,7 @@ from bokeh.plotting import figure
 from bokeh.palettes import Category10_8
 
 
-df = pd.read_csv("data/movies.csv", parse_dates=["Release Date"])
+df = pd.read_csv("data/movies.csv")
 df2 = df.pivot_table(
     index="Major Genre",
     columns="MPAA Rating",

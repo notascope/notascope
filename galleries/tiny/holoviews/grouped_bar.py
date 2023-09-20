@@ -1,4 +1,6 @@
 import holoviews as hv
+
+hv.extension("matplotlib")
 import pandas as pd
 
 df = pd.DataFrame(
