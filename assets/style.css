@@ -19,6 +19,16 @@ body {
   font-size: 30px;
 }
 
+#about {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+}
+
+#about a {
+  text-decoration: none;
+}
+
 #logomark img {
   width: 40px;
   height: 40px;
