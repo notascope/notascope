@@ -33,6 +33,29 @@ app.layout = html.Div(
         html.Div(
             id="logomark", children=[html.Img(src="/assets/logo.png"), "NotaScope"]
         ),
+        html.Div(
+            id="about",
+            children=[
+                html.A(
+                    "about NotaScope ⓘ",
+                    style=dict(fontSize="12px"),
+                    href="https://notascope.io/",
+                    target="_blank",
+                )
+            ],
+            style=dict(fontSize="12px", textAlign="center"),
+        ),
+        html.Div(
+            children=[
+                html.A(
+                    "about NotaScope",
+                    style=dict(fontSize="12px"),
+                    href="https://notascope.io/",
+                    target="_blank",
+                )
+            ],
+            style=dict(fontSize="12px", textAlign="center"),
+        ),
         dcc.Location(id="location"),
         dcc.Tooltip(
             id="tooltip",
