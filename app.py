@@ -29,7 +29,13 @@ server = app.server
 
 app.layout = html.Div(
     [
-        html.Div(id="content"),
+        html.Div(
+            id="content",
+            children=html.P(
+                "Loading...",
+                style=dict(textAlign="center", fontSize="24px", marginTop="100px"),
+            ),
+        ),
         html.Div(
             id="logomark", children=[html.Img(src="/assets/logo.png"), "NotaScope"]
         ),
