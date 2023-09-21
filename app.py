@@ -34,27 +34,15 @@ app.layout = html.Div(
             id="logomark", children=[html.Img(src="/assets/logo.png"), "NotaScope"]
         ),
         html.Div(
-            id="about",
             children=[
                 html.A(
                     "about NotaScope ⓘ",
-                    style=dict(fontSize="12px"),
                     href="https://notascope.io/",
                     target="_blank",
+                    style=dict(fontSize="12px", textDecoration="none"),
                 )
             ],
-            style=dict(fontSize="12px", textAlign="center"),
-        ),
-        html.Div(
-            children=[
-                html.A(
-                    "about NotaScope",
-                    style=dict(fontSize="12px"),
-                    href="https://notascope.io/",
-                    target="_blank",
-                )
-            ],
-            style=dict(fontSize="12px", textAlign="center"),
+            style=dict(position="absolute", top="20px", right="20px"),
         ),
         dcc.Location(id="location"),
         dcc.Tooltip(
@@ -476,7 +464,20 @@ def update_content(hashpath):
     ):
         blocks.append(details_view(gallery, notation2, distance2, from_spec, to_spec))
 
-    return html.Div(className="wrapper", children=blocks)
+    return [
+        html.Div(className="wrapper", children=blocks),
+        html.Div(
+            [
+                html.A(
+                    "about NotaScope",
+                    style=dict(fontSize="12px"),
+                    href="https://notascope.io/",
+                    target="_blank",
+                )
+            ],
+            style=dict(width="100px", margin="10px auto"),
+        ),
+    ]
 
 
 # if/when there is a PNG notation, just inline the imgext dict in the string or in the ID dict
