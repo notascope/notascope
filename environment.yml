@@ -19,8 +19,8 @@ dependencies:
   - tree_sitter=0.20.1
   - seaborn=0.12.2
   - altair=5.0.0
-  - holoviews=1.16.0
-  - hvplot=0.8.3
+  - holoviews=1.17.1
+  - hvplot=0.8.4
   - python-kaleido=0.2.1
   - spectra=0.0.11
   - lz4=4.2.0
@@ -28,7 +28,7 @@ dependencies:
   - statsmodels=0.13.5
   - black=22.10.0
   - jq=1.6
-  - bokeh=3.1.1
+  - bokeh=3.2.2
   - selenium=4.7.2
   - isort=5.12
   - geckodriver
