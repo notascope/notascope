@@ -10,6 +10,7 @@ processes = []
 
 [env]
   PORT = "8080"
+  DEPLOYED = true
 
 [experimental]
   auto_rollback = true
