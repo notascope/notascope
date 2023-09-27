@@ -27,7 +27,10 @@ def load_registry():
 
 @cache
 def galleries():
-    return list(load_registry().keys())
+    all_galleries = list(load_registry().keys())
+    if os.environ.get("DEPLOYED"):
+        return [g for g in all_galleries if g in ["movies", "tiny", "vega-lite"]]
+    return all_galleries
 
 
 @cache

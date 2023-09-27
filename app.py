@@ -44,7 +44,6 @@ app.layout = html.Div(
                 html.A(
                     "about NotaScope ⓘ",
                     href="https://notascope.io/",
-                    target="_blank",
                     style=dict(fontSize="12px", textDecoration="none"),
                 )
             ],
@@ -478,7 +477,6 @@ def update_content(hashpath):
                     "about NotaScope",
                     style=dict(fontSize="12px"),
                     href="https://notascope.io/",
-                    target="_blank",
                 )
             ],
             style=dict(width="100px", margin="10px auto"),

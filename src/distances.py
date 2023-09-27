@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from .utils import cache
 
-distance_types = ["levenshtein", "difflib", "voi", "cd", "ncd"]
+distance_types = ["cd", "ncd", "levenshtein", "difflib", "voi"]
 
 
 @cache
