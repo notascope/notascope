@@ -35,7 +35,6 @@ def tokens(gallery, notation, distance, notation2, distance2, from_spec, to_spec
 
 
 def diamond(gallery, notation, distance, notation2, distance2, from_spec, to_spec, vis):
-
     merged = merged_distances(gallery, notation, distance, notation2, distance2)
 
     x = distance + "_" + notation
@@ -105,6 +104,21 @@ def diamond(gallery, notation, distance, notation2, distance2, from_spec, to_spe
     return fig
 
 
+def length_scatter(
+    gallery, notation, distance, notation2, distance2, from_spec, to_spec, vis
+):
+    return remoteness_scatter(
+        gallery,
+        notation,
+        "from_length",
+        notation2,
+        "from_length",
+        from_spec,
+        to_spec,
+        vis,
+    )
+
+
 def remoteness_scatter(
     gallery, notation, distance, notation2, distance2, from_spec, to_spec, vis
 ):
@@ -133,7 +147,22 @@ def remoteness_scatter(
         category_orders={"selected": [False, True]},
         width=500,
         height=500,
-        labels={x: x + " remoteness", y: y + " remoteness"},
+        labels={
+            x: " ".join(
+                [
+                    distance if distance != "from_length" else "spec length",
+                    notation,
+                    (" remoteness" if distance != "from_length" else ""),
+                ]
+            ),
+            y: " ".join(
+                [
+                    distance2 if distance2 != "from_length" else "spec length",
+                    notation2,
+                    (" remoteness" if distance2 != "from_length" else ""),
+                ]
+            ),
+        },
     )
     fig.update_traces(hoverinfo="none", hovertemplate="<extra></extra>")
     fig.update_layout(showlegend=False)
@@ -278,6 +307,7 @@ distance_pair_vis_types = list(distance_pair_vis_map.keys())
 
 notation_pair_vis_map = {
     "scatter": remoteness_scatter,
+    "length_scatter": length_scatter,
     "diamond": diamond,
     "slope": slope,
     "rank_slope": slope,
