@@ -29,7 +29,11 @@ def load_registry():
 def galleries():
     all_galleries = list(load_registry().keys())
     if os.environ.get("DEPLOYED"):
-        return [g for g in all_galleries if g in ["movies", "tiny", "vega-lite"]]
+        return [
+            g
+            for g in all_galleries
+            if g in ["movies", "movies_dev", "tiny", "basic", "vega-lite"]
+        ]
     return all_galleries
 
 
