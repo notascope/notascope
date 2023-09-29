@@ -6,7 +6,7 @@ The NotaScope [source code is on Github](https://github.com/notascope) and a 
 
 ### Local Setup
 
-To get started you'll need [`git`](https://git-scm.com/) and [`conda`](https://docs.conda.io/) (or `miniconda` or `mamba` or similar) installed:
+To get started you'll need [`git`](https://git-scm.com/), [`conda`](https://docs.conda.io/) and [Firefox](https://firefox.com/) installed.
 
 ```bash
 $ git clone git@github.com:nicolaskruchten/notascope.git
