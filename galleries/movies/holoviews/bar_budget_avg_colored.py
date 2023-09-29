@@ -1,7 +1,7 @@
 import holoviews as hv
 import pandas as pd
 
-hv.extension("matplotlib")
+hv.extension("bokeh")
 
 df = pd.read_csv("data/movies.csv")
 
